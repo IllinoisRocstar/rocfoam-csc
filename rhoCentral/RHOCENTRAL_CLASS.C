@@ -1,62 +1,97 @@
 #include "RHOCENTRAL_CLASS.H"
 
-RHOCENTRAL_CLASS::RHOCENTRAL_CLASS() {}
-RHOCENTRAL_CLASS::RHOCENTRAL_CLASS(int argc,char *argv[])
+RHOCENTRAL_CLASS::RHOCENTRAL_CLASS() :
+                argsPtr(NULL), runTimePtr(NULL), pPtr(NULL), TPtr(NULL), psiPtr(NULL),
+                ePtr(NULL), rhoPtr(NULL), UPtr(NULL), rhoUPtr(NULL), rhoEPtr(NULL), 
+                posPtr(NULL), negPtr(NULL), phiPtr(NULL), amaxSfPtr(NULL),
+                thermoPtr(NULL), meshPtr(NULL), turbulencePtr(NULL), 
+                trDeltaT(NULL),
+                fluxScheme(""), inviscid(false), adjustTimeStep(false), listOptions(false),
+                LTS(false), maxCo(0.0), maxDeltaT(0.0), CoNum(0.0), meanCoNum(0.0)
+{}
+
+RHOCENTRAL_CLASS::RHOCENTRAL_CLASS(int argc,char *argv[]) :
+                argsPtr(NULL), runTimePtr(NULL), pPtr(NULL), TPtr(NULL), psiPtr(NULL),
+                ePtr(NULL), rhoPtr(NULL), UPtr(NULL), rhoUPtr(NULL), rhoEPtr(NULL), 
+                posPtr(NULL), negPtr(NULL), phiPtr(NULL), amaxSfPtr(NULL),
+                thermoPtr(NULL), meshPtr(NULL), turbulencePtr(NULL), 
+                trDeltaT(NULL),
+                fluxScheme(""), inviscid(false), adjustTimeStep(false), listOptions(false),
+                LTS(false), maxCo(0.0), maxDeltaT(0.0), CoNum(0.0), meanCoNum(0.0)
 {
    Initialize(argc, argv);
 }
 
 
-int RHOCENTRAL_CLASS::Initialize(int argc,char *argv[])
-{
-   #define NO_CONTROL
+int RHOCENTRAL_CLASS::Initialize(int argc,char *argv[]){
+    #define NO_CONTROL
 
-   // Mohammad: Not quite sure where this line should be
-   argsPtr = new Foam::argList(argc, argv);
+    // Mohammad: Not quite sure where this line should be
+    argsPtr = new Foam::argList(argc, argv);
 
-   //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   PostProcess(argc, argv);
-   // ---------------------------------------------------
+    //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    PostProcess(argc, argv);
+    // ---------------------------------------------------
 
-   //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   setRootCaseLists(argc, argv);
-   // ---------------------------------------------------
+    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    setRootCaseLists();
+    // ---------------------------------------------------
 
-   //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   createTime(argc, argv);
-   // ---------------------------------------------------
+    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    createTime();
+    // ---------------------------------------------------
 
-   //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   createDynamicFvMesh();
-   // ---------------------------------------------------
+    //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    createDynamicFvMesh();
+    // ---------------------------------------------------
 
-   //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   createFields();
-   
-   // ---------------------------------------------------
+    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    createFields();
 
-   //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   createFieldRefs();
-   // ---------------------------------------------------
+    // ---------------------------------------------------
 
-   //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   createTimeControls();
-   // ---------------------------------------------------
+    //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    createFieldRefs();
+    // ---------------------------------------------------
 
-   //  readFluxScheme.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   readFluxScheme();
-   // ---------------------------------------------------
+    //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    createTimeControls();
+    // ---------------------------------------------------
 
-   turbulencePtr->validate();
+    //  readFluxScheme.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    readFluxScheme();
+    // ---------------------------------------------------
 
-   Foam::Info << "End of initialization of openFoamPar module." << endl;
+    compressible::turbulenceModel &turbulence(*turbulencePtr);
 
-   return 0;
+    turbulence.validate();
+
+    Foam::Info << "End of initialization of openFoamPar module." << endl;
+
+    return 0;
 }
 
 
 int RHOCENTRAL_CLASS::loop()
 {
+
+    dynamicFvMesh &mesh(*meshPtr);
+    Foam::Time &runTime(*runTimePtr);
+    volScalarField &p(*pPtr);
+    volVectorField &U(*UPtr);
+    volVectorField &rhoU(*rhoUPtr);
+    const volScalarField &T(*TPtr);
+    const volScalarField &psi(*psiPtr);
+    volScalarField &e(*ePtr);
+    volScalarField &rho(*rhoPtr);
+    volScalarField &rhoE(*rhoEPtr);
+    surfaceScalarField &pos(*posPtr);
+    surfaceScalarField &neg(*negPtr);
+    surfaceScalarField &phi(*phiPtr);
+    Foam::psiThermo &thermo(*thermoPtr);
+    compressible::turbulenceModel &turbulence(*turbulencePtr);
+
+
 
     dimensionedScalar v_zero("v_zero", dimVolume/dimTime, 0.0);
 
@@ -66,14 +101,10 @@ int RHOCENTRAL_CLASS::loop()
 
     Info<< "\nStarting time loop\n" << endl;
 
-    while (runTimePtr->run())
+    while (runTime.run())
     {
         //  readTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         readTimeControls();
-
-Foam::Info << "LTS = " << LTS << endl;
-
-
         // ---------------------------------------------------
 
         if (!LTS)
@@ -81,26 +112,26 @@ Foam::Info << "LTS = " << LTS << endl;
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setDeltaT();
             // ---------------------------------------------
-            &(*runTimePtr)++;
+            runTime++;
 
             // Do any mesh changes
-            meshPtr->update();
+            mesh.update();
         }
 
         // --- Directed interpolation of primitive fields onto faces
 
-        surfaceScalarField rho_pos(interpolate(*rhoPtr, *posPtr));
-        surfaceScalarField rho_neg(interpolate(*rhoPtr, *negPtr));
+        surfaceScalarField rho_pos(interpolate(rho, pos));
+        surfaceScalarField rho_neg(interpolate(rho, neg));
 
-        surfaceVectorField rhoU_pos(interpolate(*rhoUPtr, *posPtr, UPtr->name()));
-        surfaceVectorField rhoU_neg(interpolate(*rhoUPtr, *negPtr, UPtr->name()));
+        surfaceVectorField rhoU_pos(interpolate(rhoU, pos, U.name()));
+        surfaceVectorField rhoU_neg(interpolate(rhoU, neg, U.name()));
 
-        volScalarField rPsi("rPsi", 1.0/ *psiPtr);
-        surfaceScalarField rPsi_pos(interpolate(rPsi, *posPtr, TPtr->name()));
-        surfaceScalarField rPsi_neg(interpolate(rPsi, *negPtr, TPtr->name()));
+        volScalarField rPsi("rPsi", 1.0/ psi);
+        surfaceScalarField rPsi_pos(interpolate(rPsi, pos, T.name()));
+        surfaceScalarField rPsi_neg(interpolate(rPsi, neg, T.name()));
 
-        surfaceScalarField e_pos(interpolate(*ePtr, *posPtr, TPtr->name()));
-        surfaceScalarField e_neg(interpolate(*ePtr, *negPtr, TPtr->name()));
+        surfaceScalarField e_pos(interpolate(e, pos, T.name()));
+        surfaceScalarField e_neg(interpolate(e, neg, T.name()));
 
         surfaceVectorField U_pos("U_pos", rhoU_pos/rho_pos);
         surfaceVectorField U_neg("U_neg", rhoU_neg/rho_neg);
@@ -108,27 +139,27 @@ Foam::Info << "LTS = " << LTS << endl;
         surfaceScalarField p_pos("p_pos", rho_pos*rPsi_pos);
         surfaceScalarField p_neg("p_neg", rho_neg*rPsi_neg);
 
-        surfaceScalarField phiv_pos("phiv_pos", U_pos & meshPtr->Sf());
-        surfaceScalarField phiv_neg("phiv_neg", U_neg & meshPtr->Sf());
+        surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
+        surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
         // Make fluxes relative to mesh-motion
-        if (meshPtr->moving())
+        if (mesh.moving())
         {
-            phiv_pos -= meshPtr->phi();
-            phiv_neg -= meshPtr->phi();
+            phiv_pos -= mesh.phi();
+            phiv_neg -= mesh.phi();
         }
 
-        volScalarField c("c", sqrt(thermoPtr->Cp() / thermoPtr->Cv() * rPsi));
+        volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
         surfaceScalarField cSf_pos
         (
             "cSf_pos",
-            interpolate(c, *posPtr, TPtr->name()) * meshPtr->magSf()
+            interpolate(c, pos, T.name()) * mesh.magSf()
         );
 
         surfaceScalarField cSf_neg
         (
             "cSf_neg",
-            interpolate(c, *negPtr, TPtr->name()) * meshPtr->magSf()
+            interpolate(c, neg, T.name()) * mesh.magSf()
         );
 
         surfaceScalarField ap
@@ -149,16 +180,15 @@ Foam::Info << "LTS = " << LTS << endl;
         {
             amaxSfPtr = new surfaceScalarField("amaxSf", max(mag(am), mag(ap)));
         }
-        //else
-        //{
-            *amaxSfPtr = max(mag(am), mag(ap));
-        //}
+        surfaceScalarField &amaxSf(*amaxSfPtr);
+
+        amaxSf = max(mag(am), mag(ap));
 
         surfaceScalarField aSf("aSf", am*a_pos);
 
         if (fluxScheme == "Tadmor")
         {
-            aSf = -0.5 * *amaxSfPtr;
+            aSf = -0.5 * amaxSf;
             a_pos = 0.5;
         }
 
@@ -172,7 +202,7 @@ Foam::Info << "LTS = " << LTS << endl;
 
         // Reuse amaxSf for the maximum positive and negative fluxes
         // estimated by the central scheme
-        *amaxSfPtr = max(mag(aphiv_pos), mag(aphiv_neg));
+        amaxSf = max(mag(aphiv_pos), mag(aphiv_neg));
 
         //  centralCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         centralCourantNo();
@@ -184,17 +214,17 @@ Foam::Info << "LTS = " << LTS << endl;
             // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setRDeltaT();
             // -------------------------------
-            &(*runTimePtr)++;
+            runTime++;
         }
 
-        Info<< "Time = " << runTimePtr->timeName() << nl << endl;
+        Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        *phiPtr = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
+        phi = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
 
         surfaceVectorField phiUp
         (
             (aphiv_pos*rhoU_pos + aphiv_neg*rhoU_neg)
-          + (a_pos*p_pos + a_neg*p_neg) * meshPtr->Sf()
+          + (a_pos*p_pos + a_neg*p_neg) * mesh.Sf()
         );
 
         surfaceScalarField phiEp
@@ -206,37 +236,34 @@ Foam::Info << "LTS = " << LTS << endl;
         );
 
         // Make flux for pressure-work absolute
-        if (meshPtr->moving())
+        if (mesh.moving())
         {
-            phiEp += meshPtr->phi()*(a_pos*p_pos + a_neg*p_neg);
+            phiEp += mesh.phi()*(a_pos*p_pos + a_neg*p_neg);
         }
 
-        volScalarField muEff("muEff", turbulencePtr->muEff());
-        volTensorField tauMC("tauMC", muEff*dev2(Foam::T(fvc::grad(*UPtr))));
+        volScalarField muEff("muEff", turbulence.muEff());
+        volTensorField tauMC("tauMC", muEff*dev2(Foam::T(fvc::grad(U))));
 
         // --- Solve density
-        solve(fvm::ddt(*rhoPtr) + fvc::div(*phiPtr));
+        solve(fvm::ddt(rho) + fvc::div(phi));
 
         // --- Solve momentum
-        solve(fvm::ddt(*rhoUPtr) + fvc::div(phiUp));
+        solve(fvm::ddt(rhoU) + fvc::div(phiUp));
 
-        //U.ref() = rhoU()/rho()
-        //UPtr->ref() = rhoUPtr->ref() / rhoPtr->ref();
-        UPtr->ref() = *rhoUPtr / *rhoPtr;
-
+        U.ref() = rhoU()/rho();
        
-        UPtr->correctBoundaryConditions();
-        rhoUPtr->boundaryFieldRef() == rhoPtr->boundaryField() * UPtr->boundaryField();
+        U.correctBoundaryConditions();
+        rhoU.boundaryFieldRef() == rho.boundaryField() * U.boundaryField();
 
         if (!inviscid)
         {
             solve
             (
-                fvm::ddt(*rhoPtr, *UPtr) - fvc::ddt(*rhoPtr, *UPtr)
-              - fvm::laplacian(muEff, *UPtr)
+                fvm::ddt(rho, U) - fvc::ddt(rho, U)
+              - fvm::laplacian(muEff, U)
               - fvc::div(tauMC)
             );
-            *rhoUPtr = *rhoPtr * *UPtr;
+            rhoU = rho * U;
         }
 
         // --- Solve energy
@@ -244,52 +271,50 @@ Foam::Info << "LTS = " << LTS << endl;
         (
             "sigmaDotU",
             (
-                fvc::interpolate(muEff) * meshPtr->magSf() * fvc::snGrad(*UPtr)
-              + fvc::dotInterpolate(meshPtr->Sf(), tauMC)
+                fvc::interpolate(muEff) * mesh.magSf() * fvc::snGrad(U)
+              + fvc::dotInterpolate(mesh.Sf(), tauMC)
             )
           & (a_pos*U_pos + a_neg*U_neg)
         );
 
         solve
         (
-            fvm::ddt(*rhoEPtr)
+            fvm::ddt(rhoE)
           + fvc::div(phiEp)
           - fvc::div(sigmaDotU)
         );
 
-        *ePtr = *rhoEPtr / *rhoPtr - 0.5*magSqr(*UPtr);
-        ePtr->correctBoundaryConditions();
-        thermoPtr->correct();
-        rhoEPtr->boundaryFieldRef() ==
-            rhoPtr->boundaryField()*
+        e = rhoE / rho - 0.5*magSqr(U);
+        e.correctBoundaryConditions();
+        thermo.correct();
+        rhoE.boundaryFieldRef() ==
+            rho.boundaryField()*
             (
-                ePtr->boundaryField() + 0.5*magSqr(UPtr->boundaryField())
+                e.boundaryField() + 0.5*magSqr(U.boundaryField())
             );
 
         if (!inviscid)
         {
             solve
             (
-                fvm::ddt(*rhoPtr, *ePtr) - fvc::ddt(*rhoPtr, *ePtr)
-              - fvm::laplacian(turbulencePtr->alphaEff(), *ePtr)
+                fvm::ddt(rho, e) - fvc::ddt(rho, e)
+              - fvm::laplacian(turbulence.alphaEff(), e)
             );
-            thermoPtr->correct();
-            *rhoEPtr = *rhoPtr * (*ePtr + 0.5*magSqr(*UPtr));
+            thermo.correct();
+            rhoE = rho * (e + 0.5*magSqr(U));
         }
 
-        //pPtr->ref() = *rhoPtr() / *psiPtr();
-        //pPtr->ref() = rhoPtr()->ref() / psiPtr()->ref();
-        pPtr->ref() = *rhoPtr / *psiPtr;
+        p.ref() = rho() / psi();
 
-        pPtr->correctBoundaryConditions();
-        rhoPtr->boundaryFieldRef() == psiPtr->boundaryField() * pPtr->boundaryField();
+        p.correctBoundaryConditions();
+        rho.boundaryFieldRef() == psi.boundaryField() * p.boundaryField();
 
-        turbulencePtr->correct();
+        turbulence.correct();
 
-        runTimePtr->write();
+        runTime.write();
 
-        Info<< "ExecutionTime = " << runTimePtr->elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTimePtr->elapsedClockTime() << " s"
+        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
             << nl << endl;
     }
 
@@ -306,12 +331,12 @@ Foam::Info << "LTS = " << LTS << endl;
 
 
 
-int RHOCENTRAL_CLASS::PostProcess(int argc, char *argv[])
+int RHOCENTRAL_CLASS::PostProcess(int argc,char *argv[])
 {
 
    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef CREATE_TIME
-   #define CREATE_TIME createTime(argc, argv);
+   #define CREATE_TIME createTime();
 #endif
    // ---------------------------------------------------
 
@@ -337,6 +362,11 @@ int RHOCENTRAL_CLASS::PostProcess(int argc, char *argv[])
    #define INCLUDE_FILE(X) INCLUDE_FILE2(X)
    #define INCLUDE_FILE2(X) X
 
+
+    Foam::argList &args(*argsPtr);
+    Foam::Time &runTime(*runTimePtr);
+    
+
    Foam::argList::addBoolOption
    (
        argList::postProcessOptionName,
@@ -349,48 +379,31 @@ Foam::Info << "FROM POSTPROCESS00" << endl;
    {
       Foam::timeSelector::addOptions();
 
-
-std::cout << "FROM POSTPROCESS01" << endl;
-
       //  addRegionOption.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       addRegionOption();
       // ---------------------------------------------------
-
-std::cout << "FROM POSTPROCESS02" << endl;
 
       //  addFunctionObjectOptions.H  ^^^^^^^^^^^^^^^^^^^^^^
       addFunctionObjectOptions();
       // ---------------------------------------------------
 
-std::cout << "FROM POSTPROCESS03" << endl;
-
       // Set functionObject post-processing mode
       functionObject::postProcess = true;
-
-std::cout << "FROM POSTPROCESS03" << endl;
-
       //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      //setRootCase(argc, argv);
+      setRootCase();
       // --------------------------------------------------
 
-std::cout << "FROM POSTPROCESS04" << endl;
-
-
-      if (argsPtr->optionFound("list"))
+      if (args.optionFound("list"))
       {
          functionObjectList::list();
-
-std::cout << "FROM POSTPROCESS05" << endl;
-         
          return 0;
       }
 
-std::cout << "FROM POSTPROCESS06" << endl;
-
-
       INCLUDE_FILE(CREATE_TIME)
-      Foam::instantList timeDirs = Foam::timeSelector::select0(*runTimePtr, *argsPtr);
+      Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
+
       INCLUDE_FILE(CREATE_MESH)
+      dynamicFvMesh &mesh(*meshPtr);
 
       #ifndef NO_CONTROL
          INCLUDE_FILE(CREATE_CONTROL)
@@ -398,9 +411,9 @@ std::cout << "FROM POSTPROCESS06" << endl;
 
       forAll(timeDirs, timei)
       {
-         runTimePtr->setTime(timeDirs[timei], timei);
+         runTime.setTime(timeDirs[timei], timei);
 
-         Info<< "Time = " << runTimePtr->timeName() << endl;
+         Info<< "Time = " << runTime.timeName() << endl;
 
          FatalIOError.throwExceptions();
 
@@ -416,10 +429,6 @@ std::cout << "FROM POSTPROCESS06" << endl;
                #include INCLUDE_FILE(CREATE_FIELDS_3)
             #endif
 
-
-Foam::Info << "FROM POSTPROCESS" << endl;
-
-
             // Externally stored dictionary for functionObjectList
             // if not constructed from runTime
             dictionary functionsControlDict("controlDict");
@@ -431,8 +440,8 @@ Foam::Info << "FROM POSTPROCESS" << endl;
             (
                functionObjectList::New
                (
-                  *argsPtr,
-                  *runTimePtr,
+                  args,
+                  runTime,
                   functionsControlDict,
                   selectedFields
                )
@@ -446,7 +455,7 @@ Foam::Info << "FROM POSTPROCESS" << endl;
          }
 
          // Clear the objects owned by the mesh
-         meshPtr->objectRegistry::clear();
+         mesh.objectRegistry::clear();
 
          Info<< endl;
       }
@@ -455,9 +464,6 @@ Foam::Info << "FROM POSTPROCESS" << endl;
 
       return 0;
    }
-
-
-Foam::Info << "FROM POSTPROCESS000" << endl;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -539,13 +545,13 @@ int RHOCENTRAL_CLASS::addFunctionObjectOptions()
 }
 
 
-int RHOCENTRAL_CLASS::setRootCase(int argc,char *argv[])
+int RHOCENTRAL_CLASS::setRootCase()
 {
 
-Foam::Info << "In setRootCase ..." << endl;
+    Foam::argList &args(*argsPtr);
 
-   Foam::argList args(argc, argv);
-   if (!argsPtr->checkRootCase())
+   //Foam::argList args(argc, argv);
+   if (!args.checkRootCase())
    {
        Foam::FatalError.exit();
    }
@@ -554,28 +560,19 @@ Foam::Info << "In setRootCase ..." << endl;
 
 
 
-int RHOCENTRAL_CLASS::setRootCaseLists(int argc,char *argv[])
+int RHOCENTRAL_CLASS::setRootCaseLists()
 {
 
    //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    listOptions_Func();
    // --------------------------------------------------
-
-Foam::Info << "listOptions_Func Done" << endl;
-
    
    //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   //setRootCase(argc, argv);
+   setRootCase();
    // --------------------------------------------------
-
-Foam::Info << "setRootCase Done" << endl;
-
 
    //  listOutput.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    listOutput();
-
-Foam::Info << "listOutput Done" << endl;   
-   
    // --------------------------------------------------
 
    return 0;
@@ -643,28 +640,31 @@ int RHOCENTRAL_CLASS::listOptions_Func()
 
 int RHOCENTRAL_CLASS::listOutput()
 {
+
+    Foam::argList &args(*argsPtr);
+
    //bool listOptions = false ;
 
    if
    (
-       argsPtr->optionFound("listSwitches")
+       args.optionFound("listSwitches")
    )
    {
-       debug::listSwitches(argsPtr->optionFound("includeUnsetSwitches"));
+       debug::listSwitches(args.optionFound("includeUnsetSwitches"));
        listOptions = true;
    }
 
    if
    (
-       argsPtr->optionFound("listRegisteredSwitches")
+       args.optionFound("listRegisteredSwitches")
    )
    {
-       debug::listRegisteredSwitches(argsPtr->optionFound("includeUnsetSwitches"));
+       debug::listRegisteredSwitches(args.optionFound("includeUnsetSwitches"));
        listOptions = true;
    }
 
    #ifdef fvPatchField_H
-   if (argsPtr->optionFound("listScalarBCs"))
+   if (args.optionFound("listScalarBCs"))
    {
        Info<< "scalarBCs"
            << fvPatchField<scalar>::dictionaryConstructorTablePtr_->sortedToc()
@@ -672,7 +672,7 @@ int RHOCENTRAL_CLASS::listOutput()
        listOptions = true;
    }
 
-   if (argsPtr->optionFound("listVectorBCs"))
+   if (args.optionFound("listVectorBCs"))
    {
        Info<< "vectorBCs"
            << fvPatchField<vector>::dictionaryConstructorTablePtr_->sortedToc()
@@ -682,7 +682,7 @@ int RHOCENTRAL_CLASS::listOutput()
    #endif
 
    #ifdef functionObject_H
-   if (argsPtr->optionFound("listFunctionObjects"))
+   if (args.optionFound("listFunctionObjects"))
    {
        Info<< "functionObjects"
            << functionObject::dictionaryConstructorTablePtr_->sortedToc()
@@ -692,7 +692,7 @@ int RHOCENTRAL_CLASS::listOutput()
    #endif
 
    #ifdef fvOption_H
-   if (argsPtr->optionFound("listFvOptions"))
+   if (args.optionFound("listFvOptions"))
    {
        Info<< "fvOptions"
            << fv::option::dictionaryConstructorTablePtr_->sortedToc()
@@ -702,7 +702,7 @@ int RHOCENTRAL_CLASS::listOutput()
    #endif
 
    #ifdef turbulentTransportModel_H
-   if (argsPtr->optionFound("listTurbulenceModels"))
+   if (args.optionFound("listTurbulenceModels"))
    {
        Info<< "Turbulence models"
            << incompressible::turbulenceModel::
@@ -721,7 +721,7 @@ int RHOCENTRAL_CLASS::listOutput()
        listOptions = true;
    }
    #elif defined(turbulentFluidThermoModel_H)
-   if (argsPtr->optionFound("listTurbulenceModels"))
+   if (args.optionFound("listTurbulenceModels"))
    {
        Info<< "Turbulence models"
            << compressible::turbulenceModel::
@@ -751,68 +751,35 @@ int RHOCENTRAL_CLASS::listOutput()
 
 
 
-
-
-int RHOCENTRAL_CLASS::createTime(int argc,char *argv[])
+int RHOCENTRAL_CLASS::createTime()
 {
+
+    Foam::argList &args(*argsPtr);
+
 
    Foam::Info<< "Create time\n" << Foam::endl;
    //Foam::Time runTimePtr(Foam::Time::controlDictName, *argsPtr);
-   runTimePtr = new Foam::Time(Foam::Time::controlDictName, *argsPtr);
+   runTimePtr = new Foam::Time(Foam::Time::controlDictName, args);
    // Mohammad: Not quite sure where this line should be
    
    return 0;
 }
 
-/*
-// Depreciate this for the moment. Only used in postPtocess.H
-int RHOCENTRAL_CLASS::createMesh()
-{
-   Foam::Info
-      << "Create mesh for time = "
-      << runTimePtr->timeName() << Foam::nl << Foam::endl;
-
-   Foam::fvMesh meshPtr
-   (
-      Foam::IOobject
-      (
-         Foam::fvMesh::defaultRegion,
-         runTimePtr->timeName(),
-         *runTimePtr,
-         Foam::IOobject::MUST_READ
-      )
-   );
-
-   return 0;
-}
-*/
 
 int RHOCENTRAL_CLASS::createDynamicFvMesh()
 {
-    Info<< "Create mesh for time = "
-        << runTimePtr->timeName() << nl << endl;
+    Foam::Time &runTime(*runTimePtr);
 
-    /*autoPtr<dynamicFvMesh> meshPtr
-    (
-        dynamicFvMesh::New
-        (
-            IOobject
-            (
-                dynamicFvMesh::defaultRegion,
-                runTimePtr->timeName(),
-                *runTimePtr,
-                IOobject::MUST_READ
-            )
-        )
-    );*/
+    Info<< "Create mesh for time = "
+        << runTime.timeName() << nl << endl;
 
     meshPtr = dynamicFvMesh::New
         (
             IOobject
             (
                 dynamicFvMesh::defaultRegion,
-                runTimePtr->timeName(),
-                *runTimePtr,
+                runTime.timeName(),
+                runTime,
                 IOobject::MUST_READ
             )
         );
@@ -824,6 +791,11 @@ int RHOCENTRAL_CLASS::createDynamicFvMesh()
 
 int RHOCENTRAL_CLASS::createFields()
 {
+
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+
+
    // createRDeltaT.H
    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    createRDeltaT();
@@ -831,210 +803,112 @@ int RHOCENTRAL_CLASS::createFields()
 
    Info<< "Reading thermophysical properties\n" << endl;
 
-/*
-   autoPtr<psiThermo> thermo
-   (
-      psiThermo::New(*meshPtr)
-   );
-*/
-
     thermoPtr = autoPtr<psiThermo>
     (
-        psiThermo::New(*meshPtr)
+        psiThermo::New(mesh)
     );
+    Foam::psiThermo &thermo(*thermoPtr);
 
 
-   //volScalarField& e = thermoPtr->he();
-   ePtr = &thermoPtr->he();
+   ePtr = &thermo.he();
+   volScalarField &e(*ePtr);
 
    Info<< "Reading field U\n" << endl;
 
-   /*volVectorField U
-   (
-      IOobject
-      (
-         "U",
-         runTimePtr->timeName(),
-         *meshPtr,
-         IOobject::MUST_READ,
-         IOobject::AUTO_WRITE
-      ),
-      *meshPtr
-   );*/
-   
    UPtr = new volVectorField
    (
       IOobject
       (
          "U",
-         runTimePtr->timeName(),
-         *meshPtr,
+         runTime.timeName(),
+         mesh,
          IOobject::MUST_READ,
          IOobject::AUTO_WRITE
       ),
-      *meshPtr
+      mesh
    );
-
-   /*volScalarField rho
-   (
-      IOobject
-      (
-         "rho",
-         runTimePtr->timeName(),
-         *meshPtr,
-         IOobject::NO_READ,
-         IOobject::AUTO_WRITE
-      ),
-      thermoPtr->rho()
-   );*/
+   volVectorField &U(*UPtr);
    
+   
+
    rhoPtr = new volScalarField
    (
       IOobject
       (
          "rho",
-         runTimePtr->timeName(),
-         *meshPtr,
+         runTime.timeName(),
+         mesh,
          IOobject::NO_READ,
          IOobject::AUTO_WRITE
       ),
-      thermoPtr->rho()
+      thermo.rho()
    );
-
-   /*volVectorField rhoU
-   (
-      IOobject
-      (
-         "rhoU",
-         runTimePtr->timeName(),
-         *meshPtr,
-         IOobject::NO_READ,
-         IOobject::NO_WRITE
-      ),
-      rho*U
-   ); */
+   volScalarField &rho(*rhoPtr);
 
    rhoUPtr = new volVectorField
    (
       IOobject
       (
          "rhoU",
-         runTimePtr->timeName(),
-         *meshPtr,
+         runTime.timeName(),
+         mesh,
          IOobject::NO_READ,
          IOobject::NO_WRITE
       ),
-      *rhoPtr * *UPtr
+      rho * U
    );
-
-   /*volScalarField rhoE
-   (
-      IOobject
-      (
-         "rhoE",
-         runTimePtr->timeName(),
-         *meshPtr,
-         IOobject::NO_READ,
-         IOobject::NO_WRITE
-      ),
-      rho*(e + 0.5*magSqr(U))
-   ); */
+   volVectorField &rhoU(*rhoUPtr);
 
    rhoEPtr = new volScalarField
    (
       IOobject
       (
          "rhoE",
-         runTimePtr->timeName(),
-         *meshPtr,
+         runTime.timeName(),
+         mesh,
          IOobject::NO_READ,
          IOobject::NO_WRITE
       ),
-      *rhoPtr * (*ePtr + 0.5*magSqr(*UPtr))
+      rho * (e + 0.5*magSqr(U))
    );
 
-   /*surfaceScalarField pos
-   (
-      IOobject
-      (
-         "pos",
-         runTimePtr->timeName(),
-         *meshPtr
-      ),
-      *meshPtr,
-      dimensionedScalar(dimless, 1.0)
-   );*/
-   
    posPtr = new surfaceScalarField
    (
       IOobject
       (
          "pos",
-         runTimePtr->timeName(),
-         *meshPtr
+         runTime.timeName(),
+         mesh
       ),
-      *meshPtr,
+      mesh,
       dimensionedScalar(dimless, 1.0)
    );
 
-   /*surfaceScalarField neg
-   (
-      IOobject
-      (
-         "neg",
-         runTimePtr->timeName(),
-         *meshPtr
-      ),
-      *meshPtr,
-      dimensionedScalar(dimless, -1.0)
-   );*/
-   
    negPtr = new surfaceScalarField
    (
       IOobject
       (
          "neg",
-         runTimePtr->timeName(),
-         *meshPtr
+         runTime.timeName(),
+         mesh
       ),
-      *meshPtr,
+      mesh,
       dimensionedScalar(dimless, -1.0)
    );
 
-   //surfaceScalarField phi("phi", fvc::flux(rhoU));
-   
-   phiPtr = new surfaceScalarField("phi", fvc::flux(*rhoUPtr));
+   phiPtr = new surfaceScalarField("phi", fvc::flux(rhoU));
+   surfaceScalarField &phi(*phiPtr);
 
    Info<< "Creating turbulence model\n" << endl;
-
-   /*autoPtr<compressible::turbulenceModel> turbulence
-   (
-      compressible::turbulenceModel::New
-      (
-         rho,
-         U,
-         phi,
-         thermo
-      )
-   ); */
-
-/*   turbulencePtr = new compressible::turbulenceModel::New
-      (
-         *rhoPtr,
-         *UPtr,
-         *phiPtr,
-         *thermoPtr
-      );
-*/
 
     turbulencePtr = autoPtr<compressible::turbulenceModel>
     (
         compressible::turbulenceModel::New
         (
-            *rhoPtr,
-            *UPtr,
-            *phiPtr,
-            *thermoPtr
+            rho,
+            U,
+            phi,
+            thermo
         )
     );
 
@@ -1060,8 +934,11 @@ int RHOCENTRAL_CLASS::createControl()
 
 int RHOCENTRAL_CLASS::createRDeltaT()
 {
-   //bool LTS = fv::localEulerDdt::enabled(*meshPtr);
-   LTS = fv::localEulerDdt::enabled(*meshPtr);
+    dynamicFvMesh &mesh(*meshPtr);
+    Foam::Time &runTime(*runTimePtr);
+
+
+   LTS = fv::localEulerDdt::enabled(mesh);
 
    if (LTS)
    {
@@ -1074,12 +951,12 @@ int RHOCENTRAL_CLASS::createRDeltaT()
             IOobject
             (
                fv::localEulerDdt::rDeltaTName,
-               runTimePtr->timeName(),
-               *meshPtr,
+               runTime.timeName(),
+               mesh,
                IOobject::READ_IF_PRESENT,
                IOobject::AUTO_WRITE
             ),
-            *meshPtr,
+            mesh,
             dimensionedScalar(dimless/dimTime, 1),
             extrapolatedCalculatedFvPatchScalarField::typeName
          )
@@ -1092,21 +969,22 @@ int RHOCENTRAL_CLASS::createRDeltaT()
 
 int RHOCENTRAL_CLASS::createFieldRefs()
 {
+
+    Foam::psiThermo &thermo(*thermoPtr);
+
    /*
    volScalarField& p = thermo.p();
    const volScalarField& T = thermo.T();
    const volScalarField& psi = thermo.psi(); */
-   const volScalarField& mu = thermoPtr->mu();
+   const volScalarField& mu = thermo.mu();
    
-   pPtr   = &thermoPtr->p();
-   TPtr   = &thermoPtr->T();
-   psiPtr = &thermoPtr->psi();
-   //muPtr  = &thermoPtr->mu();
+   pPtr   = &thermo.p();
+   TPtr   = &thermo.T();
+   psiPtr = &thermo.psi();
    
    //bool inviscid(true);
    inviscid = true;
    if (max(mu.primitiveField()) > 0.0)
-   //if (max( thermoPtr->mu.primitiveField() ) > 0.0)
    {
        inviscid = false;
    }
@@ -1117,17 +995,20 @@ int RHOCENTRAL_CLASS::createFieldRefs()
 
 int RHOCENTRAL_CLASS::createTimeControls()
 {
+
+    Foam::Time &runTime(*runTimePtr);
+
    //bool adjustTimeStep =
    adjustTimeStep = 
-      runTimePtr->controlDict().lookupOrDefault("adjustTimeStep", false);
+      runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
    //scalar maxCo =
    maxCo =
-      runTimePtr->controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
+      runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
 
    //scalar maxDeltaT =
    maxDeltaT =
-      runTimePtr->controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
+      runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
          
    return 0;
 }
@@ -1135,9 +1016,12 @@ int RHOCENTRAL_CLASS::createTimeControls()
 
 int RHOCENTRAL_CLASS::readFluxScheme()
 {
+
+    dynamicFvMesh &mesh(*meshPtr);
+
    //word fluxScheme("Kurganov");
    word fluxScheme("Kurganov");
-   if (meshPtr->schemesDict().readIfPresent("fluxScheme", fluxScheme))
+   if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme))
    {
       if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov"))
       {
@@ -1158,14 +1042,16 @@ int RHOCENTRAL_CLASS::readFluxScheme()
 
 int RHOCENTRAL_CLASS::readTimeControls()
 {
+    Foam::Time &runTime(*runTimePtr);
+
    adjustTimeStep =
-       runTimePtr->controlDict().lookupOrDefault("adjustTimeStep", false);
+       runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
    maxCo =
-       runTimePtr->controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
+       runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
 
    maxDeltaT =
-       runTimePtr->controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
+       runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
    
 
 Foam::Info << "adjustTimeStep = " << adjustTimeStep << endl;
@@ -1178,21 +1064,23 @@ Foam::Info << "maxDeltaT = " << maxDeltaT << endl;
 
 int RHOCENTRAL_CLASS::setDeltaT()
 {
+    Foam::Time &runTime(*runTimePtr);
+
    if (adjustTimeStep)
    {
        scalar maxDeltaTFact = maxCo/(CoNum + small);
        scalar deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.2);
 
-       runTimePtr->setDeltaT
+       runTime.setDeltaT
        (
            min
            (
-               deltaTFact * runTimePtr->deltaTValue(),
+               deltaTFact * runTime.deltaTValue(),
                maxDeltaT
            )
        );
 
-       Info<< "deltaT = " <<  runTimePtr->deltaTValue() << endl;
+       Info<< "deltaT = " <<  runTime.deltaTValue() << endl;
    }
    return 0;
 }
@@ -1200,11 +1088,17 @@ int RHOCENTRAL_CLASS::setDeltaT()
 
 int RHOCENTRAL_CLASS::setRDeltaT()
 {
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+    surfaceScalarField &amaxSf(*amaxSfPtr);
+    
+    
+
     volScalarField& rDeltaT = trDeltaT.ref();
 
     scalar rDeltaTSmoothingCoeff
     (
-        runTimePtr->controlDict().lookupOrDefault<scalar>
+        runTime.controlDict().lookupOrDefault<scalar>
         (
             "rDeltaTSmoothingCoeff",
             0.02
@@ -1215,8 +1109,8 @@ int RHOCENTRAL_CLASS::setRDeltaT()
     rDeltaT.ref() = max
     (
         1/dimensionedScalar(dimTime, maxDeltaT),
-        fvc::surfaceSum(*amaxSfPtr)()()
-       /((2*maxCo) * meshPtr->V())
+        fvc::surfaceSum(amaxSf)()()
+       /((2*maxCo) * mesh.V())
     );
 
     // Update tho boundary values of the reciprocal time-step
@@ -1236,14 +1130,19 @@ int RHOCENTRAL_CLASS::setRDeltaT()
 
 int RHOCENTRAL_CLASS::centralCourantNo()
 {
-   if (meshPtr->nInternalFaces())
-   {
-       scalarField sumAmaxSf(fvc::surfaceSum(*amaxSfPtr)().primitiveField());
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+    surfaceScalarField &amaxSf(*amaxSfPtr);
+    
 
-       CoNum = 0.5*gMax(sumAmaxSf/meshPtr->V().field()) * runTimePtr->deltaTValue();
+   if (mesh.nInternalFaces())
+   {
+       scalarField sumAmaxSf(fvc::surfaceSum(amaxSf)().primitiveField());
+
+       CoNum = 0.5*gMax(sumAmaxSf/mesh.V().field()) * runTime.deltaTValue();
 
        meanCoNum =
-           0.5*(gSum(sumAmaxSf)/gSum(meshPtr->V().field())) * runTimePtr->deltaTValue();
+           0.5*(gSum(sumAmaxSf)/gSum(mesh.V().field())) * runTime.deltaTValue();
    }
 
    Info<< "Mean and max Courant Numbers = "
@@ -1253,5 +1152,29 @@ int RHOCENTRAL_CLASS::centralCourantNo()
 }
 
 
+int RHOCENTRAL_CLASS::finalize()
+{
+    delete pPtr;
+    delete TPtr;
+    delete psiPtr;
+    //delete muPtr;
 
+    //delete thermoPtr;
+
+    delete ePtr;
+    delete rhoPtr;
+    delete UPtr;
+    delete rhoUPtr;
+    delete rhoEPtr;
+    delete posPtr;
+    delete negPtr;
+    delete phiPtr;
+
+    delete amaxSfPtr;
+
+    //delete turbulencePtr;
+    //delete trDeltaT;
+    
+    return 0;
+}
 

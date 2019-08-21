@@ -19,37 +19,17 @@ protected:
 
 public:
 
-   // ====== OpenFOAM stuff ========
-   //
-   //    General, init stuff
+   //  Initializations ^^^^^^^^^^^^^^
    Foam::argList *argsPtr;
    Foam::Time *runTimePtr;
+   //--------------------------------
    
-   // postProcess usses fvMesh while the solver uses
-   // dynamicFvMesh. For the moment, use the latter.
-   //Foam::fvMesh *meshPtr;
-   
-   //Foam::dynamicFvMesh *meshPtr;
-   autoPtr<dynamicFvMesh> meshPtr;
-   
-   
-   //  Reference variables. For the moment, using pointers insted
-   /*
-   volScalarField& p;
-   const volScalarField& T;
-   const volScalarField& psi;
-   const volScalarField& mu;
-   */
-
+   //  Solver pointers ^^^^^^^^^^^^^^
    volScalarField *pPtr;
    const volScalarField *TPtr;
    const volScalarField *psiPtr;
    //const volScalarField *muPtr;
    //tmp<volScalarField> muPtr;
-   
-
-   //psiThermo *thermoPtr;
-   autoPtr<psiThermo> thermoPtr;
    
    volScalarField *ePtr;
    volScalarField *rhoPtr;
@@ -59,46 +39,50 @@ public:
    surfaceScalarField *posPtr;
    surfaceScalarField *negPtr;
    surfaceScalarField *phiPtr;
-   
-   surfaceScalarField *amaxSfPtr = NULL;
-   
-   //compressible::turbulenceModel *turbulencePtr;
+   surfaceScalarField *amaxSfPtr;
+
+   autoPtr<psiThermo> thermoPtr;
+   autoPtr<dynamicFvMesh> meshPtr;   
    autoPtr<compressible::turbulenceModel> turbulencePtr;
    tmp<volScalarField> trDeltaT;
+   //--------------------------------
       
-   word fluxScheme;
+   //  Control variables ^^^^^^^^^^^^
+   const scalar small=1e-10;
    
+   word fluxScheme;
    bool inviscid;
    bool adjustTimeStep;
+   bool listOptions;
+   bool LTS;
    scalar maxCo;
    scalar maxDeltaT;
+   scalar CoNum;
+   scalar meanCoNum;
+   //--------------------------------
    
-   scalar CoNum=0.0;
-   scalar meanCoNum=0.0;
-   scalar small=1e-10;
-   
-   
-   bool listOptions = false;
-   bool LTS = false;
-
-
+   //  Constructor, Deconstructor ........ 
    RHOCENTRAL_CLASS();
    RHOCENTRAL_CLASS(int argc,char *argv[]); 
+   ~RHOCENTRAL_CLASS(){}
 
-   int loop();
-   
+   //  Main functions ....................
    int Initialize(int argc,char *argv[]);
+   int loop();
+   int finalize();
+
+   //  Execution functions ...............
    int PostProcess(int argc,char *argv[]);
    int addRegionOption();
    int addDictOption();
    int addFunctionObjectOptions();
-   int setRootCase(int argc,char *argv[]);
+   int setRootCase();
 
-   int setRootCaseLists(int argc,char *argv[]);
+   int setRootCaseLists();
    int listOptions_Func();
    int listOutput();
    
-   int createTime(int argc,char *argv[]);
+   int createTime();
    int createMesh();
    int createDynamicFvMesh();
    int createFields();
@@ -112,30 +96,6 @@ public:
    int setDeltaT();
    int setRDeltaT();
    int centralCourantNo();
-
-   ~RHOCENTRAL_CLASS()
-   {
-      delete pPtr;
-      delete TPtr;
-      delete psiPtr;
-      //delete muPtr;
-      
-      //delete thermoPtr;
-      
-      delete ePtr;
-      delete rhoPtr;
-      delete UPtr;
-      delete rhoUPtr;
-      delete rhoEPtr;
-      delete posPtr;
-      delete negPtr;
-      delete phiPtr;
-      
-       delete amaxSfPtr;
-      
-      //delete turbulencePtr;
-      //delete trDeltaT;
-   }
 
 };
 
