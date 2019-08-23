@@ -1,4 +1,5 @@
+../FOAM/FOAM_CLASS.C
 RHOCENTRAL_CLASS.C
 rhoCentral.C
 
-EXE = $(FOAM_USER_APPBIN)/rocCentrallFoam
+EXE = $(FOAM_USER_APPBIN)/rocCentralFoam
