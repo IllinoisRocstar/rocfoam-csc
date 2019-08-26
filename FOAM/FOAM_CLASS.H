@@ -21,8 +21,8 @@ public:
    //--------------------------------
 
    //  Control variables ^^^^^^^^^^^^
-   static constexpr scalar small=1e-10;
-   static constexpr scalar great=1e+10;
+   //static scalar constexpr small=1.0e-10;
+   //static scalar constexpr great=1.0e+10;
 
    bool listOptions;
    bool LTS;

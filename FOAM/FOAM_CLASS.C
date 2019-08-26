@@ -559,7 +559,7 @@ int FOAM_CLASS::setDeltaT()
 
    if (adjustTimeStep)
    {
-       scalar maxDeltaTFact = maxCo/(CoNum + FOAM_CLASS::small);
+       scalar maxDeltaTFact = maxCo/(CoNum + small);
        scalar deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.2);
 
        runTime.setDeltaT

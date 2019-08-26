@@ -30,6 +30,10 @@ public:
    autoPtr<surfaceVectorField> rhoUfPtr;
    autoPtr<volScalarField> divrhoUPtr;
    IOMRFZoneList *MRFPtr;
+
+   tmp<fvVectorMatrix> tUEqnPtr;
+   fvVectorMatrix *UEqnPtr;
+   
    //--------------------------------------
       
    //  Control variables ^^^^^^^^^^^^^^^^^^
