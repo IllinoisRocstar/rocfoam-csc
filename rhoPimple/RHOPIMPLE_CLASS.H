@@ -20,20 +20,17 @@ public:
 
    //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
    pimpleControl *pimplePtr;
-   
-   autoPtr<fluidThermo> pThermoPtr;
-   
    pressureControl *pressureControlPtr;
    volScalarField *dpdtPtr;
    volScalarField *KPtr;
    fv::options *fvOptionsPtr;
+   IOMRFZoneList *MRFPtr;
+   fvVectorMatrix *UEqnPtr;
+
+   autoPtr<fluidThermo> pThermoPtr;
    autoPtr<surfaceVectorField> rhoUfPtr;
    autoPtr<volScalarField> divrhoUPtr;
-   IOMRFZoneList *MRFPtr;
-
    tmp<fvVectorMatrix> tUEqnPtr;
-   fvVectorMatrix *UEqnPtr;
-   
    //--------------------------------------
       
    //  Control variables ^^^^^^^^^^^^^^^^^^

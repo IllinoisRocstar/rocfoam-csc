@@ -585,13 +585,14 @@ int RHOCENTRAL_CLASS::finalize()
     delete UPtr;
     delete rhoUPtr;
     delete rhoEPtr;
+    delete phiPtr;
+
     //delete meshPtr;
     //delete turbulencePtr;
     //delete trDeltaT;
 
     delete posPtr;
     delete negPtr;
-    delete phiPtr;
     delete amaxSfPtr;
     //delete pThermoPtr;
 

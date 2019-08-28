@@ -1,9 +1,25 @@
 #include "RHOPIMPLE_CLASS.H"
 
-RHOPIMPLE_CLASS::RHOPIMPLE_CLASS() : FOAM_CLASS()
+RHOPIMPLE_CLASS::RHOPIMPLE_CLASS() : FOAM_CLASS(),
+                pimplePtr(NULL), pressureControlPtr(NULL),
+                dpdtPtr(NULL), KPtr(NULL), fvOptionsPtr(NULL),
+                MRFPtr(NULL), UEqnPtr(NULL), pThermoPtr(NULL),
+                rhoUfPtr(NULL), divrhoUPtr(NULL), tUEqnPtr(NULL),
+                correctPhi(false), 
+                checkMeshCourantNo(false),
+                moveMeshOuterCorrectors(false),
+                cumulativeContErr(0.0)
 {}
 
-RHOPIMPLE_CLASS::RHOPIMPLE_CLASS(int argc,char *argv[]) : FOAM_CLASS()
+RHOPIMPLE_CLASS::RHOPIMPLE_CLASS(int argc,char *argv[]) : FOAM_CLASS(),
+                pimplePtr(NULL), pressureControlPtr(NULL),
+                dpdtPtr(NULL), KPtr(NULL), fvOptionsPtr(NULL),
+                MRFPtr(NULL), UEqnPtr(NULL), pThermoPtr(NULL),
+                rhoUfPtr(NULL), divrhoUPtr(NULL), tUEqnPtr(NULL),
+                correctPhi(false), 
+                checkMeshCourantNo(false),
+                moveMeshOuterCorrectors(false),
+                cumulativeContErr(0.0)
 {
    Initialize(argc, argv);
 }
@@ -66,7 +82,7 @@ int RHOPIMPLE_CLASS::Initialize(int argc,char *argv[]){
         // ---------------------------------------------------
     }
 
-    Foam::Info << "End of initialization of openFoamPar module." << endl;
+    Foam::Info << "End of initialization." << endl;
 
     return 0;
 }
@@ -127,10 +143,6 @@ int RHOPIMPLE_CLASS::createDyMControls()
 
 
 
-
-
-
-
 int RHOPIMPLE_CLASS::initContinuityErrs()
 {
     #ifndef initContinuityErrs_H
@@ -158,39 +170,19 @@ int RHOPIMPLE_CLASS::createFields()
 
     Info<< "Reading thermophysical properties\n" << endl;
 
-    /*autoPtr<fluidThermo> pThermo
-    (
-        fluidThermo::New(mesh)
-    );
-    fluidThermo& thermo = pThermo(); */
-    
     pThermoPtr = autoPtr<fluidThermo>
     (
         fluidThermo::New(mesh)
     );
     fluidThermo &thermo(*pThermoPtr);
     
-    
     thermo.validate(args.executable(), "h", "e");
 
-    
-    //volScalarField& p = thermo.p();
+
     pPtr = &thermo.p();
     volScalarField &p(*pPtr);
     
-
-    /*volScalarField rho
-    (
-        IOobject
-        (
-            "rho",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
-        thermo.rho()
-    ); */
+    
     rhoPtr = new volScalarField
     (
         IOobject
@@ -206,19 +198,6 @@ int RHOPIMPLE_CLASS::createFields()
     volScalarField &rho(*rhoPtr);
     
 
-    /* Info<< "Reading field U\n" << endl;
-    volVectorField U
-    (
-        IOobject
-        (
-            "U",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    ); */
     Info<< "Reading field U\n" << endl;
     UPtr = new volVectorField
     (
@@ -240,24 +219,12 @@ int RHOPIMPLE_CLASS::createFields()
     surfaceScalarField &phi(*phiPtr);
     
 
-    //pressureControl pressureControl(p, rho, pimple.dict(), false);
     pressureControlPtr = new pressureControl(p, rho, pimple.dict(), false);
     
     
-
     mesh.setFluxRequired(p.name());
 
     Info<< "Creating turbulence model\n" << endl;
-    /*autoPtr<compressible::turbulenceModel> turbulence
-    (
-        compressible::turbulenceModel::New
-        (
-            rho,
-            U,
-            phi,
-            thermo
-        )
-    ); */
     turbulencePtr = autoPtr<compressible::turbulenceModel>
     (
         compressible::turbulenceModel::New
@@ -270,17 +237,6 @@ int RHOPIMPLE_CLASS::createFields()
     );
 
     Info<< "Creating field dpdt\n" << endl;
-    /* volScalarField dpdt
-    (
-        IOobject
-        (
-            "dpdt",
-            runTime.timeName(),
-            mesh
-        ),
-        mesh,
-        dimensionedScalar(p.dimensions()/dimTime, 0)
-    ); */
     dpdtPtr = new volScalarField
     (
         IOobject
@@ -294,7 +250,6 @@ int RHOPIMPLE_CLASS::createFields()
     );
 
     Info<< "Creating field kinetic energy K\n" << endl;
-    //volScalarField K("K", 0.5*magSqr(U));
     KPtr = new volScalarField("K", 0.5*magSqr(U));
 
    //  createMRF.H  ^^^^^^^^^^^^^^^^
@@ -314,8 +269,6 @@ int RHOPIMPLE_CLASS::createMRF()
     dynamicFvMesh &mesh(*meshPtr);
     
 
-    //IOMRFZoneList MRF(mesh);
-    IOMRFZoneList MRF(mesh);
     MRFPtr = new IOMRFZoneList(mesh);
     
     return 0;
@@ -334,18 +287,6 @@ int RHOPIMPLE_CLASS::compressibleCreatePhi()
 
     Info<< "Reading/calculating face flux field phi\n" << endl;
 
-    /*surfaceScalarField phi
-    (
-        IOobject
-        (
-            "phi",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
-        linearInterpolate(rho*U) & mesh.Sf()
-    ); */
     phiPtr = new surfaceScalarField
     (
         IOobject
@@ -369,9 +310,6 @@ int RHOPIMPLE_CLASS::createFvOptions()
     dynamicFvMesh &mesh(*meshPtr);
     
 
-
-    //fv::options& fvOptions(fv::options::New(mesh));
-    //fvOptionsPtr = new fv::options::fvOptions(fv::options::New(mesh));
     fvOptionsPtr = new Foam::fv::options(mesh);
     Foam::fv::options &fvOptions(*fvOptionsPtr);
     
@@ -391,7 +329,6 @@ int RHOPIMPLE_CLASS::createFieldRefs()
 
     fluidThermo &thermo(*pThermoPtr);
 
-    //const volScalarField& psi = thermo.psi();
     psiPtr = &thermo.psi();
 
     return 0;
@@ -407,26 +344,10 @@ int RHOPIMPLE_CLASS::createRhoUfIfPresent()
     volVectorField &U(*UPtr);
 
 
-
-    //autoPtr<surfaceVectorField> rhoUf;
-
     if (mesh.dynamic())
     {
         Info<< "Constructing face momentum rhoUf" << endl;
 
-        /* rhoUf = new surfaceVectorField
-        (
-            IOobject
-            (
-                "rhoUf",
-                runTime.timeName(),
-                mesh,
-                IOobject::READ_IF_PRESENT,
-                IOobject::AUTO_WRITE
-            ),
-            fvc::interpolate(rho*U)
-        ); */
-        
         rhoUfPtr = new surfaceVectorField
         (
             IOobject
@@ -513,7 +434,7 @@ int RHOPIMPLE_CLASS::loop()
     fluidThermo &thermo(*pThermoPtr);
     IOMRFZoneList &MRF(*MRFPtr);
     compressible::turbulenceModel &turbulence(*turbulencePtr);
-    autoPtr<surfaceVectorField> rhoUf(rhoUfPtr);
+    autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
 
     Info<< "\nStarting time loop\n" << endl;
@@ -528,26 +449,13 @@ int RHOPIMPLE_CLASS::loop()
         // Store divrhoU from the previous mesh so that it can be mapped
         // and used in correctPhi to ensure the corrected phi has the
         // same divergence
-        //autoPtr<volScalarField> divrhoU;
         if (correctPhi)
         {
-            /* divrhoU = new volScalarField
+            divrhoUPtr = new volScalarField
             (
                 "divrhoU",
                 fvc::div(fvc::absolute(phi, rho, U))
-            ); */
-            if (&divrhoUPtr == NULL)
-            {
-                divrhoUPtr = new volScalarField
-                (
-                    "divrhoU",
-                    fvc::div(fvc::absolute(phi, rho, U))
-                );
-            }
-            else
-            {
-                *divrhoUPtr = fvc::div(fvc::absolute(phi, rho, U));
-            }
+            );
         }
 
         if (LTS)
@@ -600,9 +508,9 @@ int RHOPIMPLE_CLASS::loop()
                         correctPhi_();
                         // ---------------------------------------------
 
-
                         // Make the fluxes relative to the mesh-motion
                         fvc::makeRelative(phi, rho, U);
+
                     }
 
                     if (checkMeshCourantNo)
@@ -662,8 +570,6 @@ int RHOPIMPLE_CLASS::loop()
     }
 
     Info<< "End\n" << endl;
-
-
 
     return 0;
 }
@@ -810,10 +716,8 @@ int RHOPIMPLE_CLASS::correctPhi_()
     volVectorField &U(*UPtr);
     surfaceScalarField &phi(*phiPtr);
     const volScalarField &psi(*psiPtr);
-    autoPtr<volScalarField> divrhoU(divrhoUPtr);
+    volScalarField &divrhoU(*divrhoUPtr);
     volScalarField &p(*pPtr);
-
-
 
     CorrectPhi
     (
@@ -902,47 +806,20 @@ int RHOPIMPLE_CLASS::UEqn_()
 
     MRF.correctBoundaryVelocity(U);
 
-    /* tmp<fvVectorMatrix> tUEqn
+    tUEqnPtr = tmp<fvVectorMatrix>
     (
         fvm::ddt(rho, U) + fvm::div(phi, U)
       + MRF.DDt(rho, U)
       + turbulence.divDevRhoReff(U)
      ==
         fvOptions(rho, U)
-    ); */
+    );
 
-    if (&tUEqnPtr == NULL)
-    {
-        tUEqnPtr = fvVectorMatrix
-        (
-            fvm::ddt(rho, U) + fvm::div(phi, U)
-          + MRF.DDt(rho, U)
-          + turbulence.divDevRhoReff(U)
-         ==
-            fvOptions(rho, U)
-        );
-    }
-    else
-    {
-        tUEqnPtr =
-        (
-            fvm::ddt(rho, U) + fvm::div(phi, U)
-          + MRF.DDt(rho, U)
-          + turbulence.divDevRhoReff(U)
-         ==
-            fvOptions(rho, U)
-        );
-    }
-    tmp<fvVectorMatrix> tUEqn(tUEqnPtr);
+    tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
     
-
-    //fvVectorMatrix& UEqn = tUEqn.ref();
     UEqnPtr = &tUEqn.ref();
     fvVectorMatrix &UEqn(*UEqnPtr);
     
-
-
-
     UEqn.relax();
 
     fvOptions.constrain(UEqn);
@@ -1021,14 +898,13 @@ int RHOPIMPLE_CLASS::pcEqn()
     fluidThermo &thermo(*pThermoPtr);
     const volScalarField &psi(*psiPtr);
     IOMRFZoneList &MRF(*MRFPtr);
-    autoPtr<surfaceVectorField> rhoUf(rhoUfPtr);
+    autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
     volScalarField &K(*KPtr);
     volScalarField &dpdt(*dpdtPtr);
     volScalarField &p(*pPtr);
     fvVectorMatrix &UEqn(*UEqnPtr);
-    tmp<fvVectorMatrix> tUEqn(tUEqnPtr);
+    tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
     
-
 
     if (!pimple.simpleRho())
     {
@@ -1221,12 +1097,11 @@ int RHOPIMPLE_CLASS::pEqn_()
     const volScalarField &psi(*psiPtr);
     IOMRFZoneList &MRF(*MRFPtr);
     volScalarField &K(*KPtr);
-    //surfaceVectorField &rhoUf(*rhoUfPtr);
-    autoPtr<surfaceVectorField> rhoUf(rhoUfPtr);
+    autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
     volScalarField &dpdt(*dpdtPtr);
     volScalarField &p(*pPtr);
     fvVectorMatrix &UEqn(*UEqnPtr);
-    tmp<fvVectorMatrix> tUEqn(tUEqnPtr);
+    tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
     
 
     if (!pimple.simpleRho())
@@ -1251,7 +1126,8 @@ int RHOPIMPLE_CLASS::pEqn_()
     (
         "phiHbyA",
         fvc::interpolate(rho)*fvc::flux(HbyA)
-      + MRF.zeroFilter(rhorAUf*fvc::ddtCorr(rho, U, phi, rhoUf))
+        +
+        MRF.zeroFilter(rhorAUf*fvc::ddtCorr(rho, U, phi, rhoUf))
     );
 
     fvc::makeRelative(phiHbyA, rho, U);
@@ -1397,7 +1273,25 @@ int RHOPIMPLE_CLASS::finalize()
     delete UPtr;
     delete rhoUPtr;
     delete rhoEPtr;
+    delete phiPtr;
 
+    //delete meshPtr;
+    //delete turbulencePtr;
+    //delete trDeltaT;
+
+
+    delete pimplePtr;
+    delete pressureControlPtr;
+    delete dpdtPtr;
+    delete KPtr;
+    delete fvOptionsPtr;
+    delete MRFPtr;
+    delete UEqnPtr;
+
+    //delete pThermoPtr;
+    //delete rhoUfPtr;
+    //delete divrhoUPtr;
+    //delete tUEqnPtr;
 
     return 0;
 }
