@@ -1,32 +1,44 @@
-#include "RHOPIMPLE_CLASS.H"
+#include "rocRhoPimple.H"
 
-RHOPIMPLE_CLASS::RHOPIMPLE_CLASS() : FOAM_CLASS(),
-                pimplePtr(NULL), pressureControlPtr(NULL),
-                dpdtPtr(NULL), KPtr(NULL), fvOptionsPtr(NULL),
-                MRFPtr(NULL), UEqnPtr(NULL), pThermoPtr(NULL),
-                rhoUfPtr(NULL), divrhoUPtr(NULL), tUEqnPtr(NULL),
-                correctPhi(false), 
-                checkMeshCourantNo(false),
-                moveMeshOuterCorrectors(false),
-                cumulativeContErr(0.0)
-{}
+rocRhoPimple::rocRhoPimple()
+    : rocFoam(),
+      pimplePtr(NULL),
+      pressureControlPtr(NULL),
+      dpdtPtr(NULL),
+      KPtr(NULL),
+      fvOptionsPtr(NULL),
+      MRFPtr(NULL),
+      UEqnPtr(NULL),
+      pThermoPtr(NULL),
+      rhoUfPtr(NULL),
+      divrhoUPtr(NULL),
+      tUEqnPtr(NULL),
+      correctPhi(false),
+      checkMeshCourantNo(false),
+      moveMeshOuterCorrectors(false),
+      cumulativeContErr(0.0) {}
 
-RHOPIMPLE_CLASS::RHOPIMPLE_CLASS(int argc,char *argv[]) : FOAM_CLASS(),
-                pimplePtr(NULL), pressureControlPtr(NULL),
-                dpdtPtr(NULL), KPtr(NULL), fvOptionsPtr(NULL),
-                MRFPtr(NULL), UEqnPtr(NULL), pThermoPtr(NULL),
-                rhoUfPtr(NULL), divrhoUPtr(NULL), tUEqnPtr(NULL),
-                correctPhi(false), 
-                checkMeshCourantNo(false),
-                moveMeshOuterCorrectors(false),
-                cumulativeContErr(0.0)
-{
-   Initialize(argc, argv);
+rocRhoPimple::rocRhoPimple(int argc, char *argv[])
+    : rocFoam(),
+      pimplePtr(NULL),
+      pressureControlPtr(NULL),
+      dpdtPtr(NULL),
+      KPtr(NULL),
+      fvOptionsPtr(NULL),
+      MRFPtr(NULL),
+      UEqnPtr(NULL),
+      pThermoPtr(NULL),
+      rhoUfPtr(NULL),
+      divrhoUPtr(NULL),
+      tUEqnPtr(NULL),
+      correctPhi(false),
+      checkMeshCourantNo(false),
+      moveMeshOuterCorrectors(false),
+      cumulativeContErr(0.0) {
+    Initialize(argc, argv);
 }
 
-
-int RHOPIMPLE_CLASS::Initialize(int argc,char *argv[]){
-
+int rocRhoPimple::Initialize(int argc, char *argv[]) {
     // Mohammad: Not quite sure where this line should be
     argsPtr = new Foam::argList(argc, argv);
 
@@ -70,9 +82,7 @@ int RHOPIMPLE_CLASS::Initialize(int argc,char *argv[]){
 
     turbulence.validate();
 
-
-    if (!LTS)
-    {
+    if (!LTS) {
         //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
         compressibleCourantNo();
         // ---------------------------------------------------
@@ -87,246 +97,154 @@ int RHOPIMPLE_CLASS::Initialize(int argc,char *argv[]){
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::createControl()
-{
-
+int rocRhoPimple::createControl() {
     dynamicFvMesh &mesh(*meshPtr);
 
-
     //  createPimpleControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    //pimpleControl pimple(mesh);
+    // pimpleControl pimple(mesh);
     pimplePtr = new pimpleControl(mesh);
     // ---------------------------------------------------
 
     return 0;
 }
 
-
-
-int RHOPIMPLE_CLASS::createDyMControls()
-{
-
+int rocRhoPimple::createDyMControls() {
     dynamicFvMesh &mesh(*meshPtr);
-    
 
     //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     createControl();
     // ---------------------------------------------------
     pimpleControl &pimple(*pimplePtr);
-    
 
     //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     createTimeControls();
     // ---------------------------------------------------
 
-    correctPhi = 
-        pimple.dict().lookupOrDefault
-        (
-            "correctPhi", mesh.dynamic()
-        );
+    correctPhi = pimple.dict().lookupOrDefault("correctPhi", mesh.dynamic());
 
     checkMeshCourantNo =
-        pimple.dict().lookupOrDefault
-        (
-            "checkMeshCourantNo", false
-        );
+        pimple.dict().lookupOrDefault("checkMeshCourantNo", false);
 
     moveMeshOuterCorrectors =
-        pimple.dict().lookupOrDefault
-        (
-            "moveMeshOuterCorrectors", false
-        );
+        pimple.dict().lookupOrDefault("moveMeshOuterCorrectors", false);
 
     return 0;
 }
 
-
-
-int RHOPIMPLE_CLASS::initContinuityErrs()
-{
-    #ifndef initContinuityErrs_H
-    #define initContinuityErrs_H
+int rocRhoPimple::initContinuityErrs() {
+#ifndef initContinuityErrs_H
+#define initContinuityErrs_H
 
     cumulativeContErr = 0;
 
-    #endif
+#endif
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::createFields()
-{
-
+int rocRhoPimple::createFields() {
     Foam::Time &runTime(*runTimePtr);
     Foam::argList &args(*argsPtr);
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
 
-
     //  createRDeltaT.H  ^^^^^^^^^^^^^
     createRDeltaT();
     // -------------------------------
 
-    Info<< "Reading thermophysical properties\n" << endl;
+    Info << "Reading thermophysical properties\n" << endl;
 
-    pThermoPtr = autoPtr<fluidThermo>
-    (
-        fluidThermo::New(mesh)
-    );
+    pThermoPtr = autoPtr<fluidThermo>(fluidThermo::New(mesh));
     fluidThermo &thermo(*pThermoPtr);
-    
-    thermo.validate(args.executable(), "h", "e");
 
+    thermo.validate(args.executable(), "h", "e");
 
     pPtr = &thermo.p();
     volScalarField &p(*pPtr);
-    
-    
-    rhoPtr = new volScalarField
-    (
-        IOobject
-        (
-            "rho",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
-        thermo.rho()
-    );
-    volScalarField &rho(*rhoPtr);
-    
 
-    Info<< "Reading field U\n" << endl;
-    UPtr = new volVectorField
-    (
-        IOobject
-        (
-            "U",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
+    rhoPtr = new volScalarField(
+        IOobject("rho", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT,
+                 IOobject::AUTO_WRITE),
+        thermo.rho());
+    volScalarField &rho(*rhoPtr);
+
+    Info << "Reading field U\n" << endl;
+    UPtr =
+        new volVectorField(IOobject("U", runTime.timeName(), mesh,
+                                    IOobject::MUST_READ, IOobject::AUTO_WRITE),
+                           mesh);
     volVectorField &U(*UPtr);
 
     //  compressibleCreatePhi.H  ^^^^^
     compressibleCreatePhi();
     // -------------------------------
     surfaceScalarField &phi(*phiPtr);
-    
 
     pressureControlPtr = new pressureControl(p, rho, pimple.dict(), false);
-    
-    
+
     mesh.setFluxRequired(p.name());
 
-    Info<< "Creating turbulence model\n" << endl;
-    turbulencePtr = autoPtr<compressible::turbulenceModel>
-    (
-        compressible::turbulenceModel::New
-        (
-            rho,
-            U,
-            phi,
-            thermo
-        )
-    );
+    Info << "Creating turbulence model\n" << endl;
+    turbulencePtr = autoPtr<compressible::turbulenceModel>(
+        compressible::turbulenceModel::New(rho, U, phi, thermo));
 
-    Info<< "Creating field dpdt\n" << endl;
-    dpdtPtr = new volScalarField
-    (
-        IOobject
-        (
-            "dpdt",
-            runTime.timeName(),
-            mesh
-        ),
-        mesh,
-        dimensionedScalar(p.dimensions()/dimTime, 0)
-    );
+    Info << "Creating field dpdt\n" << endl;
+    dpdtPtr =
+        new volScalarField(IOobject("dpdt", runTime.timeName(), mesh), mesh,
+                           dimensionedScalar(p.dimensions() / dimTime, 0));
 
-    Info<< "Creating field kinetic energy K\n" << endl;
-    KPtr = new volScalarField("K", 0.5*magSqr(U));
+    Info << "Creating field kinetic energy K\n" << endl;
+    KPtr = new volScalarField("K", 0.5 * magSqr(U));
 
-   //  createMRF.H  ^^^^^^^^^^^^^^^^
-   createMRF();
-   // -------------------------------
+    //  createMRF.H  ^^^^^^^^^^^^^^^^
+    createMRF();
+    // -------------------------------
 
-   //  createFvOptions.H  ^^^^^^^^^^^
-   createFvOptions();
-   // -------------------------------
+    //  createFvOptions.H  ^^^^^^^^^^^
+    createFvOptions();
+    // -------------------------------
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::createMRF()
-{
-
+int rocRhoPimple::createMRF() {
     dynamicFvMesh &mesh(*meshPtr);
-    
 
     MRFPtr = new IOMRFZoneList(mesh);
-    
+
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::compressibleCreatePhi()
-{
-
+int rocRhoPimple::compressibleCreatePhi() {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
 
+    Info << "Reading/calculating face flux field phi\n" << endl;
 
-
-    Info<< "Reading/calculating face flux field phi\n" << endl;
-
-    phiPtr = new surfaceScalarField
-    (
-        IOobject
-        (
-            "phi",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
-        linearInterpolate(rho*U) & mesh.Sf()
-    );
+    phiPtr = new surfaceScalarField(
+        IOobject("phi", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT,
+                 IOobject::AUTO_WRITE),
+        linearInterpolate(rho * U) & mesh.Sf());
 
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::createFvOptions()
-{
-
+int rocRhoPimple::createFvOptions() {
     dynamicFvMesh &mesh(*meshPtr);
-    
 
     fvOptionsPtr = new Foam::fv::options(mesh);
     Foam::fv::options &fvOptions(*fvOptionsPtr);
-    
 
-    if (!fvOptions.optionList::size())
-    {
+    if (!fvOptions.optionList::size()) {
         Info << "No finite volume options present" << endl;
     }
 
     return 0;
 }
 
-
-
-int RHOPIMPLE_CLASS::createFieldRefs()
-{
-
+int rocRhoPimple::createFieldRefs() {
     fluidThermo &thermo(*pThermoPtr);
 
     psiPtr = &thermo.psi();
@@ -334,97 +252,62 @@ int RHOPIMPLE_CLASS::createFieldRefs()
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::createRhoUfIfPresent()
-{
-
+int rocRhoPimple::createRhoUfIfPresent() {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
 
+    if (mesh.dynamic()) {
+        Info << "Constructing face momentum rhoUf" << endl;
 
-    if (mesh.dynamic())
-    {
-        Info<< "Constructing face momentum rhoUf" << endl;
-
-        rhoUfPtr = new surfaceVectorField
-        (
-            IOobject
-            (
-                "rhoUf",
-                runTime.timeName(),
-                mesh,
-                IOobject::READ_IF_PRESENT,
-                IOobject::AUTO_WRITE
-            ),
-            fvc::interpolate(rho*U)
-        );
+        rhoUfPtr = new surfaceVectorField(
+            IOobject("rhoUf", runTime.timeName(), mesh,
+                     IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE),
+            fvc::interpolate(rho * U));
     }
 
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::compressibleCourantNo()
-{
-
+int rocRhoPimple::compressibleCourantNo() {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     volScalarField &rho(*rhoPtr);
     surfaceScalarField &phi(*phiPtr);
 
-
     CoNum = 0.0;
     meanCoNum = 0.0;
 
     {
-        scalarField sumPhi
-        (
-            fvc::surfaceSum(mag(phi))().primitiveField()/rho.primitiveField()
-        );
+        scalarField sumPhi(fvc::surfaceSum(mag(phi))().primitiveField() /
+                           rho.primitiveField());
 
-        CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
+        CoNum = 0.5 * gMax(sumPhi / mesh.V().field()) * runTime.deltaTValue();
 
-        meanCoNum =
-            0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
+        meanCoNum = 0.5 * (gSum(sumPhi) / gSum(mesh.V().field())) *
+                    runTime.deltaTValue();
     }
 
-    Info<< "Courant Number mean: " << meanCoNum
-        << " max: " << CoNum << endl;
+    Info << "Courant Number mean: " << meanCoNum << " max: " << CoNum << endl;
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::setInitialDeltaT()
-{
-
+int rocRhoPimple::setInitialDeltaT() {
     Foam::Time &runTime(*runTimePtr);
-    
 
-
-    if (adjustTimeStep)
-    {
-        if ((runTime.timeIndex() == 0) && (CoNum > small))
-        {
-            runTime.setDeltaT
-            (
-                min
-                (
-                    maxCo*runTime.deltaTValue()/CoNum,
-                    min(runTime.deltaTValue(), maxDeltaT)
-                )
-            );
+    if (adjustTimeStep) {
+        if ((runTime.timeIndex() == 0) && (CoNum > small)) {
+            runTime.setDeltaT(min(maxCo * runTime.deltaTValue() / CoNum,
+                                  min(runTime.deltaTValue(), maxDeltaT)));
         }
     }
 
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::loop()
-{
-
+int rocRhoPimple::loop() {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
@@ -436,12 +319,9 @@ int RHOPIMPLE_CLASS::loop()
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
+    Info << "\nStarting time loop\n" << endl;
 
-    Info<< "\nStarting time loop\n" << endl;
-
-    while (runTime.run())
-    {
-
+    while (runTime.run()) {
         //  readDyMControls.H  ^^^^^^^^^^^
         readDyMControls();
         // -------------------------------
@@ -449,23 +329,16 @@ int RHOPIMPLE_CLASS::loop()
         // Store divrhoU from the previous mesh so that it can be mapped
         // and used in correctPhi to ensure the corrected phi has the
         // same divergence
-        if (correctPhi)
-        {
-            divrhoUPtr = new volScalarField
-            (
-                "divrhoU",
-                fvc::div(fvc::absolute(phi, rho, U))
-            );
+        if (correctPhi) {
+            divrhoUPtr = new volScalarField(
+                "divrhoU", fvc::div(fvc::absolute(phi, rho, U)));
         }
 
-        if (LTS)
-        {
+        if (LTS) {
             //  setRDeltaT.H  ^^^^^^^^^^^^^^^
             setRDeltaT();
             // -------------------------------
-        }
-        else
-        {
+        } else {
             //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
             compressibleCourantNo();
             // ---------------------------------------------
@@ -477,29 +350,24 @@ int RHOPIMPLE_CLASS::loop()
 
         runTime++;
 
-        Info<< "Time = " << runTime.timeName() << nl << endl;
+        Info << "Time = " << runTime.timeName() << nl << endl;
 
         // --- Pressure-velocity PIMPLE corrector loop
-        while (pimple.loop())
-        {
-            if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
-            {
+        while (pimple.loop()) {
+            if (pimple.firstPimpleIter() || moveMeshOuterCorrectors) {
                 // Store momentum to set rhoUf for introduced faces.
                 autoPtr<volVectorField> rhoU;
-                if (rhoUf.valid())
-                {
-                    rhoU = new volVectorField("rhoU", rho*U);
+                if (rhoUf.valid()) {
+                    rhoU = new volVectorField("rhoU", rho * U);
                 }
 
                 // Do any mesh changes
                 mesh.update();
 
-                if (mesh.changing())
-                {
+                if (mesh.changing()) {
                     MRF.update();
 
-                    if (correctPhi)
-                    {
+                    if (correctPhi) {
                         // Calculate absolute flux
                         // from the mapped surface velocity
                         phi = mesh.Sf() & rhoUf();
@@ -510,11 +378,9 @@ int RHOPIMPLE_CLASS::loop()
 
                         // Make the fluxes relative to the mesh-motion
                         fvc::makeRelative(phi, rho, U);
-
                     }
 
-                    if (checkMeshCourantNo)
-                    {
+                    if (checkMeshCourantNo) {
                         //  meshCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
                         meshCourantNo();
                         // ---------------------------------------------
@@ -522,8 +388,7 @@ int RHOPIMPLE_CLASS::loop()
                 }
             }
 
-            if (pimple.firstPimpleIter() && !pimple.simpleRho())
-            {
+            if (pimple.firstPimpleIter() && !pimple.simpleRho()) {
                 //  rhoEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 rhoEqn_();
                 // ---------------------------------------------
@@ -538,24 +403,19 @@ int RHOPIMPLE_CLASS::loop()
             // --------------------------------------------
 
             // --- Pressure corrector loop
-            while (pimple.correct())
-            {
-                if (pimple.consistent())
-                {
+            while (pimple.correct()) {
+                if (pimple.consistent()) {
                     //  pcEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                     pcEqn();
                     // --------------------------------------------
-                }
-                else
-                {
+                } else {
                     //  pEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                     pEqn_();
                     // --------------------------------------------
                 }
             }
 
-            if (pimple.turbCorr())
-            {
+            if (pimple.turbCorr()) {
                 turbulence.correct();
             }
         }
@@ -564,51 +424,35 @@ int RHOPIMPLE_CLASS::loop()
 
         runTime.write();
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+             << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl
+             << endl;
     }
 
-    Info<< "End\n" << endl;
+    Info << "End\n" << endl;
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::readDyMControls()
-{
-
+int rocRhoPimple::readDyMControls() {
     pimpleControl &pimple(*pimplePtr);
-
 
     //  readTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^
     readTimeControls();
     // --------------------------------------------
 
-    correctPhi = pimple.dict().lookupOrDefault
-    (
-        "correctPhi",
-        correctPhi
-    );
+    correctPhi = pimple.dict().lookupOrDefault("correctPhi", correctPhi);
 
-    checkMeshCourantNo = pimple.dict().lookupOrDefault
-    (
-        "checkMeshCourantNo",
-        checkMeshCourantNo
-    );
+    checkMeshCourantNo =
+        pimple.dict().lookupOrDefault("checkMeshCourantNo", checkMeshCourantNo);
 
-    moveMeshOuterCorrectors = pimple.dict().lookupOrDefault
-    (
-        "moveMeshOuterCorrectors",
-        moveMeshOuterCorrectors
-    );
+    moveMeshOuterCorrectors = pimple.dict().lookupOrDefault(
+        "moveMeshOuterCorrectors", moveMeshOuterCorrectors);
 
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::setRDeltaT()
-{
-
+int rocRhoPimple::setRDeltaT() {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
@@ -617,100 +461,65 @@ int RHOPIMPLE_CLASS::setRDeltaT()
     surfaceScalarField &phi(*phiPtr);
     const volScalarField &psi(*psiPtr);
 
+    volScalarField &rDeltaT = trDeltaT.ref();
 
-    volScalarField& rDeltaT = trDeltaT.ref();
+    const dictionary &pimpleDict = pimple.dict();
 
-    const dictionary& pimpleDict = pimple.dict();
+    scalar maxCo(pimpleDict.lookupOrDefault<scalar>("maxCo", 0.8));
 
-    scalar maxCo
-    (
-        pimpleDict.lookupOrDefault<scalar>("maxCo", 0.8)
-    );
+    scalar rDeltaTSmoothingCoeff(
+        pimpleDict.lookupOrDefault<scalar>("rDeltaTSmoothingCoeff", 0.02));
 
-    scalar rDeltaTSmoothingCoeff
-    (
-        pimpleDict.lookupOrDefault<scalar>("rDeltaTSmoothingCoeff", 0.02)
-    );
+    scalar rDeltaTDampingCoeff(
+        pimpleDict.lookupOrDefault<scalar>("rDeltaTDampingCoeff", 1.0));
 
-    scalar rDeltaTDampingCoeff
-    (
-        pimpleDict.lookupOrDefault<scalar>("rDeltaTDampingCoeff", 1.0)
-    );
-
-    scalar maxDeltaT
-    (
-        pimpleDict.lookupOrDefault<scalar>("maxDeltaT", great)
-    );
+    scalar maxDeltaT(pimpleDict.lookupOrDefault<scalar>("maxDeltaT", great));
 
     volScalarField rDeltaT0("rDeltaT0", rDeltaT);
 
     // Set the reciprocal time-step from the local Courant number
-    rDeltaT.ref() = max
-    (
-        1/dimensionedScalar(dimTime, maxDeltaT),
-        fvc::surfaceSum(mag(phi))()()
-       /((2*maxCo)*mesh.V()*rho())
-    );
+    rDeltaT.ref() =
+        max(1 / dimensionedScalar(dimTime, maxDeltaT),
+            fvc::surfaceSum(mag(phi))()() / ((2 * maxCo) * mesh.V() * rho()));
 
-    if (pimple.transonic())
-    {
-        surfaceScalarField phid
-        (
-            "phid",
-            fvc::interpolate(psi)*fvc::flux(U)
-        );
+    if (pimple.transonic()) {
+        surfaceScalarField phid("phid", fvc::interpolate(psi) * fvc::flux(U));
 
-        rDeltaT.ref() = max
-        (
-            rDeltaT(),
-            fvc::surfaceSum(mag(phid))()()
-            /((2*maxCo)*mesh.V()*psi())
-        );
+        rDeltaT.ref() = max(rDeltaT(), fvc::surfaceSum(mag(phid))()() /
+                                           ((2 * maxCo) * mesh.V() * psi()));
     }
 
     // Update tho boundary values of the reciprocal time-step
     rDeltaT.correctBoundaryConditions();
 
-    Info<< "Flow time scale min/max = "
-        << gMin(1/rDeltaT.primitiveField())
-        << ", " << gMax(1/rDeltaT.primitiveField()) << endl;
+    Info << "Flow time scale min/max = " << gMin(1 / rDeltaT.primitiveField())
+         << ", " << gMax(1 / rDeltaT.primitiveField()) << endl;
 
-    if (rDeltaTSmoothingCoeff < 1.0)
-    {
+    if (rDeltaTSmoothingCoeff < 1.0) {
         fvc::smooth(rDeltaT, rDeltaTSmoothingCoeff);
     }
 
-    Info<< "Smoothed flow time scale min/max = "
-        << gMin(1/rDeltaT.primitiveField())
-        << ", " << gMax(1/rDeltaT.primitiveField()) << endl;
+    Info << "Smoothed flow time scale min/max = "
+         << gMin(1 / rDeltaT.primitiveField()) << ", "
+         << gMax(1 / rDeltaT.primitiveField()) << endl;
 
     // Limit rate of change of time scale
     // - reduce as much as required
     // - only increase at a fraction of old time scale
-    if
-    (
-        rDeltaTDampingCoeff < 1.0
-     && runTime.timeIndex() > runTime.startTimeIndex() + 1
-    )
-    {
+    if (rDeltaTDampingCoeff < 1.0 &&
+        runTime.timeIndex() > runTime.startTimeIndex() + 1) {
         rDeltaT =
-            rDeltaT0
-           *max(rDeltaT/rDeltaT0, scalar(1) - rDeltaTDampingCoeff);
+            rDeltaT0 * max(rDeltaT / rDeltaT0, scalar(1) - rDeltaTDampingCoeff);
 
-        Info<< "Damped flow time scale min/max = "
-            << gMin(1/rDeltaT.primitiveField())
-            << ", " << gMax(1/rDeltaT.primitiveField()) << endl;
+        Info << "Damped flow time scale min/max = "
+             << gMin(1 / rDeltaT.primitiveField()) << ", "
+             << gMax(1 / rDeltaT.primitiveField()) << endl;
     }
-
 
     return 0;
 }
 
-
-
-int RHOPIMPLE_CLASS::correctPhi_()
-{
-
+int rocRhoPimple::correctPhi_() {
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
@@ -719,67 +528,41 @@ int RHOPIMPLE_CLASS::correctPhi_()
     volScalarField &divrhoU(*divrhoUPtr);
     volScalarField &p(*pPtr);
 
-    CorrectPhi
-    (
-        U,
-        phi,
-        p,
-        rho,
-        psi,
-        dimensionedScalar("rAUf", dimTime, 1),
-        divrhoU(),
-        pimple,
-        true
-    );
+    CorrectPhi(U, phi, p, rho, psi, dimensionedScalar("rAUf", dimTime, 1),
+               divrhoU(), pimple, true);
 
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::meshCourantNo()
-{
-
+int rocRhoPimple::meshCourantNo() {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
-
 
     scalar meshCoNum = 0.0;
     scalar meanMeshCoNum = 0.0;
 
     {
-        scalarField sumPhi
-        (
-            fvc::surfaceSum(mag(mesh.phi()))().primitiveField()
-        );
+        scalarField sumPhi(fvc::surfaceSum(mag(mesh.phi()))().primitiveField());
 
-        meshCoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
+        meshCoNum =
+            0.5 * gMax(sumPhi / mesh.V().field()) * runTime.deltaTValue();
 
-        meanMeshCoNum =
-            0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
+        meanMeshCoNum = 0.5 * (gSum(sumPhi) / gSum(mesh.V().field())) *
+                        runTime.deltaTValue();
     }
 
-    Info<< "Mesh Courant Number mean: " << meanMeshCoNum
-        << " max: " << meshCoNum << endl;
+    Info << "Mesh Courant Number mean: " << meanMeshCoNum
+         << " max: " << meshCoNum << endl;
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::rhoEqn_()
-{
-
+int rocRhoPimple::rhoEqn_() {
     volScalarField &rho(*rhoPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::fv::options &fvOptions(*fvOptionsPtr);
-    
 
-
-    fvScalarMatrix rhoEqn
-    (
-        fvm::ddt(rho)
-      + fvc::div(phi)
-      ==
-        fvOptions(rho)
-    );
+    fvScalarMatrix rhoEqn(fvm::ddt(rho) + fvc::div(phi) == fvOptions(rho));
 
     fvOptions.constrain(rhoEqn);
 
@@ -790,9 +573,7 @@ int RHOPIMPLE_CLASS::rhoEqn_()
     return 0;
 }
 
-int RHOPIMPLE_CLASS::UEqn_()
-{
-
+int rocRhoPimple::UEqn_() {
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
@@ -803,42 +584,33 @@ int RHOPIMPLE_CLASS::UEqn_()
     volScalarField &K(*KPtr);
     volScalarField &p(*pPtr);
 
-
     MRF.correctBoundaryVelocity(U);
 
-    tUEqnPtr = tmp<fvVectorMatrix>
-    (
-        fvm::ddt(rho, U) + fvm::div(phi, U)
-      + MRF.DDt(rho, U)
-      + turbulence.divDevRhoReff(U)
-     ==
-        fvOptions(rho, U)
-    );
+    tUEqnPtr =
+        tmp<fvVectorMatrix>(fvm::ddt(rho, U) + fvm::div(phi, U) +
+                                MRF.DDt(rho, U) + turbulence.divDevRhoReff(U) ==
+                            fvOptions(rho, U));
 
     tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
-    
+
     UEqnPtr = &tUEqn.ref();
     fvVectorMatrix &UEqn(*UEqnPtr);
-    
+
     UEqn.relax();
 
     fvOptions.constrain(UEqn);
 
-    if (pimple.momentumPredictor())
-    {
+    if (pimple.momentumPredictor()) {
         solve(UEqn == -fvc::grad(p));
 
         fvOptions.correct(U);
-        K = 0.5*magSqr(U);
+        K = 0.5 * magSqr(U);
     }
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::EEqn_()
-{
-
-
+int rocRhoPimple::EEqn_() {
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
     surfaceScalarField &phi(*phiPtr);
@@ -849,28 +621,17 @@ int RHOPIMPLE_CLASS::EEqn_()
     volScalarField &dpdt(*dpdtPtr);
     volScalarField &p(*pPtr);
 
+    volScalarField &he = thermo.he();
 
-
-    volScalarField& he = thermo.he();
-
-    fvScalarMatrix EEqn
-    (
-        fvm::ddt(rho, he) + fvm::div(phi, he)
-      + fvc::ddt(rho, K) + fvc::div(phi, K)
-      + (
-            he.name() == "e"
-          ? fvc::div
-            (
-                fvc::absolute(phi/fvc::interpolate(rho), U),
-                p,
-                "div(phiv,p)"
-            )
-          : -dpdt
-        )
-      - fvm::laplacian(turbulence.alphaEff(), he)
-     ==
-        fvOptions(rho, he)
-    );
+    fvScalarMatrix EEqn(
+        fvm::ddt(rho, he) + fvm::div(phi, he) + fvc::ddt(rho, K) +
+            fvc::div(phi, K) +
+            (he.name() == "e"
+                 ? fvc::div(fvc::absolute(phi / fvc::interpolate(rho), U), p,
+                            "div(phiv,p)")
+                 : -dpdt) -
+            fvm::laplacian(turbulence.alphaEff(), he) ==
+        fvOptions(rho, he));
 
     EEqn.relax();
 
@@ -885,9 +646,7 @@ int RHOPIMPLE_CLASS::EEqn_()
     return 0;
 }
 
-int RHOPIMPLE_CLASS::pcEqn()
-{
-
+int rocRhoPimple::pcEqn() {
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
@@ -904,70 +663,51 @@ int RHOPIMPLE_CLASS::pcEqn()
     volScalarField &p(*pPtr);
     fvVectorMatrix &UEqn(*UEqnPtr);
     tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
-    
 
-    if (!pimple.simpleRho())
-    {
+    if (!pimple.simpleRho()) {
         rho = thermo.rho();
     }
 
     // Thermodynamic density needs to be updated by psi*d(p) after the
     // pressure solution
-    const volScalarField psip0(psi*p);
+    const volScalarField psip0(psi * p);
 
-    volScalarField rAU(1.0/UEqn.A());
-    volScalarField rAtU(1.0/(1.0/rAU - UEqn.H1()));
-    volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+    volScalarField rAU(1.0 / UEqn.A());
+    volScalarField rAtU(1.0 / (1.0 / rAU - UEqn.H1()));
+    volVectorField HbyA(constrainHbyA(rAU * UEqn.H(), U, p));
 
-    if (pimple.nCorrPiso() <= 1)
-    {
+    if (pimple.nCorrPiso() <= 1) {
         tUEqn.clear();
     }
 
-    surfaceScalarField phiHbyA
-    (
-        "phiHbyA",
-        (
-            fvc::interpolate(rho)*fvc::flux(HbyA)
-          + MRF.zeroFilter
-            (
-                fvc::interpolate(rho*rAU)*fvc::ddtCorr(rho, U, phi, rhoUf)
-            )
-        )
-    );
+    surfaceScalarField phiHbyA(
+        "phiHbyA", (fvc::interpolate(rho) * fvc::flux(HbyA) +
+                    MRF.zeroFilter(fvc::interpolate(rho * rAU) *
+                                   fvc::ddtCorr(rho, U, phi, rhoUf))));
 
     fvc::makeRelative(phiHbyA, rho, U);
     MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
 
-    volScalarField rhorAtU("rhorAtU", rho*rAtU);
+    volScalarField rhorAtU("rhorAtU", rho * rAtU);
 
     // Update the pressure BCs to ensure flux consistency
     constrainPressure(p, rho, U, phiHbyA, rhorAtU, MRF);
 
-    if (pimple.transonic())
-    {
-        surfaceScalarField phid
-        (
-            "phid",
-            (fvc::interpolate(psi)/fvc::interpolate(rho))*phiHbyA
-        );
+    if (pimple.transonic()) {
+        surfaceScalarField phid(
+            "phid", (fvc::interpolate(psi) / fvc::interpolate(rho)) * phiHbyA);
 
-        phiHbyA +=
-            fvc::interpolate(rho*(rAtU - rAU))*fvc::snGrad(p)*mesh.magSf()
-          - fvc::interpolate(psi*p)*phiHbyA/fvc::interpolate(rho);
+        phiHbyA += fvc::interpolate(rho * (rAtU - rAU)) * fvc::snGrad(p) *
+                       mesh.magSf() -
+                   fvc::interpolate(psi * p) * phiHbyA / fvc::interpolate(rho);
 
-        HbyA -= (rAU - rAtU)*fvc::grad(p);
+        HbyA -= (rAU - rAtU) * fvc::grad(p);
 
-        fvScalarMatrix pDDtEqn
-        (
-            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
-          + fvc::div(phiHbyA) + fvm::div(phid, p)
-         ==
-            fvOptions(psi, p, rho.name())
-        );
+        fvScalarMatrix pDDtEqn(fvc::ddt(rho) + psi * correction(fvm::ddt(p)) +
+                                   fvc::div(phiHbyA) + fvm::div(phid, p) ==
+                               fvOptions(psi, p, rho.name()));
 
-        while (pimple.correctNonOrthogonal())
-        {
+        while (pimple.correctNonOrthogonal()) {
             fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAtU, p));
 
             // Relax the pressure equation to ensure diagonal-dominance
@@ -975,33 +715,25 @@ int RHOPIMPLE_CLASS::pcEqn()
 
             pEqn.solve();
 
-            if (pimple.finalNonOrthogonalIter())
-            {
+            if (pimple.finalNonOrthogonalIter()) {
                 phi = phiHbyA + pEqn.flux();
             }
         }
-    }
-    else
-    {
-        phiHbyA += fvc::interpolate(rho*(rAtU - rAU))*fvc::snGrad(p)*mesh.magSf();
-        HbyA -= (rAU - rAtU)*fvc::grad(p);
+    } else {
+        phiHbyA += fvc::interpolate(rho * (rAtU - rAU)) * fvc::snGrad(p) *
+                   mesh.magSf();
+        HbyA -= (rAU - rAtU) * fvc::grad(p);
 
-        fvScalarMatrix pDDtEqn
-        (
-            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
-          + fvc::div(phiHbyA)
-         ==
-            fvOptions(psi, p, rho.name())
-        );
+        fvScalarMatrix pDDtEqn(fvc::ddt(rho) + psi * correction(fvm::ddt(p)) +
+                                   fvc::div(phiHbyA) ==
+                               fvOptions(psi, p, rho.name()));
 
-        while (pimple.correctNonOrthogonal())
-        {
+        while (pimple.correctNonOrthogonal()) {
             fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAtU, p));
 
             pEqn.solve();
 
-            if (pimple.finalNonOrthogonalIter())
-            {
+            if (pimple.finalNonOrthogonalIter()) {
                 phi = phiHbyA + pEqn.flux();
             }
         }
@@ -1010,10 +742,9 @@ int RHOPIMPLE_CLASS::pcEqn()
     bool limitedp = pressureControl.limit(p);
 
     // Thermodynamic density update
-    thermo.correctRho(psi*p - psip0);
+    thermo.correctRho(psi * p - psip0);
 
-    if (limitedp)
-    {
+    if (limitedp) {
         rho = thermo.rho();
     }
 
@@ -1025,67 +756,54 @@ int RHOPIMPLE_CLASS::pcEqn()
     compressibleContinuityErrs();
     // ---------------------------------------------
 
-
     // Explicitly relax pressure for momentum corrector
     p.relax();
 
-    U = HbyA - rAtU*fvc::grad(p);
+    U = HbyA - rAtU * fvc::grad(p);
     U.correctBoundaryConditions();
     fvOptions.correct(U);
-    K = 0.5*magSqr(U);
+    K = 0.5 * magSqr(U);
 
-    if (pimple.simpleRho())
-    {
+    if (pimple.simpleRho()) {
         rho = thermo.rho();
     }
 
     // Correct rhoUf if the mesh is moving
     fvc::correctRhoUf(rhoUf, rho, U, phi);
 
-    if (thermo.dpdt())
-    {
+    if (thermo.dpdt()) {
         dpdt = fvc::ddt(p);
 
-        if (mesh.moving())
-        {
+        if (mesh.moving()) {
             dpdt -= fvc::div(fvc::meshPhi(rho, U), p);
         }
     }
 
-
     return 0;
 }
 
-
-int RHOPIMPLE_CLASS::compressibleContinuityErrs()
-{
-
+int rocRhoPimple::compressibleContinuityErrs() {
     volScalarField &rho(*rhoPtr);
     fluidThermo &thermo(*pThermoPtr);
-
 
     dimensionedScalar totalMass = fvc::domainIntegrate(rho);
 
     scalar sumLocalContErr =
-        (fvc::domainIntegrate(mag(rho - thermo.rho()))/totalMass).value();
+        (fvc::domainIntegrate(mag(rho - thermo.rho())) / totalMass).value();
 
     scalar globalContErr =
-        (fvc::domainIntegrate(rho - thermo.rho())/totalMass).value();
+        (fvc::domainIntegrate(rho - thermo.rho()) / totalMass).value();
 
     cumulativeContErr += globalContErr;
 
-    Info<< "time step continuity errors : sum local = " << sumLocalContErr
-        << ", global = " << globalContErr
-        << ", cumulative = " << cumulativeContErr
-        << endl;
-
+    Info << "time step continuity errors : sum local = " << sumLocalContErr
+         << ", global = " << globalContErr
+         << ", cumulative = " << cumulativeContErr << endl;
 
     return 0;
 }
 
-int RHOPIMPLE_CLASS::pEqn_()
-{
-
+int rocRhoPimple::pEqn_() {
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
@@ -1102,33 +820,27 @@ int RHOPIMPLE_CLASS::pEqn_()
     volScalarField &p(*pPtr);
     fvVectorMatrix &UEqn(*UEqnPtr);
     tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
-    
 
-    if (!pimple.simpleRho())
-    {
+    if (!pimple.simpleRho()) {
         rho = thermo.rho();
     }
 
     // Thermodynamic density needs to be updated by psi*d(p) after the
     // pressure solution
-    const volScalarField psip0(psi*p);
+    const volScalarField psip0(psi * p);
 
-    volScalarField rAU(1.0/UEqn.A());
-    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
-    volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+    volScalarField rAU(1.0 / UEqn.A());
+    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho * rAU));
+    volVectorField HbyA(constrainHbyA(rAU * UEqn.H(), U, p));
 
-    if (pimple.nCorrPiso() <= 1)
-    {
+    if (pimple.nCorrPiso() <= 1) {
         tUEqn.clear();
     }
 
-    surfaceScalarField phiHbyA
-    (
+    surfaceScalarField phiHbyA(
         "phiHbyA",
-        fvc::interpolate(rho)*fvc::flux(HbyA)
-        +
-        MRF.zeroFilter(rhorAUf*fvc::ddtCorr(rho, U, phi, rhoUf))
-    );
+        fvc::interpolate(rho) * fvc::flux(HbyA) +
+            MRF.zeroFilter(rhorAUf * fvc::ddtCorr(rho, U, phi, rhoUf)));
 
     fvc::makeRelative(phiHbyA, rho, U);
     MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
@@ -1136,26 +848,17 @@ int RHOPIMPLE_CLASS::pEqn_()
     // Update the pressure BCs to ensure flux consistency
     constrainPressure(p, rho, U, phiHbyA, rhorAUf, MRF);
 
-    if (pimple.transonic())
-    {
-        surfaceScalarField phid
-        (
-            "phid",
-            (fvc::interpolate(psi)/fvc::interpolate(rho))*phiHbyA
-        );
+    if (pimple.transonic()) {
+        surfaceScalarField phid(
+            "phid", (fvc::interpolate(psi) / fvc::interpolate(rho)) * phiHbyA);
 
-        phiHbyA -= fvc::interpolate(psi*p)*phiHbyA/fvc::interpolate(rho);
+        phiHbyA -= fvc::interpolate(psi * p) * phiHbyA / fvc::interpolate(rho);
 
-        fvScalarMatrix pDDtEqn
-        (
-            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
-          + fvc::div(phiHbyA) + fvm::div(phid, p)
-         ==
-            fvOptions(psi, p, rho.name())
-        );
+        fvScalarMatrix pDDtEqn(fvc::ddt(rho) + psi * correction(fvm::ddt(p)) +
+                                   fvc::div(phiHbyA) + fvm::div(phid, p) ==
+                               fvOptions(psi, p, rho.name()));
 
-        while (pimple.correctNonOrthogonal())
-        {
+        while (pimple.correctNonOrthogonal()) {
             fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAUf, p));
 
             // Relax the pressure equation to ensure diagonal-dominance
@@ -1163,30 +866,21 @@ int RHOPIMPLE_CLASS::pEqn_()
 
             pEqn.solve();
 
-            if (pimple.finalNonOrthogonalIter())
-            {
+            if (pimple.finalNonOrthogonalIter()) {
                 phi = phiHbyA + pEqn.flux();
             }
         }
-    }
-    else
-    {
-        fvScalarMatrix pDDtEqn
-        (
-            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
-          + fvc::div(phiHbyA)
-         ==
-            fvOptions(psi, p, rho.name())
-        );
+    } else {
+        fvScalarMatrix pDDtEqn(fvc::ddt(rho) + psi * correction(fvm::ddt(p)) +
+                                   fvc::div(phiHbyA) ==
+                               fvOptions(psi, p, rho.name()));
 
-        while (pimple.correctNonOrthogonal())
-        {
+        while (pimple.correctNonOrthogonal()) {
             fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAUf, p));
 
             pEqn.solve();
 
-            if (pimple.finalNonOrthogonalIter())
-            {
+            if (pimple.finalNonOrthogonalIter()) {
                 phi = phiHbyA + pEqn.flux();
             }
         }
@@ -1195,10 +889,9 @@ int RHOPIMPLE_CLASS::pEqn_()
     bool limitedp = pressureControl.limit(p);
 
     // Thermodynamic density update
-    thermo.correctRho(psi*p - psip0);
+    thermo.correctRho(psi * p - psip0);
 
-    if (limitedp)
-    {
+    if (limitedp) {
         rho = thermo.rho();
     }
 
@@ -1210,29 +903,25 @@ int RHOPIMPLE_CLASS::pEqn_()
     compressibleContinuityErrs();
     // ---------------------------------------------
 
-
     // Explicitly relax pressure for momentum corrector
     p.relax();
 
-    U = HbyA - rAU*fvc::grad(p);
+    U = HbyA - rAU * fvc::grad(p);
     U.correctBoundaryConditions();
     fvOptions.correct(U);
-    K = 0.5*magSqr(U);
+    K = 0.5 * magSqr(U);
 
-    if (pimple.simpleRho())
-    {
+    if (pimple.simpleRho()) {
         rho = thermo.rho();
     }
 
     // Correct rhoUf if the mesh is moving
     fvc::correctRhoUf(rhoUf, rho, U, phi);
 
-    if (thermo.dpdt())
-    {
+    if (thermo.dpdt()) {
         dpdt = fvc::ddt(p);
 
-        if (mesh.moving())
-        {
+        if (mesh.moving()) {
             dpdt -= fvc::div(fvc::meshPhi(rho, U), p);
         }
     }
@@ -1240,18 +929,13 @@ int RHOPIMPLE_CLASS::pEqn_()
     return 0;
 }
 
-int RHOPIMPLE_CLASS::readTimeControls()
-{
-
+int rocRhoPimple::readTimeControls() {
     Foam::Time &runTime(*runTimePtr);
-    
-
 
     adjustTimeStep =
         runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
-    maxCo =
-        runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
+    maxCo = runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
 
     maxDeltaT =
         runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
@@ -1259,10 +943,7 @@ int RHOPIMPLE_CLASS::readTimeControls()
     return 0;
 }
 
-
-
-int RHOPIMPLE_CLASS::finalize()
-{
+int rocRhoPimple::finalize() {
     delete argsPtr;
     delete runTimePtr;
     delete pPtr;
@@ -1275,10 +956,9 @@ int RHOPIMPLE_CLASS::finalize()
     delete rhoEPtr;
     delete phiPtr;
 
-    //delete meshPtr;
-    //delete turbulencePtr;
-    //delete trDeltaT;
-
+    // delete meshPtr;
+    // delete turbulencePtr;
+    // delete trDeltaT;
 
     delete pimplePtr;
     delete pressureControlPtr;
@@ -1288,10 +968,10 @@ int RHOPIMPLE_CLASS::finalize()
     delete MRFPtr;
     delete UEqnPtr;
 
-    //delete pThermoPtr;
-    //delete rhoUfPtr;
-    //delete divrhoUPtr;
-    //delete tUEqnPtr;
+    // delete pThermoPtr;
+    // delete rhoUfPtr;
+    // delete divrhoUPtr;
+    // delete tUEqnPtr;
 
     return 0;
 }

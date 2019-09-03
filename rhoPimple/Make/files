@@ -1,5 +1,5 @@
-../FOAM/FOAM_CLASS.C
-RHOPIMPLE_CLASS.C
-rhoPimple.C
+../foam/rocFoam.C
+rocRhoPimple.C
+rocRhoPimple_drv.C
 
 EXE = $(FOAM_USER_APPBIN)/rocPimpleFoam
