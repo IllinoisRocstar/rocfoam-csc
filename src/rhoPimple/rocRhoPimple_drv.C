@@ -1,6 +1,7 @@
 #include "rocRhoPimple.H"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     rocRhoPimple rocRhoPimple(argc, argv);
 
     rocRhoPimple.loop();

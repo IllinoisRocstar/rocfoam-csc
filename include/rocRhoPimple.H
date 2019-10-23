@@ -9,10 +9,11 @@
 #include "pimpleControl.H"
 #include "pressureControl.H"
 
-class rocRhoPimple : public rocFoam {
-   private:
-   protected:
-   public:
+class rocRhoPimple : public rocFoam
+{
+private:
+protected:
+public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
     pimpleControl *pimplePtr;
     pressureControl *pressureControlPtr;

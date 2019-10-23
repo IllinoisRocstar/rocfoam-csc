@@ -7,10 +7,11 @@
 #include "fixedRhoFvPatchScalarField.H"
 #include "psiThermo.H"
 
-class rocRhoCentral : public rocFoam {
-   private:
-   protected:
-   public:
+class rocRhoCentral : public rocFoam
+{
+private:
+protected:
+public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
     surfaceScalarField *posPtr;
     surfaceScalarField *negPtr;

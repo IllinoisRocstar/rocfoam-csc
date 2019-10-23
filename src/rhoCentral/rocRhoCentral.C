@@ -7,7 +7,8 @@ rocRhoCentral::rocRhoCentral()
       amaxSfPtr(NULL),
       pThermoPtr(NULL),
       fluxScheme(""),
-      inviscid(false) {}
+      inviscid(false)
+{}
 
 rocRhoCentral::rocRhoCentral(int argc, char *argv[])
     : rocFoam(),
@@ -16,11 +17,13 @@ rocRhoCentral::rocRhoCentral(int argc, char *argv[])
       amaxSfPtr(NULL),
       pThermoPtr(NULL),
       fluxScheme(""),
-      inviscid(false) {
+      inviscid(false)
+{
     Initialize(argc, argv);
 }
 
-int rocRhoCentral::Initialize(int argc, char *argv[]) {
+int rocRhoCentral::Initialize(int argc, char *argv[])
+{
 #define NO_CONTROL
 
     // Mohammad: Not quite sure where this line should be
@@ -67,7 +70,8 @@ int rocRhoCentral::Initialize(int argc, char *argv[]) {
     return 0;
 }
 
-int rocRhoCentral::loop() {
+int rocRhoCentral::loop()
+{
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
     volScalarField &p(*pPtr);
@@ -92,12 +96,14 @@ int rocRhoCentral::loop() {
 
     Info << "\nStarting time loop\n" << endl;
 
-    while (runTime.run()) {
+    while (runTime.run())
+    {
         //  readTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         readTimeControls();
         // ---------------------------------------------------
 
-        if (!LTS) {
+        if (!LTS)
+        {
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setDeltaT();
             // ---------------------------------------------
@@ -132,36 +138,57 @@ int rocRhoCentral::loop() {
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
         // Make fluxes relative to mesh-motion
-        if (mesh.moving()) {
+        if (mesh.moving())
+        {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
-        surfaceScalarField cSf_pos(
-            "cSf_pos", interpolate(c, pos, T.name()) * mesh.magSf());
+        surfaceScalarField cSf_pos
+        (
+            "cSf_pos",
+            interpolate(c, pos, T.name()) * mesh.magSf()
+        );
 
-        surfaceScalarField cSf_neg(
-            "cSf_neg", interpolate(c, neg, T.name()) * mesh.magSf());
+        surfaceScalarField cSf_neg
+        (
+            "cSf_neg",
+            interpolate(c, neg, T.name()) * mesh.magSf()
+        );
 
-        surfaceScalarField ap(
-            "ap", max(max(phiv_pos + cSf_pos, phiv_neg + cSf_neg), v_zero));
-        surfaceScalarField am(
-            "am", min(min(phiv_pos - cSf_pos, phiv_neg - cSf_neg), v_zero));
+        surfaceScalarField ap
+        (
+            "ap",
+            max(max(phiv_pos + cSf_pos, phiv_neg + cSf_neg), v_zero)
+        );
+        
+        surfaceScalarField am
+        (
+            "am",
+            min(min(phiv_pos - cSf_pos, phiv_neg - cSf_neg), v_zero)
+        );
 
-        surfaceScalarField a_pos("a_pos", ap / (ap - am));
+        surfaceScalarField a_pos
+        (
+            "a_pos",
+            ap / (ap - am)
+        );
 
         // surfaceScalarField amaxSf("amaxSf", max(mag(am), mag(ap)));
-        if (amaxSfPtr == NULL) {
+        if (amaxSfPtr == NULL)
+        {
             amaxSfPtr = new surfaceScalarField("amaxSf", max(mag(am), mag(ap)));
         }
+        
         surfaceScalarField &amaxSf(*amaxSfPtr);
 
         amaxSf = max(mag(am), mag(ap));
 
         surfaceScalarField aSf("aSf", am * a_pos);
 
-        if (fluxScheme == "Tadmor") {
+        if (fluxScheme == "Tadmor")
+        {
             aSf = -0.5 * amaxSf;
             a_pos = 0.5;
         }
@@ -182,7 +209,8 @@ int rocRhoCentral::loop() {
         centralCourantNo();
         // ---------------------------------------------------
 
-        if (LTS) {
+        if (LTS)
+        {
             // setRDeltaT.H
             // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setRDeltaT();
@@ -194,17 +222,23 @@ int rocRhoCentral::loop() {
 
         phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
 
-        surfaceVectorField phiUp((aphiv_pos * rhoU_pos + aphiv_neg * rhoU_neg) +
-                                 (a_pos * p_pos + a_neg * p_neg) * mesh.Sf());
+        surfaceVectorField phiUp
+        (
+            (aphiv_pos * rhoU_pos + aphiv_neg * rhoU_neg) +
+            (a_pos * p_pos + a_neg * p_neg) * mesh.Sf()
+        );
 
-        surfaceScalarField phiEp(
+        surfaceScalarField phiEp
+        (
             "phiEp",
             aphiv_pos * (rho_pos * (e_pos + 0.5 * magSqr(U_pos)) + p_pos) +
-                aphiv_neg * (rho_neg * (e_neg + 0.5 * magSqr(U_neg)) + p_neg) +
-                aSf * p_pos - aSf * p_neg);
+            aphiv_neg * (rho_neg * (e_neg + 0.5 * magSqr(U_neg)) + p_neg) +
+            aSf * p_pos - aSf * p_neg
+        );
 
         // Make flux for pressure-work absolute
-        if (mesh.moving()) {
+        if (mesh.moving())
+        {
             phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
         }
 
@@ -222,20 +256,34 @@ int rocRhoCentral::loop() {
         U.correctBoundaryConditions();
         rhoU.boundaryFieldRef() == rho.boundaryField() * U.boundaryField();
 
-        if (!inviscid) {
-            solve(fvm::ddt(rho, U) - fvc::ddt(rho, U) -
-                  fvm::laplacian(muEff, U) - fvc::div(tauMC));
+        if (!inviscid)
+        {
+            solve
+            (
+                fvm::ddt(rho, U) - fvc::ddt(rho, U)
+              - fvm::laplacian(muEff, U)
+              - fvc::div(tauMC)
+            );
             rhoU = rho * U;
         }
 
         // --- Solve energy
-        surfaceScalarField sigmaDotU(
+        surfaceScalarField sigmaDotU
+        (
             "sigmaDotU",
-            (fvc::interpolate(muEff) * mesh.magSf() * fvc::snGrad(U) +
-             fvc::dotInterpolate(mesh.Sf(), tauMC)) &
-                (a_pos * U_pos + a_neg * U_neg));
+            (
+                fvc::interpolate(muEff) * mesh.magSf() * fvc::snGrad(U) +
+                fvc::dotInterpolate(mesh.Sf(), tauMC)
+            ) & (a_pos * U_pos + a_neg * U_neg)
+        );
 
-        solve(fvm::ddt(rhoE) + fvc::div(phiEp) - fvc::div(sigmaDotU));
+        solve
+        (
+            fvm::ddt(rhoE)
+          + fvc::div(phiEp)
+          - fvc::div(sigmaDotU)
+        );
+
 
         e = rhoE / rho - 0.5 * magSqr(U);
         e.correctBoundaryConditions();
@@ -244,9 +292,13 @@ int rocRhoCentral::loop() {
             rho.boundaryField() *
                 (e.boundaryField() + 0.5 * magSqr(U.boundaryField()));
 
-        if (!inviscid) {
-            solve(fvm::ddt(rho, e) - fvc::ddt(rho, e) -
-                  fvm::laplacian(turbulence.alphaEff(), e));
+        if (!inviscid)
+        {
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e) -
+                fvm::laplacian(turbulence.alphaEff(), e)
+            );
             thermo.correct();
             rhoE = rho * (e + 0.5 * magSqr(U));
         }
@@ -270,7 +322,8 @@ int rocRhoCentral::loop() {
     return 0;
 }
 
-int rocRhoCentral::createFields() {
+int rocRhoCentral::createFields()
+{
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -288,47 +341,106 @@ int rocRhoCentral::createFields() {
 
     Info << "Reading field U\n" << endl;
 
-    UPtr =
-        new volVectorField(IOobject("U", runTime.timeName(), mesh,
-                                    IOobject::MUST_READ, IOobject::AUTO_WRITE),
-                           mesh);
+    UPtr = new volVectorField
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ, IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
     volVectorField &U(*UPtr);
 
-    rhoPtr =
-        new volScalarField(IOobject("rho", runTime.timeName(), mesh,
-                                    IOobject::NO_READ, IOobject::AUTO_WRITE),
-                           thermo.rho());
+    rhoPtr = new volScalarField
+    (
+        IOobject
+        (
+            "rho",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ, IOobject::AUTO_WRITE
+        ),
+        thermo.rho()
+    );
     volScalarField &rho(*rhoPtr);
 
-    rhoUPtr =
-        new volVectorField(IOobject("rhoU", runTime.timeName(), mesh,
-                                    IOobject::NO_READ, IOobject::NO_WRITE),
-                           rho * U);
+    rhoUPtr = new volVectorField
+    (
+        IOobject
+        (
+            "rhoU",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ, IOobject::NO_WRITE
+        ),
+        rho * U
+    );
     volVectorField &rhoU(*rhoUPtr);
 
-    rhoEPtr =
-        new volScalarField(IOobject("rhoE", runTime.timeName(), mesh,
-                                    IOobject::NO_READ, IOobject::NO_WRITE),
-                           rho * (e + 0.5 * magSqr(U)));
+    rhoEPtr = new volScalarField
+    (
+        IOobject
+        (
+            "rhoE",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        rho * (e + 0.5 * magSqr(U))
+    );
 
-    posPtr = new surfaceScalarField(IOobject("pos", runTime.timeName(), mesh),
-                                    mesh, dimensionedScalar(dimless, 1.0));
+    posPtr = new surfaceScalarField
+    (
+        IOobject
+        (
+            "pos",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar(dimless, 1.0)
+    );
 
-    negPtr = new surfaceScalarField(IOobject("neg", runTime.timeName(), mesh),
-                                    mesh, dimensionedScalar(dimless, -1.0));
+    negPtr = new surfaceScalarField
+    (
+        IOobject
+        (
+            "neg",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh, dimensionedScalar(dimless, -1.0)
+    );
 
-    phiPtr = new surfaceScalarField("phi", fvc::flux(rhoU));
+    phiPtr = new surfaceScalarField
+    (
+        "phi",
+        fvc::flux(rhoU)
+    );
     surfaceScalarField &phi(*phiPtr);
 
     Info << "Creating turbulence model\n" << endl;
 
-    turbulencePtr = autoPtr<compressible::turbulenceModel>(
-        compressible::turbulenceModel::New(rho, U, phi, thermo));
+    turbulencePtr = autoPtr<compressible::turbulenceModel>
+    (
+        compressible::turbulenceModel::New
+        (
+            rho,
+            U,
+            phi,
+            thermo
+        )
+    );
 
     return 0;
 }
 
-int rocRhoCentral::createFieldRefs() {
+int rocRhoCentral::createFieldRefs()
+{
     Foam::psiThermo &thermo(*pThermoPtr);
 
     /*
@@ -343,32 +455,41 @@ int rocRhoCentral::createFieldRefs() {
 
     // bool inviscid(true);
     inviscid = true;
-    if (max(mu.primitiveField()) > 0.0) {
+    if (max(mu.primitiveField()) > 0.0)
+    {
         inviscid = false;
     }
 
     return 0;
 }
 
-int rocRhoCentral::readFluxScheme() {
+int rocRhoCentral::readFluxScheme()
+{
     dynamicFvMesh &mesh(*meshPtr);
 
     // word fluxScheme("Kurganov");
     word fluxScheme("Kurganov");
-    if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme)) {
-        if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov")) {
+    if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme))
+    {
+        if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov"))
+        {
             Info << "fluxScheme: " << fluxScheme << endl;
-        } else {
+        }
+        else
+        {
             FatalErrorInFunction
-                << "fluxScheme: " << fluxScheme << " is not a valid choice. "
-                << "Options are: Tadmor, Kurganov" << abort(FatalError);
+                << "fluxScheme: " << fluxScheme
+                << " is not a valid choice. "
+                << "Options are: Tadmor, Kurganov"
+                << abort(FatalError);
         }
     }
 
     return 0;
 }
 
-int rocRhoCentral::readTimeControls() {
+int rocRhoCentral::readTimeControls()
+{
     Foam::Time &runTime(*runTimePtr);
 
     adjustTimeStep =
@@ -382,12 +503,14 @@ int rocRhoCentral::readTimeControls() {
     return 0;
 }
 
-int rocRhoCentral::centralCourantNo() {
+int rocRhoCentral::centralCourantNo()
+{
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     surfaceScalarField &amaxSf(*amaxSfPtr);
 
-    if (mesh.nInternalFaces()) {
+    if (mesh.nInternalFaces())
+    {
         scalarField sumAmaxSf(fvc::surfaceSum(amaxSf)().primitiveField());
 
         CoNum =
@@ -403,15 +526,22 @@ int rocRhoCentral::centralCourantNo() {
     return 0;
 }
 
-int rocRhoCentral::setRDeltaT() {
+int rocRhoCentral::setRDeltaT()
+{
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
     surfaceScalarField &amaxSf(*amaxSfPtr);
 
     volScalarField &rDeltaT = trDeltaT.ref();
 
-    scalar rDeltaTSmoothingCoeff(runTime.controlDict().lookupOrDefault<scalar>(
-        "rDeltaTSmoothingCoeff", 0.02));
+    scalar rDeltaTSmoothingCoeff
+    (
+        runTime.controlDict().lookupOrDefault<scalar>
+        (
+            "rDeltaTSmoothingCoeff",
+            0.02
+        )
+    );
 
     // Set the reciprocal time-step from the local Courant number
     rDeltaT.ref() = max(1 / dimensionedScalar(dimTime, maxDeltaT),
@@ -422,13 +552,15 @@ int rocRhoCentral::setRDeltaT() {
 
     fvc::smooth(rDeltaT, rDeltaTSmoothingCoeff);
 
-    Info << "Flow time scale min/max = " << gMin(1 / rDeltaT.primitiveField())
+    Info << "Flow time scale min/max = "
+         << gMin(1 / rDeltaT.primitiveField())
          << ", " << gMax(1 / rDeltaT.primitiveField()) << endl;
 
     return 0;
 }
 
-int rocRhoCentral::finalize() {
+int rocRhoCentral::finalize()
+{
     delete argsPtr;
     delete runTimePtr;
     delete pPtr;

@@ -7,10 +7,11 @@
 #include "localEulerDdtScheme.H"
 #include "turbulentFluidThermoModel.H"
 
-class rocFoam {
-   private:
-   protected:
-   public:
+class rocFoam
+{
+private:
+protected:
+public:
     //  Initializations ^^^^^^^^^^^^^^
     Foam::argList *argsPtr;
     Foam::Time *runTimePtr;
