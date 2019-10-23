@@ -6,3 +6,5 @@
 */*/*.dep
 */*/*/*.o
 */*/*/*.dep
+build
+build/*
