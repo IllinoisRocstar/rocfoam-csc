@@ -37,10 +37,10 @@ rocRhoPimple::rocRhoPimple(int argc, char *argv[])
       moveMeshOuterCorrectors(false),
       cumulativeContErr(0.0)
 {
-    Initialize(argc, argv);
+    initialize(argc, argv);
 }
 
-int rocRhoPimple::Initialize(int argc, char *argv[])
+int rocRhoPimple::initialize(int argc, char *argv[])
 {
     // Mohammad: Not quite sure where this line should be
     argsPtr = new Foam::argList(argc, argv);

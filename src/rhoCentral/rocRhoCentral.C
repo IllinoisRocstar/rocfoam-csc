@@ -19,10 +19,10 @@ rocRhoCentral::rocRhoCentral(int argc, char *argv[])
       fluxScheme(""),
       inviscid(false)
 {
-    Initialize(argc, argv);
+    initialize(argc, argv);
 }
 
-int rocRhoCentral::Initialize(int argc, char *argv[])
+int rocRhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
 

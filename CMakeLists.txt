@@ -28,13 +28,13 @@ if(OF4 GREATER -1)
   # TODO: rmains to be tested on OF4
   find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
       compressibleTransportModels fluidThermophysicalModels specie
-      rhoCentralFoam turbulenceModels compressibleTurbulenceModels dynamicFvMesh
+      turbulenceModels compressibleTurbulenceModels dynamicFvMesh
       topoChangerFvMesh meshTools)
 else()
   # > 4.x series
   find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
       compressibleTransportModels fluidThermophysicalModels specie
-      rhoCentralFoam turbulenceModels compressibleTurbulenceModels dynamicFvMesh
+      turbulenceModels compressibleTurbulenceModels dynamicFvMesh
       topoChangerFvMesh meshTools)
 endif()
 

@@ -32,7 +32,7 @@ public:
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    int Initialize(int argc, char *argv[]);
+    int initialize(int argc, char *argv[]);
     int loop();
     int finalize();
     //--------------------------------------

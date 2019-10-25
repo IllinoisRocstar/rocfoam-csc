@@ -54,7 +54,7 @@ public:
     //--------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    virtual int Initialize() { return 0; };
+    virtual int initialize() { return 0; };
     virtual int loop() { return 0; };
     virtual int finalize() { return 0; };
     virtual int createFields() { return 0; };
