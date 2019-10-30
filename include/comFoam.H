@@ -2,17 +2,79 @@
 #define COMFOAM_
 
 #include "com.h"
-#include "com_devel.hpp"
+//#include "com_devel.hpp"
 #include "rocRhoCentral.H"
 
-class rocFoamModule : public rocRhoCentral, public COM_Object
+
+using namespace COM;
+
+class comFoamModule : public rocRhoCentral, public COM_Object
 {
 public:
-    int initializeAll(int *pargc, void **pargv, int *verbIn);
+    std::string windowName; /// Tracks *this* window name.
+    std::string globalName;
+
+
+    //  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    int flowInitHandle;
+    int flowStatHandle;
+    int flowLoopHandle;
+    int flowFinHandle;
+
+    int verbosity;    
+    
+
+    //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    int numDataItems=0;
+    std::vector<std::string> dataItemNames;
+    int numPanes;
+    int* paneList;
+
+    double* Coord;
+    int numNodes = 0;
+
+    int numConn;
+    int numElem;
+    int* Conn;
+    std::vector<std::string> connNames;
+
+    char getDataItemLoc;
+    COM_Type getDataItemType;
+    int numElementNodes;
+    std::string getDataItemUnits;
+
+    int timeArrayLength;
+
+
+    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    static void Load(const char *name);
+    static void Unload(const std::string &name, comFoamModule &object);
+
+    int comInitialize(int argc, char *argv[]);
+    int comStatus();
+    int comLoop();
+    int comFinalize();
+
+    int flowInit(int *pargc, void **pargv, int *verbIn);
+    int flowStat();
+    int flowLoop();
+    int flowFin();
+
+
+    //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    comFoamModule();
+    comFoamModule(int argc, char *argv[]);
+
+    ~comFoamModule()
+    {
+        std::cout << "comFoam decunstructor = "
+         << test_bool << " " << listOptions_ << std::endl;
+    };
 
 
 private:
-    std::string my_window_name; /// Tracks *this* window name.
+
 
 protected:
     // ====== Data to register with IMPACT =======
@@ -31,8 +93,10 @@ protected:
     std::vector<double> solidDisplacement;
     std::vector<double> time;
     std::vector<double> deltaTime;
-    int verbosity;
     */
+    
+    
+
 
     // function status variables
     /*
@@ -61,4 +125,6 @@ protected:
     label pRefCell;
     scalar pRefValue;
     */   
-}
+};
+
+#endif

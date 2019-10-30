@@ -8,7 +8,12 @@ rocRhoCentral::rocRhoCentral()
       pThermoPtr(NULL),
       fluxScheme(""),
       inviscid(false)
-{}
+{
+
+   std::cout << "rocRhoCentral cunstructor = "
+             << test_bool << " " << listOptions_ << std::endl;
+
+}
 
 rocRhoCentral::rocRhoCentral(int argc, char *argv[])
     : rocFoam(),
@@ -26,20 +31,37 @@ int rocRhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
 
+
+Foam::Info << "HERE 11." << Foam::endl;
+
+
+
     // Mohammad: Not quite sure where this line should be
     argsPtr = new Foam::argList(argc, argv);
+
+Foam::Info << "argsPtr" << argsPtr << Foam::endl;
+
+
+Foam::Info << "HERE 12." << Foam::endl;
 
     //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     PostProcess(argc, argv);
     // ---------------------------------------------------
 
+Foam::Info << "HERE 13." << Foam::endl;
+
     //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     setRootCaseLists();
     // ---------------------------------------------------
 
+
+Foam::Info << "HERE 14." << Foam::endl;
+
     //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     createTime();
     // ---------------------------------------------------
+
+Foam::Info << "HERE 15." << Foam::endl;
 
     //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     createDynamicFvMesh();
