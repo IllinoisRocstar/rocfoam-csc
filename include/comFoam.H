@@ -12,49 +12,14 @@ class comFoamModule : public rocRhoCentral, public COM_Object
 {
 public:
     std::string windowName; /// Tracks *this* window name.
-    std::string globalName;
-
-
-    //  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int flowInitHandle;
-    int flowStatHandle;
-    int flowLoopHandle;
-    int flowFinHandle;
 
     int verbosity;    
     
 
-    //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int numDataItems=0;
-    std::vector<std::string> dataItemNames;
-    int numPanes;
-    int* paneList;
-
-    double* Coord;
-    int numNodes = 0;
-
-    int numConn;
-    int numElem;
-    int* Conn;
-    std::vector<std::string> connNames;
-
-    char getDataItemLoc;
-    COM_Type getDataItemType;
-    int numElementNodes;
-    std::string getDataItemUnits;
-
-    int timeArrayLength;
-
-
     //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     static void Load(const char *name);
-    static void Unload(const std::string &name, comFoamModule &object);
-
-    int comInitialize(int argc, char *argv[]);
-    int comStatus();
-    int comLoop();
-    int comFinalize();
+    static void Unload(const std::string &name);
 
     int flowInit(int *pargc, void **pargv, int *verbIn);
     int flowStat();
@@ -64,13 +29,9 @@ public:
 
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoamModule();
-    comFoamModule(int argc, char *argv[]);
+    comFoamModule(int *pargc, void **pargv, int *verbIn);
 
-    ~comFoamModule()
-    {
-        std::cout << "comFoam decunstructor = "
-         << test_bool << " " << listOptions_ << std::endl;
-    };
+    ~comFoamModule(){};
 
 
 private:

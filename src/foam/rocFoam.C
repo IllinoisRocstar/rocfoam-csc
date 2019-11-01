@@ -3,8 +3,7 @@
 rocFoam::rocFoam()
     : argsPtr(NULL),
       runTimePtr(NULL),
-      listOptions_(false),
-      test_bool(false),
+      listOptions(false),
       LTS(false),
       adjustTimeStep(false),
       maxCo(0.0),
@@ -22,13 +21,7 @@ rocFoam::rocFoam()
       phiPtr(NULL),
       meshPtr(NULL),
       turbulencePtr(NULL),
-      trDeltaT(NULL)
-{
-
-   std::cout << "rocFoam cunstructor = "
-             << test_bool << " " << listOptions_ << std::endl;
-
-}
+      trDeltaT(NULL) {}
 
 rocFoam::~rocFoam()
 {
@@ -258,9 +251,6 @@ int rocFoam::setRootCase()
 {
     Foam::argList &args(*argsPtr);
 
-
-Foam::Info << "args.checkRootCase() = " << args.checkRootCase() << Foam::endl;
-
     // Foam::argList args(argc, argv);
     if (!args.checkRootCase())
     {
@@ -271,34 +261,22 @@ Foam::Info << "args.checkRootCase() = " << args.checkRootCase() << Foam::endl;
 
 int rocFoam::setRootCaseLists()
 {
-
-Foam::Info << "HERE 21." << Foam::endl;
-
     //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    listOptionsFunc();
+    listOptions_Func();
     // --------------------------------------------------
-
-Foam::Info << "HERE 22." << Foam::endl;
-
 
     //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     setRootCase();
     // --------------------------------------------------
 
-Foam::Info << "HERE 23." << Foam::endl;
-
-
     //  listOutput.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     listOutput();
     // --------------------------------------------------
 
-Foam::Info << "HERE 24." << Foam::endl;
-
-
     return 0;
 }
 
-int rocFoam::listOptionsFunc()
+int rocFoam::listOptions_Func()
 {
     argList::addBoolOption
     (
@@ -364,31 +342,18 @@ int rocFoam::listOutput()
     Foam::argList &args(*argsPtr);
 
     // bool listOptions = false ;
-    
-Foam::Info << "101 listOptions = " << listOptions_ << Foam::endl;
-std::cout << "101 listOptions = " << test_bool << " " << this->listOptions_ << " " << false << " " << true << std::endl;
-std::cout << "101 listOptions = " << sizeof(test_bool) << " " << sizeof(listOptions_) << " " << false << " " << true << std::endl;
-
-Foam::Info << "1010 listOptions = " << args.optionFound("listSwitches") << Foam::endl;
 
     if (args.optionFound("listSwitches"))
     {
         debug::listSwitches(args.optionFound("includeUnsetSwitches"));
-        listOptions_ = true;
+        listOptions = true;
     }
-
-Foam::Info << "102 listOptions = " << listOptions_ << Foam::endl;
-
 
     if (args.optionFound("listRegisteredSwitches"))
     {
         debug::listRegisteredSwitches(args.optionFound("includeUnsetSwitches"));
-        listOptions_ = true;
+        listOptions = true;
     }
-
-
-Foam::Info << "103 listOptions = " << listOptions_ << Foam::endl;
-
 
 #ifdef fvPatchField_H
     if (args.optionFound("listScalarBCs"))
@@ -396,21 +361,16 @@ Foam::Info << "103 listOptions = " << listOptions_ << Foam::endl;
         Info<< "scalarBCs"
             << fvPatchField<scalar>::dictionaryConstructorTablePtr_->sortedToc()
             << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
-
-Foam::Info << "104 listOptions = " << listOptions_ << Foam::endl;
 
     if (args.optionFound("listVectorBCs"))
     {
         Info<< "vectorBCs"
             << fvPatchField<vector>::dictionaryConstructorTablePtr_->sortedToc()
             << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
-
-Foam::Info << "105 listOptions = " << listOptions_ << Foam::endl;
-
 #endif
 
 #ifdef functionObject_H
@@ -419,22 +379,16 @@ Foam::Info << "105 listOptions = " << listOptions_ << Foam::endl;
         Info << "functionObjects"
              << functionObject::dictionaryConstructorTablePtr_->sortedToc()
              << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
-
-Foam::Info << "106 listOptions = " << listOptions_ << Foam::endl;
-
 #endif
-
-
-
 
 #ifdef fvOption_H
     if (args.optionFound("listFvOptions"))
     {
         Info << "fvOptions"
              << fv::option::dictionaryConstructorTablePtr_->sortedToc() << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
 #endif
 
@@ -455,12 +409,8 @@ Foam::Info << "106 listOptions = " << listOptions_ << Foam::endl;
              << incompressible::LESModel::dictionaryConstructorTablePtr_
                     ->sortedToc()
              << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
-
-Foam::Info << "108 listOptions = " << listOptions_ << Foam::endl;
-
-
 #elif defined(turbulentFluidThermoModel_H)
     if (args.optionFound("listTurbulenceModels"))
     {
@@ -478,17 +428,11 @@ Foam::Info << "108 listOptions = " << listOptions_ << Foam::endl;
              << compressible::LESModel::dictionaryConstructorTablePtr_
                     ->sortedToc()
              << endl;
-        listOptions_ = true;
+        listOptions = true;
     }
-
-
-Foam::Info << "109 listOptions = " << listOptions_ << Foam::endl;
-
 #endif
 
-Foam::Info << "107 listOptions = " << listOptions_ << Foam::endl;
-
-    if (listOptions_)
+    if (listOptions)
     {
         exit(0);
     }

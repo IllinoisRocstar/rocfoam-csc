@@ -21,8 +21,7 @@ public:
     // static scalar constexpr small=1.0e-10;
     // static scalar constexpr great=1.0e+10;
 
-    bool listOptions_;
-    bool test_bool=false;
+    bool listOptions;
     bool LTS;
     bool adjustTimeStep;
 
@@ -71,7 +70,7 @@ public:
     int setRootCase();
 
     int setRootCaseLists();
-    int listOptionsFunc();
+    int listOptions_Func();
     int listOutput();
 
     int createTime();
