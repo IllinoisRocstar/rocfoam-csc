@@ -194,7 +194,8 @@ set(comfoam_SRCS
     src/rhoPimple/rocRhoPimple.C)
 
 # Setting comFoam driver source
-set(comFoamDrv_SRCS src/com/comFoam_drv.C)
+set(comFoamDrv_SRCS
+    src/com/comFoam_drv.C)
 
 # Building library #############################################################
 # Build comfoam library

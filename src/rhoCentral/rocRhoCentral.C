@@ -25,8 +25,6 @@ rocRhoCentral::rocRhoCentral(int argc, char *argv[])
 int rocRhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
-
-    // Mohammad: Not quite sure where this line should be
     argsPtr = new Foam::argList(argc, argv);
 
     //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,10 +63,11 @@ int rocRhoCentral::initialize(int argc, char *argv[])
 
     turbulence.validate();
 
-    Foam::Info << "End of initialization of openFoamPar module." << endl;
+    Foam::Info << "End of initialization of rocRhoCentral module." << Foam::endl;
 
     return 0;
 }
+
 
 int rocRhoCentral::loop()
 {
@@ -559,29 +558,37 @@ int rocRhoCentral::setRDeltaT()
     return 0;
 }
 
+rocRhoCentral::~rocRhoCentral()
+{
+    finalize();
+}
+
 int rocRhoCentral::finalize()
 {
-    delete argsPtr;
-    delete runTimePtr;
-    delete pPtr;
-    delete TPtr;
-    delete psiPtr;
-    delete ePtr;
-    delete rhoPtr;
+    // Delete thing that are allocated here
+    delete posPtr;
+    delete negPtr;
+    delete amaxSfPtr;
+
     delete UPtr;
+    delete rhoPtr;
     delete rhoUPtr;
     delete rhoEPtr;
     delete phiPtr;
 
-    // delete meshPtr;
-    // delete turbulencePtr;
-    // delete trDeltaT;
+    //delete argsPtr; Let it be the last thing to delete in the
+    //                parrent class:rocFoam
 
-    delete posPtr;
-    delete negPtr;
-    delete amaxSfPtr;
-    // delete pThermoPtr;
+    //delete pThermoPtr;
+    //delete runTimePtr;
+    //delete ePtr; a pointer
+    //delete pPtr; a pointer
+    //delete TPtr; a pointer
+    //delete psiPtr; a pointer
+
+    //delete meshPtr;
+    //delete turbulencePtr;
+    //delete trDeltaT;
 
     return 0;
 }
-

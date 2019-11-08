@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
     rocRhoCentral rocFoamCentral(argc, argv);
 
     rocFoamCentral.loop();
-    rocFoamCentral.finalize();
+    //rocFoamCentral.finalize();
 
     return 0;
 }

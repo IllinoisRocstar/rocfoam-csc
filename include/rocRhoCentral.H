@@ -28,7 +28,7 @@ public:
     //  Constructor, Deconstructor ^^^^^^^^^
     rocRhoCentral();
     rocRhoCentral(int argc, char *argv[]);
-    ~rocRhoCentral() {}
+    ~rocRhoCentral();
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^

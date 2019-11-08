@@ -1,4 +1,5 @@
 #include "comFoam.H"
+#include "PstreamGlobals.H"
 
 comFoamModule::comFoamModule(){};
 
@@ -12,10 +13,8 @@ int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
 {
     int argc = *pargc;
     char** argv = (char**)(pargv);
-    verbosity = *verbIn;
 
-    std::cout << "RFModule.flowInit: Initializing flow solver." << std::endl;
-    
+    Foam::Info << "RFModule.flowInit: Initializing flow solver." << Foam::endl;
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoamModule *comFoamPtr = NULL;
@@ -23,8 +22,7 @@ int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
     std::string name="CFModule";
     std::string globalName(name+".global");
     COM_get_object(globalName.c_str(), 0, &comFoamPtr);
-    
-   
+
     comFoamPtr->initialize(argc, argv);
     
     //  Other initializations ^^^^^^^^^^^^^^^^^^^
@@ -35,7 +33,7 @@ int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
 int comFoamModule::flowLoop()
 {
 
-    std::cout << "RFModule.flowLoop: flow interation." << std::endl;
+    Foam::Info << "RFModule.flowLoop: flow interation." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoamModule *comFoamPtr = NULL;
@@ -49,37 +47,55 @@ int comFoamModule::flowLoop()
     return 0;
 }
 
-//^^^^^ FINALIZE MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void comFoamModule::Unload(const std::string &name)
+//^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+// C/C++ bindings to load rocFoam
+extern "C" void comfoam_load_module(const char *name)
 {
-    std::cout << "RFModule.Unload: Unloading comFoamModule with name "
-              << name << "." << std::endl;
-              
-    comFoamModule *comFoamPtr = NULL;
-    std::string globalName(name+".global");
-
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
-    
-    comFoamPtr->finalize();
-
-    COM_assertion_msg(comFoamPtr->validate_object()==0, "Invalid object");
-    delete comFoamPtr;
-
-    COM_delete_window(std::string(name));
+  comFoamModule::Load(name);
 }
-
 
 void comFoamModule::Load(const char *name)
 {
-    std::cout << "RFModule.Load: Loading comFoamModule with name "
-              << name << "." << std::endl;
+    Foam::Info << "RFModule.Load: Loading comFoamModule with name "
+               << name << "." << Foam::endl;
 
-    //  Register module with COM ^^^^^^^^^^^
+    //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
+    MPI_Comm tmpComm;
+    tmpComm = COM_get_default_communicator();  
+
+    int tmpRank, tmpNProc;
+    MPI_Comm_rank(tmpComm, &tmpRank);
+    MPI_Comm_size(tmpComm, &tmpNProc);
+    
+    Foam::Info << "RFModoule.Load: Rank #" << tmpRank
+               << " on communicator " << tmpComm
+               << " with " << tmpNProc << " processes."
+               << Foam::endl;
+
+    Foam::Info << "RFModule.Load: Rank #" << tmpRank
+               << " Loading FsiFoamModule with name " 
+               << name << Foam::endl;
+
+    Foam::Info << Foam::endl;
+
+
+    //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoamModule *comFoamPtr = new comFoamModule();
 
     COM_new_window(name, MPI_COMM_NULL);
+    //COM_new_window(name, tmpComm);
 
-    comFoamPtr->windowName = name;
+    comFoamPtr->winName = name;
+
+    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
+    comFoamPtr->winComm = tmpComm;
+    
+    //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
+    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->winRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
 
     std::string globalName = name + string(".global");
 
@@ -88,7 +104,7 @@ void comFoamModule::Load(const char *name)
     COM_set_object(globalName.c_str(), 0, comFoamPtr);
 
 
-    /// Register functions
+    /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<COM_Type> types(13,COM_INT);
 
     types[0] = COM_RAWDATA;
@@ -116,30 +132,42 @@ void comFoamModule::Load(const char *name)
     //    globalName.c_str(), "b", &types[0]
     //);
 
+    //  Registering nproc for this module to COM ^^^^^^^^^^
+    COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
+
     COM_window_init_done(name); 
 
     return;
 }
+//-------------------------------------------------------------------
 
 
+//^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-/// @brief C/C++ bindings to load IcoFoamModule
-extern "C" void comfoam_load_module(const char *name)
-{
-
-std::cout << "HERE 1001" << std::endl;
-
-  comFoamModule::Load(name);
-  
-std::cout << "HERE 1002" << std::endl;
-  
-}
-
-/// @brief C/C++ bindings to unload IcoFoamModule
+// C/C++ bindings to unload rocFoam
 extern "C" void comfoam_unload_module(const char *name)
 {
   comFoamModule::Unload(name);
 }
+
+void comFoamModule::Unload(const std::string &name)
+{
+    std::cout << "RFModule.Unload: Unloading comFoamModule with name "
+              << name << "." << std::endl;
+
+    comFoamModule *comFoamPtr = NULL;
+    std::string globalName(name+".global");
+
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    delete comFoamPtr;
+
+    COM_delete_window(std::string(name));
+}
+//-------------------------------------------------------------------
+
 
 
 

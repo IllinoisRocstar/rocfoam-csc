@@ -21,24 +21,30 @@ rocFoam::rocFoam()
       phiPtr(NULL),
       meshPtr(NULL),
       turbulencePtr(NULL),
-      trDeltaT(NULL) {}
+      trDeltaT(NULL)
+{}
 
 rocFoam::~rocFoam()
 {
-    delete argsPtr;
+    finalize();
+}
+
+int rocFoam::finalize()
+{
+    // Delete thing that are allocated here
     delete runTimePtr;
-    delete pPtr;
-    delete TPtr;
-    delete psiPtr;
-    delete ePtr;
-    delete rhoPtr;
-    delete UPtr;
-    delete rhoUPtr;
-    delete rhoEPtr;
-    delete phiPtr;
-    // delete meshPtr;
-    // delete turbulencePtr;
-    // delete trDeltaT;
+
+    if (argsPtr != NULL)
+    {
+         // Once this is deleted, all information
+         // about the openfoam-related stuff is gone.
+         // Currently have no better place to delete
+         // this. One option is not to delete this.
+
+         //delete argsPtr;
+    }
+
+    return 0;
 }
 
 int rocFoam::PostProcess(int argc, char *argv[])
@@ -251,6 +257,9 @@ int rocFoam::setRootCase()
 {
     Foam::argList &args(*argsPtr);
 
+
+Foam::Info << "args.checkRootCase() = " << args.checkRootCase() << Foam::endl;
+
     // Foam::argList args(argc, argv);
     if (!args.checkRootCase())
     {
@@ -261,8 +270,9 @@ int rocFoam::setRootCase()
 
 int rocFoam::setRootCaseLists()
 {
+
     //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    listOptions_Func();
+    listOptionsFunc();
     // --------------------------------------------------
 
     //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -276,7 +286,7 @@ int rocFoam::setRootCaseLists()
     return 0;
 }
 
-int rocFoam::listOptions_Func()
+int rocFoam::listOptionsFunc()
 {
     argList::addBoolOption
     (
@@ -342,7 +352,7 @@ int rocFoam::listOutput()
     Foam::argList &args(*argsPtr);
 
     // bool listOptions = false ;
-
+    
     if (args.optionFound("listSwitches"))
     {
         debug::listSwitches(args.optionFound("includeUnsetSwitches"));
@@ -371,6 +381,7 @@ int rocFoam::listOutput()
             << endl;
         listOptions = true;
     }
+
 #endif
 
 #ifdef functionObject_H
@@ -382,6 +393,9 @@ int rocFoam::listOutput()
         listOptions = true;
     }
 #endif
+
+
+
 
 #ifdef fvOption_H
     if (args.optionFound("listFvOptions"))
@@ -411,6 +425,7 @@ int rocFoam::listOutput()
              << endl;
         listOptions = true;
     }
+
 #elif defined(turbulentFluidThermoModel_H)
     if (args.optionFound("listTurbulenceModels"))
     {
@@ -431,7 +446,6 @@ int rocFoam::listOutput()
         listOptions = true;
     }
 #endif
-
     if (listOptions)
     {
         exit(0);

@@ -2,7 +2,6 @@
 #define COMFOAM_
 
 #include "com.h"
-//#include "com_devel.hpp"
 #include "rocRhoCentral.H"
 
 
@@ -11,81 +10,29 @@ using namespace COM;
 class comFoamModule : public rocRhoCentral, public COM_Object
 {
 public:
-    std::string windowName; /// Tracks *this* window name.
+    std::string winName; /// Tracks *this* window name.
 
-    int verbosity;    
+    MPI_Comm winComm; /// Tracks *this* window communicator.
     
+    int winNProc;
+    int winRank;
 
     //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
     static void Load(const char *name);
     static void Unload(const std::string &name);
-
-    int flowInit(int *pargc, void **pargv, int *verbIn);
-    int flowStat();
-    int flowLoop();
-    int flowFin();
-
 
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoamModule();
     comFoamModule(int *pargc, void **pargv, int *verbIn);
 
     ~comFoamModule(){};
-
-
 private:
 
-
 protected:
-    // ====== Data to register with IMPACT =======
-    //  Surface Mesh
-    /*
-    int numPointsSurface;
-    int numElementsSurface;
-    std::vector<double> surfaceCoordinates;
-    std::vector<unsigned int> surfaceConnectivity;
-    std::map<int, int> surfaceNodeMap;
-    std::map<int, int> interfaceToFoamNodeMap;
-    std::map<int, int> foamGlobalToPatchNodeMap;
-    std::vector<double> surfacePressure;
-    std::vector<double> surfaceTraction;
-    std::vector<double> surfaceDisplacement;
-    std::vector<double> solidDisplacement;
-    std::vector<double> time;
-    std::vector<double> deltaTime;
-    */
-    
-    
-
-
-    // function status variables
-    /*
-    std::vector<int> initStatus;
-    std::vector<int> runStatus;
-    */
-
-    // timing variables
-    // std::vector<double> endTime;
-
-    // ====== OpenFOAM stuff ========
-    //
-    //    General, init stuff
-    // Foam::argList *argsPtr;
-    // Foam::Time *runTimePtr;
-    //
-    //    Fluid data
-    /*
-    autoPtr<dynamicFvMesh> meshPtr;
-    IOdictionary *transportPropertiesPtr;
-    dimensionedScalar *nuPtr;
-    dimensionedScalar *rhoFluidPtr;
-    volScalarField *pPtr;
-    volVectorField *UPtr;
-    surfaceScalarField *phiPtr;
-    label pRefCell;
-    scalar pRefValue;
-    */   
+    int flowInit(int *pargc, void **pargv, int *verbIn);
+    int flowStat();
+    int flowLoop();
+    int flowFin();
 };
 
 #endif

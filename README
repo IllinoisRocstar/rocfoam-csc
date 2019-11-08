@@ -1,3 +1,15 @@
-To compile the code, execute the following command line for cmake. 
+Ensure you have the latest version of GCC on your machine.
+OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior to copiling rocFoam.
+Also you need to install IMPACT library on your machine and set the variable IMPACT_INSTALL_PATH to the installation folder path.
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/home/users/mehrabadi/CODES/INSTALL/ROCFOAM -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so -DMPI_C_COMPILER=/usr/bin/mpicc -DMPI_CXX_COMPILER=/usr/bin/mpicxx -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 ..
+To compile rocFoam code:
+1) Replace the file "UPstream.C" in folder "replaceable" with that of "$FOAM/src/Pstream/mpi/UPstream.C"
+2) Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
+3) Go to the source folder of rocFoam
+4) Type "mkdir build" followed by "cd build"
+5) Set the installation path for by assigning it to the variable "ROCFOAM_INSTALL"
+6) Execute the following command line for cmake:
+
+cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so -DMPI_C_COMPILER=/usr/bin/mpicc -DMPI_CXX_COMPILER=/usr/bin/mpicxx -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 ..
+
+7) Execute "make" followed by make install

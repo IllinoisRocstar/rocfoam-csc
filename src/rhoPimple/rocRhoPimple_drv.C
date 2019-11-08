@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
     rocRhoPimple rocRhoPimple(argc, argv);
 
     rocRhoPimple.loop();
-    rocRhoPimple.finalize();
+    //rocRhoPimple.finalize();
 
     return 0;
 }

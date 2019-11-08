@@ -96,7 +96,7 @@ int rocRhoPimple::initialize(int argc, char *argv[])
         // ---------------------------------------------------
     }
 
-    Foam::Info << "End of initialization." << endl;
+    Foam::Info << "End of initialization of rocRhoPimpleFoam module." << Foam::endl;
 
     return 0;
 }
@@ -1157,14 +1157,20 @@ int rocRhoPimple::readTimeControls()
     return 0;
 }
 
+rocRhoPimple::~rocRhoPimple()
+{
+   finalize();
+}
+
 int rocRhoPimple::finalize()
 {
-    delete argsPtr;
-    delete runTimePtr;
-    delete pPtr;
-    delete TPtr;
-    delete psiPtr;
-    delete ePtr;
+    //delete argsPtr;
+    //delete runTimePtr;
+    //delete pPtr;
+    //delete TPtr;
+    //delete psiPtr;
+    //delete ePtr;
+
     delete rhoPtr;
     delete UPtr;
     delete rhoUPtr;
@@ -1181,7 +1187,8 @@ int rocRhoPimple::finalize()
     delete KPtr;
     delete fvOptionsPtr;
     delete MRFPtr;
-    delete UEqnPtr;
+
+    //delete UEqnPtr;
 
     // delete pThermoPtr;
     // delete rhoUfPtr;

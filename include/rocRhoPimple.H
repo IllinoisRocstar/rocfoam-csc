@@ -40,7 +40,7 @@ public:
     //  Constructor, Deconstructor ^^^^^^^^^
     rocRhoPimple();
     rocRhoPimple(int argc, char *argv[]);
-    ~rocRhoPimple() {}
+    ~rocRhoPimple();
     //--------------------------------------
 
     //  Main/virtual functions ^^^^^^^^^^^^^^^^^^^^^

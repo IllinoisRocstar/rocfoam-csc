@@ -56,7 +56,8 @@ public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int initialize() { return 0; };
     virtual int loop() { return 0; };
-    virtual int finalize() { return 0; };
+    virtual int finalize();
+
     virtual int createFields() { return 0; };
     virtual int setRDeltaT() { return 0; };
     virtual int createControl();
@@ -70,7 +71,7 @@ public:
     int setRootCase();
 
     int setRootCaseLists();
-    int listOptions_Func();
+    int listOptionsFunc();
     int listOutput();
 
     int createTime();

@@ -213,6 +213,7 @@ set(OPNF_INC_DIR
     ${OPNF_INST_DIR}/src/dynamicFvMesh/lnInclude
     ${OPNF_INST_DIR}/applications/solvers/compressible/rhoCentralFoam
     ${OPNF_INST_DIR}/applications/solvers/compressible/rhoCentralFoam/BCs/lnInclude
+    ${OPNF_INST_DIR}/src/Pstream/mpi/lnInclude
 )
 
 # OpenFOAM has custom compiler definitions. All sourced from the OpenFOAM env.
