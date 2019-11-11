@@ -9,6 +9,8 @@ int masterRank;
 int masterNProc;
 bool runParallel;
 
+std::string solverType;
+
 //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int numDataItems=0;
 std::vector<std::string> dataItemNames;
@@ -81,6 +83,8 @@ void comDrvInit(int argc, char *argv[])
 
     // Run in parallel mode?
     runParallel = false;
+    solverType = string("rocRhoCentral");
+    
 
     std::string arg;
     std::stringstream ss;
@@ -91,10 +95,25 @@ void comDrvInit(int argc, char *argv[])
             ss.clear();
             ss.str("");
             ss << argv[i];
+
             if (ss.str() == "-parallel")
             {
                 runParallel = true;
             }
+            else if (ss.str() == "-rocRhoCentral")
+            {
+                solverType = string("rocRhoCentral");
+            }
+            else
+            {
+                if (masterRank==0)
+                {
+                    std::cout << "comFoam.Main: Unknown argumnet"
+                              << ss.str() << std::endl;
+                }
+                throw -1;
+            }
+
         }
     }
 
@@ -102,17 +121,33 @@ void comDrvInit(int argc, char *argv[])
     {
         if (masterRank==0)
         {
-            std::cout << "comFoam.Main: Running in PRALLEL."
-                      << std::endl;
+            std::cout << "comFoam.Main: Running in PRALLEL with solver " 
+                      << solverType << "." << std::endl;
         }
     }
     else
     {
         runParallel = false;
 
-        std::cout << "comFoam.Main: Running in SERIAL."
-                  << std::endl;
+        if (masterRank==0)
+        {
+            std::cout << "comFoam.Main: Running in SERIAL with solver " 
+                      << solverType << "." << std::endl;
+        }
     }
+    if (masterRank==0) std::cout << std::endl;
+
+    if (!runParallel && masterNProc > 1)
+    {
+        if (masterRank==0)
+        {
+            std::cout << "comFoam.Main: NProc>1 detected for a serial job."
+                      << std::endl;
+            throw -1;
+        }    
+    
+    }
+
 
     //  Setting the defual communicator. Is it needed?
     COM_set_default_communicator(newComm);
@@ -120,6 +155,7 @@ void comDrvInit(int argc, char *argv[])
     {
         std::cout << "comFoam.Main: New COMM = "
                   << newComm << std::endl;
+        std::cout << std::endl;
     }
 
     COM_LOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");   
@@ -132,6 +168,8 @@ void comDrvInit(int argc, char *argv[])
         std::cout << "The communicator registered in OFModule uses "
                   << *nProcReg << " prcesses"
                   << std::endl;
+
+        std::cout << std::endl;
     }
 
     //  Get the handle for the initialize function ^^^^^^^^
@@ -146,6 +184,8 @@ void comDrvInit(int argc, char *argv[])
     {
         std::cout << "comFoam.main: Acquired a handle for initialize."
                   << std::endl;    
+
+        std::cout << std::endl;
     }
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
@@ -160,6 +200,8 @@ void comDrvInit(int argc, char *argv[])
     {
         std::cout << "comFoam.main: Acquired a handle for loop."
                   << std::endl;    
+
+        std::cout << std::endl;
     }
 
     //  Get the handle for the finalize function ^^^^^^^^^^

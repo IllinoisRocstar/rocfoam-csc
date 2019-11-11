@@ -1,15 +1,18 @@
 #ifndef COMFOAM_
 #define COMFOAM_
 
-#include "com.h"
+//#include "com.h"
+
 #include "rocRhoCentral.H"
+#include "rocRhoPimple.H"
 
-
-using namespace COM;
-
-class comFoamModule : public rocRhoCentral, public COM_Object
+class comFoamModule : public rocRhoCentral
 {
+
 public:
+
+static std::string solverType;
+
     std::string winName; /// Tracks *this* window name.
 
     MPI_Comm winComm; /// Tracks *this* window communicator.

@@ -37,6 +37,13 @@ else()
       topoChangerFvMesh meshTools)
 endif()
 
+#find_package(IMPACT COMPONENTS)
+find_package(IMPACT REQUIRED)
+FIND_LIBRARY(IMPACT_LIB SITCOM)
+FIND_FILE(IMPACT_HDR com.h)
+GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
+GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
+
 
 # Setting library files ########################################################
 
@@ -48,6 +55,9 @@ foreach(file_path ${rocfoam_INC_FILES})
   get_filename_component(dir_path ${file_path} PATH)
   list(APPEND rocfoam_INC_DIRS ${dir_path})
 endforeach()
+
+list(APPEND rocfoam_INC_DIRS ${IMPACT_HDR})
+
 list(REMOVE_DUPLICATES rocfoam_INC_DIRS)
 
 # Setting cfMesh source
@@ -94,11 +104,13 @@ target_compile_options(rocfoam
 target_link_libraries(rocfoam
     PRIVATE
         ${OPNF_LIBRARIES}
+        ${IMPACT_LIB}
 )
 
 target_include_directories(rocfoam SYSTEM
     PRIVATE
         ${OPNF_INCLUDE_DIRS}
+        ${IMPACT_HDR}
 )
 
 target_compile_definitions(rocfoam
@@ -128,7 +140,7 @@ install(TARGETS rocfoam
 
 # Building utilities #############################################################
 add_executable(rocRhoCentral ${rocCntDrv_SRCS})
-target_link_libraries(rocRhoCentral rocfoam)
+target_link_libraries(rocRhoCentral rocfoam IMPACT::SITCOM)
 target_include_directories(rocRhoCentral SYSTEM
     PRIVATE
         ${OPNF_INCLUDE_DIRS}
@@ -163,12 +175,7 @@ set(comfoam_VERSION
 
 
 # Finding libraries ############################################################
-#find_package(IMPACT COMPONENTS)
-find_package(IMPACT REQUIRED)
-FIND_LIBRARY(IMPACT_LIB SITCOM)
-FIND_FILE(IMPACT_HDR com.h)
-GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
-GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
+
 
 
 

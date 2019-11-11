@@ -7,7 +7,10 @@
 #include "localEulerDdtScheme.H"
 #include "turbulentFluidThermoModel.H"
 
-class rocFoam
+#include "com.h"
+//using namespace COM;
+
+class rocFoam : public COM_Object
 {
 private:
 protected:

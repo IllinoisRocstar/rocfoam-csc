@@ -41,7 +41,7 @@ int rocFoam::finalize()
          // Currently have no better place to delete
          // this. One option is not to delete this.
 
-         //delete argsPtr;
+         delete argsPtr;
     }
 
     return 0;
