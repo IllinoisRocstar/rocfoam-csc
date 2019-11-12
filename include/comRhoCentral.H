@@ -1,10 +1,7 @@
 #ifndef COMRHOCENTRAL_
 #define COMRHOCENTRAL_
 
-//#include "com.h"
-
 #include "comFoam.H"
-#include "rocFoam.H"
 
 #include "directionInterpolate.H"
 #include "fixedRhoFvPatchScalarField.H"

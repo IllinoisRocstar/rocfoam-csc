@@ -1,6 +1,7 @@
 #include "comRhoCentral.H"
+#include "comRhoPimple.H"
 
-COM_EXTERN_MODULE(comfoam);
+#include "comLoadUnload.H"
 
 MPI_Comm masterComm;
 MPI_Comm newComm;
@@ -158,7 +159,8 @@ void comDrvInit(int argc, char *argv[])
         std::cout << std::endl;
     }
 
-    COM_LOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");   
+    //COM_LOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");   
+    comfoam_load_module("CFModule", "rhoCentral");
 
     // getting number of processes  
     if (masterRank==0)
@@ -369,7 +371,8 @@ void comDrvRun()
 void comDrvFin()
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
-    COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");
+    comfoam_unload_module("CFModule", "rhoCentral");
 
     COM_set_default_communicator(masterComm);
     

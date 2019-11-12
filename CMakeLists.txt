@@ -197,7 +197,8 @@ list(REMOVE_DUPLICATES comfoam_INC_DIRS)
 set(comfoam_SRCS
     src/foam/rocFoam.C
     src/com/comFoam.C
-    src/com/comRhoCentral.C)
+    src/com/comRhoCentral.C
+    src/com/comRhoPimple.C)
 
 # Setting comFoam driver source
 set(rhoCentralDrv_SRCS

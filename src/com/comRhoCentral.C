@@ -1,7 +1,5 @@
 #include "comRhoCentral.H"
 
-using namespace COM;
-
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 comRhoCentralModule::comRhoCentralModule()
     : comFoamModule(),
@@ -24,21 +22,6 @@ comRhoCentralModule::comRhoCentralModule(int argc, char *argv[])
 {
     initialize(argc, argv);
 }
-
-/*
-comRhoCentralModule::comRhoCentralModule(int *pargc, void **pargv, int *verbIn)
-    : comFoamModule(),
-      posPtr(NULL),
-      negPtr(NULL),
-      amaxSfPtr(NULL),
-      pThermoPtr(NULL),
-      fluxScheme(""),
-      inviscid(false)
-{
-    flowInit(pargc, pargv, verbIn);
-}
-*/
-
 //===================================================================
 
 
@@ -728,7 +711,7 @@ int comRhoCentralModule::finalize()
 //===================================================================
 
 
-
+/*
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
 extern "C" void comfoam_load_module(const char *name)
@@ -743,4 +726,4 @@ extern "C" void comfoam_unload_module(const char *name)
 }
 //===================================================================
 
-
+*/
