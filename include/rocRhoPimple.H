@@ -9,7 +9,7 @@
 #include "pimpleControl.H"
 #include "pressureControl.H"
 
-class comRhoPimpleModule : public comFoamModule
+class rhoPimple : public comFoam
 {
 public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
@@ -42,10 +42,10 @@ public:
 
 
     //  Constructor, Deconstructor ^^^^^^^^^
-    comRhoPimpleModule();
-    comRhoPimpleModule(int argc, char *argv[]);
+    rhoPimple();
+    rhoPimple(int argc, char *argv[]);
 
-    ~comRhoPimpleModule();
+    ~rhoPimple();
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^

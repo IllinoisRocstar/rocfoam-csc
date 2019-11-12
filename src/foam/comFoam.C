@@ -1,6 +1,6 @@
 #include "comFoam.H"
 
-comFoamModule::comFoamModule()
+comFoam::comFoam()
     : rocFoam(),
       solverType(""),
       winName(""),
@@ -9,7 +9,7 @@ comFoamModule::comFoamModule()
       winRank(0)
 {};
 
-comFoamModule::comFoamModule(int *pargc, void **pargv, int *verbIn)
+comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
     : rocFoam(),
       solverType(""),
       winName(""),
@@ -22,7 +22,7 @@ comFoamModule::comFoamModule(int *pargc, void **pargv, int *verbIn)
 
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
+int comFoam::flowInit(int *pargc, void **pargv, int *verbIn)
 {
     int argc = *pargc;
     char** argv = (char**)(pargv);
@@ -30,7 +30,7 @@ int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
     Foam::Info << "RFModule.flowInit: Initializing flow solver." << Foam::endl;
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
-    comFoamModule *comFoamPtr = NULL;
+    comFoam *comFoamPtr = NULL;
 
     std::string name="CFModule";
     std::string globalName(name+".global");
@@ -44,13 +44,13 @@ int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
 }
 
 
-int comFoamModule::flowLoop()
+int comFoam::flowLoop()
 {
 
     Foam::Info << "RFModule.flowLoop: flow interation." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    comFoamModule *comFoamPtr = NULL;
+    comFoam *comFoamPtr = NULL;
 
     std::string name="CFModule";
     std::string globalName(name+".global");
@@ -69,11 +69,11 @@ int comFoamModule::flowLoop()
 /*
 extern "C" void comfoam_load_module(const char *name)
 {
-  comFoamModule::Load(name);
+  comFoam::Load(name);
 }
 
 
-void comFoamModule::Load(const char *name)
+void comFoam::Load(const char *name)
 {
     return;
 }
@@ -88,10 +88,10 @@ void comFoamModule::Load(const char *name)
 /*
 extern "C" void comfoam_unload_module(const char *name)
 {
-  comFoamModule::Unload(name);
+  comFoam::Unload(name);
 }
 
-void comFoamModule::Unload(const std::string &name)
+void comFoam::Unload(const std::string &name)
 {
     return;
 }

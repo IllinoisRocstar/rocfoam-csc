@@ -1,8 +1,8 @@
-#include "comRhoCentral.H"
+#include "rocRhoCentral.H"
 
 int main(int argc, char *argv[])
 {
-    comRhoCentralModule rocFoamCentral(argc, argv);
+    rhoCentral rocFoamCentral(argc, argv);
 
     rocFoamCentral.loop();
     //rocFoamCentral.finalize();

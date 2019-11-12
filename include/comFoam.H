@@ -4,7 +4,7 @@
 #include "rocFoam.H"
 #include "com.h"
 
-class comFoamModule : public COM_Object, public rocFoam
+class comFoam : public COM_Object, public rocFoam
 {
 
 public:
@@ -24,10 +24,10 @@ public:
     //void Unload(const char *name);
 
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    comFoamModule();
-    comFoamModule(int *pargc, void **pargv, int *verbIn);
+    comFoam();
+    comFoam(int *pargc, void **pargv, int *verbIn);
 
-    ~comFoamModule() {}; 
+    ~comFoam() {}; 
 private:
 
 protected:

@@ -1,8 +1,8 @@
-#include "comRhoCentral.H"
+#include "rocRhoCentral.H"
 
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-comRhoCentralModule::comRhoCentralModule()
-    : comFoamModule(),
+rhoCentral::rhoCentral()
+    : comFoam(),
       posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
@@ -11,8 +11,8 @@ comRhoCentralModule::comRhoCentralModule()
       inviscid(false)
 {};
 
-comRhoCentralModule::comRhoCentralModule(int argc, char *argv[])
-    : comFoamModule(),
+rhoCentral::rhoCentral(int argc, char *argv[])
+    : comFoam(),
       posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
@@ -27,9 +27,9 @@ comRhoCentralModule::comRhoCentralModule(int argc, char *argv[])
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void comRhoCentralModule::Load(const char *name)
+void rhoCentral::Load(const char *name)
 {
-    Foam::Info << "RFModule.Load: Loading comRhoCentralModule with name "
+    Foam::Info << "RFModule.Load: Loading rhoCentral with name "
                << name << "." << Foam::endl;
 
     //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
@@ -53,7 +53,7 @@ void comRhoCentralModule::Load(const char *name)
 
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    comRhoCentralModule *comFoamPtr = new comRhoCentralModule();
+    rhoCentral *comFoamPtr = new rhoCentral();
 
     COM_new_window(name, MPI_COMM_NULL);
     //COM_new_window(name, tmpComm);
@@ -85,7 +85,7 @@ void comRhoCentralModule::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowInit")).c_str(),
-        (Member_func_ptr)(&comRhoCentralModule::flowInit),
+        (Member_func_ptr)(&rhoCentral::flowInit),
         globalName.c_str(), "biii", &types[0]
     );
 
@@ -93,14 +93,14 @@ void comRhoCentralModule::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowLoop")).c_str(),
-        (Member_func_ptr)(&comRhoCentralModule::flowLoop),
+        (Member_func_ptr)(&rhoCentral::flowLoop),
         globalName.c_str(), "b", &types[0]
     );
 
     //COM_set_member_function
     //(
     //    (name + string(".flowFin")).c_str(),
-    //    (Member_func_ptr)(&comRhoCentralModule::flowFin),
+    //    (Member_func_ptr)(&rhoCentral::flowFin),
     //    globalName.c_str(), "b", &types[0]
     //);
 
@@ -117,12 +117,12 @@ void comRhoCentralModule::Load(const char *name)
 
 
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void comRhoCentralModule::Unload(const std::string &name)
+void rhoCentral::Unload(const std::string &name)
 {
-    std::cout << "RFModule.Unload: Unloading comRhoCentralModule with name "
+    std::cout << "RFModule.Unload: Unloading rhoCentral with name "
               << name << "." << std::endl;
 
-    comRhoCentralModule *comFoamPtr = NULL;
+    rhoCentral *comFoamPtr = NULL;
     std::string globalName(name+".global");
 
     COM_get_object(globalName.c_str(), 0, &comFoamPtr);
@@ -138,7 +138,7 @@ void comRhoCentralModule::Unload(const std::string &name)
 
 
 //^^^ DEFINITION OF OPENFOAM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^
-int comRhoCentralModule::initialize(int argc, char *argv[])
+int rhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
     argsPtr = new Foam::argList(argc, argv);
@@ -185,7 +185,7 @@ int comRhoCentralModule::initialize(int argc, char *argv[])
 }
 
 
-int comRhoCentralModule::loop()
+int rhoCentral::loop()
 {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
@@ -437,7 +437,7 @@ int comRhoCentralModule::loop()
     return 0;
 }
 
-int comRhoCentralModule::createFields()
+int rhoCentral::createFields()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -554,7 +554,7 @@ int comRhoCentralModule::createFields()
     return 0;
 }
 
-int comRhoCentralModule::createFieldRefs()
+int rhoCentral::createFieldRefs()
 {
     Foam::psiThermo &thermo(*pThermoPtr);
 
@@ -578,7 +578,7 @@ int comRhoCentralModule::createFieldRefs()
     return 0;
 }
 
-int comRhoCentralModule::readFluxScheme()
+int rhoCentral::readFluxScheme()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -603,7 +603,7 @@ int comRhoCentralModule::readFluxScheme()
     return 0;
 }
 
-int comRhoCentralModule::readTimeControls()
+int rhoCentral::readTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
@@ -618,7 +618,7 @@ int comRhoCentralModule::readTimeControls()
     return 0;
 }
 
-int comRhoCentralModule::centralCourantNo()
+int rhoCentral::centralCourantNo()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -641,7 +641,7 @@ int comRhoCentralModule::centralCourantNo()
     return 0;
 }
 
-int comRhoCentralModule::setRDeltaT()
+int rhoCentral::setRDeltaT()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -674,12 +674,12 @@ int comRhoCentralModule::setRDeltaT()
     return 0;
 }
 
-comRhoCentralModule::~comRhoCentralModule()
+rhoCentral::~rhoCentral()
 {
     finalize();
 }
 
-int comRhoCentralModule::finalize()
+int rhoCentral::finalize()
 {
     // Delete thing that are allocated here
     delete posPtr;

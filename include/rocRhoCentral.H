@@ -1,5 +1,5 @@
-#ifndef COMRHOCENTRAL_
-#define COMRHOCENTRAL_
+#ifndef RHOCENTRAL_
+#define RHOCENTRAL_
 
 #include "comFoam.H"
 
@@ -7,7 +7,7 @@
 #include "fixedRhoFvPatchScalarField.H"
 #include "psiThermo.H"
 
-class comRhoCentralModule : public comFoamModule
+class rhoCentral : public comFoam
 {
 public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
@@ -29,11 +29,11 @@ public:
 
 
     //  Constructor, Deconstructor ^^^^^^^^^
-    comRhoCentralModule();
-    comRhoCentralModule(int argc, char *argv[]);
-    //comRhoCentralModule(int *pargc, void **pargv, int *verbIn);
+    rhoCentral();
+    rhoCentral(int argc, char *argv[]);
+    //rhoCentral(int *pargc, void **pargv, int *verbIn);
 
-    ~comRhoCentralModule();
+    ~rhoCentral();
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^

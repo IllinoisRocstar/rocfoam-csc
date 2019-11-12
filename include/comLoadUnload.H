@@ -1,5 +1,5 @@
-#include "comRhoPimple.H"
-#include "comRhoCentral.H"
+#include "rocRhoPimple.H"
+#include "rocRhoCentral.H"
 
 #ifndef COMLOADUNLOAD_
 #define COMLOADUNLOAD_
@@ -14,11 +14,11 @@ extern "C" void comfoam_load_module(const char *name, const char *solverType)
 {
     if (solverType == "rhoCentral")
     {
-        comRhoCentralModule::Load(name);
+        rhoCentral::Load(name);
     }
     else if (solverType == "rhoPimple")
     {
-        comRhoPimpleModule::Load(name);
+        rhoPimple::Load(name);
     }
 }
 
@@ -27,11 +27,11 @@ extern "C" void comfoam_unload_module(const char *name, const char *solverType)
 {
     if (solverType == "rhoCentral")
     {
-        comRhoCentralModule::Unload(name);
+        rhoCentral::Unload(name);
     }
     else if (solverType == "rhoPimple")
     {
-        comRhoPimpleModule::Unload(name);
+        rhoPimple::Unload(name);
     }
 }//===================================================================
 
