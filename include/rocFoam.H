@@ -6,6 +6,7 @@
 #include "fvcSmooth.H"
 #include "localEulerDdtScheme.H"
 #include "turbulentFluidThermoModel.H"
+#include "PstreamGlobals.H"
 
 #include "com.h"
 //using namespace COM;

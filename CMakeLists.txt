@@ -195,14 +195,13 @@ list(REMOVE_DUPLICATES comfoam_INC_DIRS)
 
 # Setting cfMesh source
 set(comfoam_SRCS
-    src/com/comFoam.C
     src/foam/rocFoam.C
-    src/rhoCentral/rocRhoCentral.C
-    src/rhoPimple/rocRhoPimple.C)
+    src/com/comFoam.C
+    src/com/comRhoCentral.C)
 
 # Setting comFoam driver source
-set(comFoamDrv_SRCS
-    src/com/comFoam_drv.C)
+set(comRhoCentralDrv_SRCS
+    src/com/comRhoCentral_drv.C)
 
 # Building library #############################################################
 # Build comfoam library
@@ -270,14 +269,14 @@ install(TARGETS comfoam
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Building utilities #############################################################
-add_executable(comFoam ${comFoamDrv_SRCS})
-target_link_libraries(comFoam comfoam IMPACT::SITCOM IMPACT::SITCOMF) 
-target_include_directories(comFoam SYSTEM
+add_executable(comRhoCentral ${comRhoCentralDrv_SRCS})
+target_link_libraries(comRhoCentral comfoam IMPACT::SITCOM) 
+target_include_directories(comRhoCentral SYSTEM
     PRIVATE
         ${OPNF_INCLUDE_DIRS}
 )
 
-install(TARGETS comFoam
+install(TARGETS comRhoCentral
          RUNTIME DESTINATION bin
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
