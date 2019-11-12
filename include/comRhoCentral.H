@@ -34,7 +34,8 @@ public:
     //  Constructor, Deconstructor ^^^^^^^^^
     comRhoCentralModule();
     comRhoCentralModule(int argc, char *argv[]);
-    comRhoCentralModule(int *pargc, void **pargv, int *verbIn);
+    //comRhoCentralModule(int *pargc, void **pargv, int *verbIn);
+
     ~comRhoCentralModule();
     //--------------------------------------
 
@@ -58,8 +59,8 @@ public:
 private:
 
 protected:
-    int flowInit(int *pargc, void **pargv, int *verbIn);
-    int flowLoop();
+    //int flowInit(int *pargc, void **pargv, int *verbIn);
+    //int flowLoop();
 
     //int flowStat();
     //int flowFin();

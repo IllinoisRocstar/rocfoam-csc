@@ -22,6 +22,48 @@ comFoamModule::comFoamModule(int *pargc, void **pargv, int *verbIn)
 }
 
 
+//^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+int comFoamModule::flowInit(int *pargc, void **pargv, int *verbIn)
+{
+    int argc = *pargc;
+    char** argv = (char**)(pargv);
+
+    Foam::Info << "RFModule.flowInit: Initializing flow solver." << Foam::endl;
+
+    //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
+    comFoamModule *comFoamPtr = NULL;
+
+    std::string name="CFModule";
+    std::string globalName(name+".global");
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    comFoamPtr->initialize(argc, argv);
+    
+    //  Other initializations ^^^^^^^^^^^^^^^^^^^
+
+    return 0;
+}
+
+
+int comFoamModule::flowLoop()
+{
+
+    Foam::Info << "RFModule.flowLoop: flow interation." << Foam::endl;
+
+    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
+    comFoamModule *comFoamPtr = NULL;
+
+    std::string name="CFModule";
+    std::string globalName(name+".global");
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    comFoamPtr->loop();
+    
+    return 0;
+}
+
+
+
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 // C/C++ bindings to load rocFoam

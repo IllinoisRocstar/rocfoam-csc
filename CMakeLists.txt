@@ -200,6 +200,10 @@ set(comfoam_SRCS
     src/com/comRhoCentral.C)
 
 # Setting comFoam driver source
+set(rhoCentralDrv_SRCS
+    src/com/rhoCentral_drv.C)
+
+# Setting comFoam driver source
 set(comRhoCentralDrv_SRCS
     src/com/comRhoCentral_drv.C)
 
@@ -269,6 +273,13 @@ install(TARGETS comfoam
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Building utilities #############################################################
+add_executable(rhoCentral ${rhoCentralDrv_SRCS})
+target_link_libraries(rhoCentral comfoam IMPACT::SITCOM) 
+target_include_directories(rhoCentral SYSTEM
+    PRIVATE
+        ${OPNF_INCLUDE_DIRS}
+)
+
 add_executable(comRhoCentral ${comRhoCentralDrv_SRCS})
 target_link_libraries(comRhoCentral comfoam IMPACT::SITCOM) 
 target_include_directories(comRhoCentral SYSTEM
@@ -276,7 +287,7 @@ target_include_directories(comRhoCentral SYSTEM
         ${OPNF_INCLUDE_DIRS}
 )
 
-install(TARGETS comRhoCentral
+install(TARGETS rhoCentral comRhoCentral
          RUNTIME DESTINATION bin
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

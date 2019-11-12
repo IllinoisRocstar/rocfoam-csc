@@ -25,6 +25,7 @@ comRhoCentralModule::comRhoCentralModule(int argc, char *argv[])
     initialize(argc, argv);
 }
 
+/*
 comRhoCentralModule::comRhoCentralModule(int *pargc, void **pargv, int *verbIn)
     : comFoamModule(),
       posPtr(NULL),
@@ -36,48 +37,12 @@ comRhoCentralModule::comRhoCentralModule(int *pargc, void **pargv, int *verbIn)
 {
     flowInit(pargc, pargv, verbIn);
 }
+*/
+
 //===================================================================
 
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int comRhoCentralModule::flowInit(int *pargc, void **pargv, int *verbIn)
-{
-    int argc = *pargc;
-    char** argv = (char**)(pargv);
-
-    Foam::Info << "RFModule.flowInit: Initializing flow solver." << Foam::endl;
-
-    //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
-    comRhoCentralModule *comFoamPtr = NULL;
-
-    std::string name="CFModule";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
-
-    comFoamPtr->initialize(argc, argv);
-    
-    //  Other initializations ^^^^^^^^^^^^^^^^^^^
-
-    return 0;
-}
-
-int comRhoCentralModule::flowLoop()
-{
-
-    Foam::Info << "RFModule.flowLoop: flow interation." << Foam::endl;
-
-    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    comRhoCentralModule *comFoamPtr = NULL;
-
-    std::string name="CFModule";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
-
-    comFoamPtr->loop();
-    
-    return 0;
-}
-
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 void comRhoCentralModule::Load(const char *name)
 {
@@ -766,13 +731,13 @@ int comRhoCentralModule::finalize()
 
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
-extern "C" void comrhocentral_load_module(const char *name)
+extern "C" void comfoam_load_module(const char *name)
 {
   comRhoCentralModule::Load(name);
 }
 
 // C/C++ bindings to unload rocFoam
-extern "C" void comrhocentral_unload_module(const char *name)
+extern "C" void comfoam_unload_module(const char *name)
 {
   comRhoCentralModule::Unload(name);
 }

@@ -59,6 +59,7 @@ public:
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int initialize() { return 0; };
+    virtual int initialize(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
     virtual int finalize();
 
