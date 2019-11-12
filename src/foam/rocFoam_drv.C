@@ -1,6 +1,3 @@
-#include "comRhoCentral.H"
-#include "comRhoPimple.H"
-
 #include "comLoadUnload.H"
 
 MPI_Comm masterComm;

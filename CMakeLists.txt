@@ -45,8 +45,8 @@ GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
 GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
 
 
-# Setting library files ########################################################
 
+# Setting library files ########################################################
 # Setting include files
 file(GLOB_RECURSE rocfoam_INC_FILES *.H)
 
@@ -63,6 +63,7 @@ list(REMOVE_DUPLICATES rocfoam_INC_DIRS)
 # Setting cfMesh source
 set(rocfoam_SRCS
     src/foam/rocFoam.C
+    src/foam/comFoam.C
     src/rhoCentral/rocRhoCentral.C
     src/rhoPimple/rocRhoPimple.C)
     
@@ -71,6 +72,9 @@ set(rocCntDrv_SRCS src/rhoCentral/rocRhoCentral_drv.C)
 
 # Setting rhoPimple driver source
 set(rocPmpDrv_SRCS src/rhoPimple/rocRhoPimple_drv.C)
+
+# Setting rhoFoam driver source
+set(rocFoamDrv_SRCS src/foam/rocFoam_drv.C)
 
 # Building library #############################################################
 
@@ -140,7 +144,7 @@ install(TARGETS rocfoam
 
 # Building utilities #############################################################
 add_executable(rocRhoCentral ${rocCntDrv_SRCS})
-target_link_libraries(rocRhoCentral rocfoam IMPACT::SITCOM)
+target_link_libraries(rocRhoCentral rocfoam)
 target_include_directories(rocRhoCentral SYSTEM
     PRIVATE
         ${OPNF_INCLUDE_DIRS}
@@ -153,142 +157,14 @@ target_include_directories(rocRhoPimple SYSTEM
         ${OPNF_INCLUDE_DIRS}
 )
 
-install(TARGETS rocRhoCentral rocRhoPimple
-         RUNTIME DESTINATION bin
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-
-
-
-#2 comfoam library ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-# Set project metadata #########################################################
-set(comfoam_MAJOR_VERSION 1)
-set(comfoam_MINOR_VERSION 0)
-set(comfoam_PATCH_VERSION 0)
-set(comfoam_EXTRA_VERSION "")
-set(comfoam_VERSION "${comfoam_MAJOR_VERSION}.${comfoam_MINOR_VERSION}")
-set(comfoam_VERSION
-    "${comfoam_VERSION}.${comfoam_PATCH_VERSION}${comfoam_EXTRA_VERSION}")
-
-
-# Finding libraries ############################################################
-
-
-
-
-# Setting library files ########################################################
-# Setting include files
-file(GLOB_RECURSE comfoam_INC_FILES *.H)
-
-set(comfoam_INC_DIRS "")
-foreach(file_path ${comfoam_INC_FILES})
-  get_filename_component(dir_path ${file_path} PATH)
-  list(APPEND comfoam_INC_DIRS ${dir_path})
-endforeach()
-
-list(APPEND comfoam_INC_DIRS ${IMPACT_HDR})
-
-list(REMOVE_DUPLICATES comfoam_INC_DIRS)
-
-# Setting cfMesh source
-set(comfoam_SRCS
-    src/foam/rocFoam.C
-    src/com/comFoam.C
-    src/com/comRhoCentral.C
-    src/com/comRhoPimple.C)
-
-# Setting comFoam driver source
-set(rhoCentralDrv_SRCS
-    src/com/rhoCentral_drv.C)
-
-# Setting comFoam driver source
-set(comRhoCentralDrv_SRCS
-    src/com/comRhoCentral_drv.C)
-
-# Building library #############################################################
-# Build comfoam library
-add_library(comfoam ${comfoam_SRCS})
-target_include_directories(comfoam
-    PUBLIC
-        $<INSTALL_INTERFACE:include/comFoam>
-)
-
-foreach(include_dir ${comfoam_INC_DIRS})
-  target_include_directories(comfoam
-      PUBLIC
-        $<BUILD_INTERFACE:${include_dir}>
-)
-endforeach()
-
-target_compile_options(comfoam
-    PRIVATE
-        -Wall
-        -Wextra
-        -Wold-style-cast
-        -Wnon-virtual-dtor
-        -Wno-unused-parameter
-        -Wno-invalid-offsetof
-    PUBLIC
-        -ftemplate-depth-100
-)
-
-# Link OpenFOAM
-target_link_libraries(comfoam
-    PRIVATE
-        ${OPNF_LIBRARIES}
-        ${IMPACT_LIB}
-)
-
-target_include_directories(comfoam SYSTEM
-    PRIVATE
-        ${OPNF_INCLUDE_DIRS}
-        ${IMPACT_HDR}
-)
-
-target_compile_definitions(comfoam
-    PUBLIC
-        ${OPNF_COMPILE_DEFINITIONS}
-)
-
-# Set soname version ###########################################################
-
-set_target_properties(comfoam PROPERTIES VERSION ${comfoam_VERSION}
-                                        SOVERSION ${comfoam_MAJOR_VERSION})
-
-# Install libraries ############################################################
-
-# Headers
-install(FILES ${comfoam_INC_FILES}
-    DESTINATION include)
-
-# Libraries
-install(TARGETS comfoam
-    EXPORT comfoam
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-    GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-# Building utilities #############################################################
-add_executable(rhoCentral ${rhoCentralDrv_SRCS})
-target_link_libraries(rhoCentral comfoam IMPACT::SITCOM) 
-target_include_directories(rhoCentral SYSTEM
+add_executable(rocFoam ${rocFoamDrv_SRCS})
+target_link_libraries(rocFoam rocfoam IMPACT::SITCOM)
+target_include_directories(rocFoam SYSTEM
     PRIVATE
         ${OPNF_INCLUDE_DIRS}
 )
 
-add_executable(comRhoCentral ${comRhoCentralDrv_SRCS})
-target_link_libraries(comRhoCentral comfoam IMPACT::SITCOM) 
-target_include_directories(comRhoCentral SYSTEM
-    PRIVATE
-        ${OPNF_INCLUDE_DIRS}
-)
-
-install(TARGETS rhoCentral comRhoCentral
+install(TARGETS rocRhoCentral rocRhoPimple rocFoam
          RUNTIME DESTINATION bin
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

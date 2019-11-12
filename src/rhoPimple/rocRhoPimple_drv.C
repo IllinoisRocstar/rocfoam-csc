@@ -1,12 +1,11 @@
-#include "rocRhoPimple.H"
+#include "comRhoPimple.H"
 
 int main(int argc, char *argv[])
 {
-    rocRhoPimple rocRhoPimple(argc, argv);
+    comRhoPimpleModule rocFoamPimple(argc, argv);
 
-    rocRhoPimple.loop();
-    //rocRhoPimple.finalize();
+    rocFoamPimple.loop();
+    //rocFoamPimple.finalize();
 
     return 0;
 }
-

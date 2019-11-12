@@ -1,3 +1,6 @@
+#include "comRhoPimple.H"
+#include "comRhoCentral.H"
+
 #ifndef COMLOADUNLOAD_
 #define COMLOADUNLOAD_
 

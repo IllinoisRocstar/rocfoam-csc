@@ -1,17 +1,18 @@
-#include "rocRhoCentral.H"
+#include "comRhoCentral.H"
 
-rocRhoCentral::rocRhoCentral()
-    : rocFoam(),
+//^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+comRhoCentralModule::comRhoCentralModule()
+    : comFoamModule(),
       posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
       pThermoPtr(NULL),
       fluxScheme(""),
       inviscid(false)
-{}
+{};
 
-rocRhoCentral::rocRhoCentral(int argc, char *argv[])
-    : rocFoam(),
+comRhoCentralModule::comRhoCentralModule(int argc, char *argv[])
+    : comFoamModule(),
       posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
@@ -21,8 +22,123 @@ rocRhoCentral::rocRhoCentral(int argc, char *argv[])
 {
     initialize(argc, argv);
 }
+//===================================================================
 
-int rocRhoCentral::initialize(int argc, char *argv[])
+
+//^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+void comRhoCentralModule::Load(const char *name)
+{
+    Foam::Info << "RFModule.Load: Loading comRhoCentralModule with name "
+               << name << "." << Foam::endl;
+
+    //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
+    MPI_Comm tmpComm;
+    tmpComm = COM_get_default_communicator();  
+
+    int tmpRank, tmpNProc;
+    MPI_Comm_rank(tmpComm, &tmpRank);
+    MPI_Comm_size(tmpComm, &tmpNProc);
+    
+    Foam::Info << "RFModoule.Load: Rank #" << tmpRank
+               << " on communicator " << tmpComm
+               << " with " << tmpNProc << " processes."
+               << Foam::endl;
+
+    Foam::Info << "RFModule.Load: Rank #" << tmpRank
+               << " Loading FsiFoamModule with name " 
+               << name << Foam::endl;
+
+    Foam::Info << Foam::endl;
+
+
+    //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    comRhoCentralModule *comFoamPtr = new comRhoCentralModule();
+
+    COM_new_window(name, MPI_COMM_NULL);
+    //COM_new_window(name, tmpComm);
+
+    comFoamPtr->winName = name;
+
+    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
+    comFoamPtr->winComm = tmpComm;
+    
+    //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
+    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->winRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
+
+    std::string globalName = name + string(".global");
+
+    COM_new_dataitem(globalName.c_str(), 'w', COM_VOID, 1, "");
+
+    COM_set_object(globalName.c_str(), 0, comFoamPtr);
+
+
+    /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector<COM_Type> types(13,COM_INT);
+
+    types[0] = COM_RAWDATA;
+    types[2] = COM_VOID;
+
+    COM_set_member_function
+    (
+        (name + string(".flowInit")).c_str(),
+        (Member_func_ptr)(&comRhoCentralModule::flowInit),
+        globalName.c_str(), "biii", &types[0]
+    );
+
+
+    COM_set_member_function
+    (
+        (name + string(".flowLoop")).c_str(),
+        (Member_func_ptr)(&comRhoCentralModule::flowLoop),
+        globalName.c_str(), "b", &types[0]
+    );
+
+    //COM_set_member_function
+    //(
+    //    (name + string(".flowFin")).c_str(),
+    //    (Member_func_ptr)(&comRhoCentralModule::flowFin),
+    //    globalName.c_str(), "b", &types[0]
+    //);
+
+    //  Registering nproc for this module to COM ^^^^^^^^^^
+    COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
+
+    COM_window_init_done(name); 
+
+    return;
+}
+//---------------------------------------------------------
+
+
+//^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+void comRhoCentralModule::Unload(const std::string &name)
+{
+    std::cout << "RFModule.Unload: Unloading comRhoCentralModule with name "
+              << name << "." << std::endl;
+
+    comRhoCentralModule *comFoamPtr = NULL;
+    std::string globalName(name+".global");
+
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    //comFoamPtr->finalize();
+    delete comFoamPtr;
+
+    COM_delete_window(std::string(name));
+}
+//---------------------------------------------------------
+
+//===================================================================
+
+
+//^^^ DEFINITION OF OPENFOAM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^
+int comRhoCentralModule::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
     argsPtr = new Foam::argList(argc, argv);
@@ -63,13 +179,13 @@ int rocRhoCentral::initialize(int argc, char *argv[])
 
     turbulence.validate();
 
-    Foam::Info << "End of initialization of rocRhoCentral module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoCentral module." << Foam::endl;
 
     return 0;
 }
 
 
-int rocRhoCentral::loop()
+int comRhoCentralModule::loop()
 {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
@@ -321,7 +437,7 @@ int rocRhoCentral::loop()
     return 0;
 }
 
-int rocRhoCentral::createFields()
+int comRhoCentralModule::createFields()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -438,7 +554,7 @@ int rocRhoCentral::createFields()
     return 0;
 }
 
-int rocRhoCentral::createFieldRefs()
+int comRhoCentralModule::createFieldRefs()
 {
     Foam::psiThermo &thermo(*pThermoPtr);
 
@@ -462,7 +578,7 @@ int rocRhoCentral::createFieldRefs()
     return 0;
 }
 
-int rocRhoCentral::readFluxScheme()
+int comRhoCentralModule::readFluxScheme()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -487,7 +603,7 @@ int rocRhoCentral::readFluxScheme()
     return 0;
 }
 
-int rocRhoCentral::readTimeControls()
+int comRhoCentralModule::readTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
@@ -502,7 +618,7 @@ int rocRhoCentral::readTimeControls()
     return 0;
 }
 
-int rocRhoCentral::centralCourantNo()
+int comRhoCentralModule::centralCourantNo()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -525,7 +641,7 @@ int rocRhoCentral::centralCourantNo()
     return 0;
 }
 
-int rocRhoCentral::setRDeltaT()
+int comRhoCentralModule::setRDeltaT()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -558,12 +674,12 @@ int rocRhoCentral::setRDeltaT()
     return 0;
 }
 
-rocRhoCentral::~rocRhoCentral()
+comRhoCentralModule::~comRhoCentralModule()
 {
     finalize();
 }
 
-int rocRhoCentral::finalize()
+int comRhoCentralModule::finalize()
 {
     // Delete thing that are allocated here
     delete posPtr;
@@ -592,3 +708,4 @@ int rocRhoCentral::finalize()
 
     return 0;
 }
+//===================================================================

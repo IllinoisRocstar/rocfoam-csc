@@ -8,10 +8,7 @@
 #include "turbulentFluidThermoModel.H"
 #include "PstreamGlobals.H"
 
-#include "com.h"
-//using namespace COM;
-
-class rocFoam : public COM_Object
+class rocFoam
 {
 private:
 protected:

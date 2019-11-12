@@ -1,5 +1,4 @@
 #include "comFoam.H"
-#include "PstreamGlobals.H"
 
 comFoamModule::comFoamModule()
     : rocFoam(),

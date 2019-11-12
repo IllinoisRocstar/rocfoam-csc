@@ -1,11 +1,10 @@
 #ifndef COMFOAM_
 #define COMFOAM_
 
-//#include "com.h"
-
 #include "rocFoam.H"
+#include "com.h"
 
-class comFoamModule : public rocFoam
+class comFoamModule : public COM_Object, public rocFoam
 {
 
 public:

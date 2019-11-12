@@ -1,16 +1,14 @@
-#ifndef ROCRHOCENTRAL_
-#define ROCCENTRAL_
+#ifndef COMRHOCENTRAL_
+#define COMRHOCENTRAL_
 
-#include "rocFoam.H"
+#include "comFoam.H"
 
 #include "directionInterpolate.H"
 #include "fixedRhoFvPatchScalarField.H"
 #include "psiThermo.H"
 
-class rocRhoCentral : public rocFoam
+class comRhoCentralModule : public comFoamModule
 {
-private:
-protected:
 public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
     surfaceScalarField *posPtr;
@@ -25,10 +23,17 @@ public:
     bool inviscid;
     //--------------------------------------
 
+    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    static void Load(const char *name);
+    static void Unload(const std::string &name);
+
+
     //  Constructor, Deconstructor ^^^^^^^^^
-    rocRhoCentral();
-    rocRhoCentral(int argc, char *argv[]);
-    ~rocRhoCentral();
+    comRhoCentralModule();
+    comRhoCentralModule(int argc, char *argv[]);
+    //comRhoCentralModule(int *pargc, void **pargv, int *verbIn);
+
+    ~comRhoCentralModule();
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
@@ -47,6 +52,15 @@ public:
     int centralCourantNo();
     int setRDeltaT();
     //--------------------------------------
+
+private:
+
+protected:
+    //int flowInit(int *pargc, void **pargv, int *verbIn);
+    //int flowLoop();
+
+    //int flowStat();
+    //int flowFin();
 };
 
 #endif

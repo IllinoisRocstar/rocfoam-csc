@@ -1,7 +1,10 @@
-#include "rocRhoPimple.H"
+#include "comRhoPimple.H"
 
-rocRhoPimple::rocRhoPimple()
-    : rocFoam(),
+using namespace COM;
+
+//^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+comRhoPimpleModule::comRhoPimpleModule()
+    : comFoamModule(),
       pimplePtr(NULL),
       pressureControlPtr(NULL),
       dpdtPtr(NULL),
@@ -19,8 +22,8 @@ rocRhoPimple::rocRhoPimple()
       cumulativeContErr(0.0)
 {}
 
-rocRhoPimple::rocRhoPimple(int argc, char *argv[])
-    : rocFoam(),
+comRhoPimpleModule::comRhoPimpleModule(int argc, char *argv[])
+    : comFoamModule(),
       pimplePtr(NULL),
       pressureControlPtr(NULL),
       dpdtPtr(NULL),
@@ -39,8 +42,122 @@ rocRhoPimple::rocRhoPimple(int argc, char *argv[])
 {
     initialize(argc, argv);
 }
+//===================================================================
 
-int rocRhoPimple::initialize(int argc, char *argv[])
+
+//^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+void comRhoPimpleModule::Load(const char *name)
+{
+    Foam::Info << "RFModule.Load: Loading comRhoPimpleModule with name "
+               << name << "." << Foam::endl;
+
+    //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
+    MPI_Comm tmpComm;
+    tmpComm = COM_get_default_communicator();  
+
+    int tmpRank, tmpNProc;
+    MPI_Comm_rank(tmpComm, &tmpRank);
+    MPI_Comm_size(tmpComm, &tmpNProc);
+    
+    Foam::Info << "RFModoule.Load: Rank #" << tmpRank
+               << " on communicator " << tmpComm
+               << " with " << tmpNProc << " processes."
+               << Foam::endl;
+
+    Foam::Info << "RFModule.Load: Rank #" << tmpRank
+               << " Loading FsiFoamModule with name " 
+               << name << Foam::endl;
+
+    Foam::Info << Foam::endl;
+
+
+    //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    comRhoPimpleModule *comFoamPtr = new comRhoPimpleModule();
+
+    COM_new_window(name, MPI_COMM_NULL);
+    //COM_new_window(name, tmpComm);
+
+    comFoamPtr->winName = name;
+
+    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
+    comFoamPtr->winComm = tmpComm;
+    
+    //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
+    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->winRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
+
+    std::string globalName = name + string(".global");
+
+    COM_new_dataitem(globalName.c_str(), 'w', COM_VOID, 1, "");
+
+    COM_set_object(globalName.c_str(), 0, comFoamPtr);
+
+
+    /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector<COM_Type> types(13,COM_INT);
+
+    types[0] = COM_RAWDATA;
+    types[2] = COM_VOID;
+
+    COM_set_member_function
+    (
+        (name + string(".flowInit")).c_str(),
+        (Member_func_ptr)(&comRhoPimpleModule::flowInit),
+        globalName.c_str(), "biii", &types[0]
+    );
+
+
+    COM_set_member_function
+    (
+        (name + string(".flowLoop")).c_str(),
+        (Member_func_ptr)(&comRhoPimpleModule::flowLoop),
+        globalName.c_str(), "b", &types[0]
+    );
+
+    //COM_set_member_function
+    //(
+    //    (name + string(".flowFin")).c_str(),
+    //    (Member_func_ptr)(&comRhoPimpleModule::flowFin),
+    //    globalName.c_str(), "b", &types[0]
+    //);
+
+    //  Registering nproc for this module to COM ^^^^^^^^^^
+    COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
+
+    COM_window_init_done(name); 
+
+    return;
+}
+//---------------------------------------------------------
+
+
+//^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+void comRhoPimpleModule::Unload(const std::string &name)
+{
+    std::cout << "RFModule.Unload: Unloading comRhoPimpleModule with name "
+              << name << "." << std::endl;
+
+    comRhoPimpleModule *comFoamPtr = NULL;
+    std::string globalName(name+".global");
+
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    //comFoamPtr->finalize();
+    delete comFoamPtr;
+
+    COM_delete_window(std::string(name));
+}
+//---------------------------------------------------------
+//===================================================================
+
+
+//^^^ DEFINITION OF OPENFOAM-RELATED METHODS ^^^^^^^^^^^^^^^^^^^^^^^^
+int comRhoPimpleModule::initialize(int argc, char *argv[])
 {
     // Mohammad: Not quite sure where this line should be
     argsPtr = new Foam::argList(argc, argv);
@@ -96,12 +213,12 @@ int rocRhoPimple::initialize(int argc, char *argv[])
         // ---------------------------------------------------
     }
 
-    Foam::Info << "End of initialization of rocRhoPimpleFoam module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoPimple module." << Foam::endl;
 
     return 0;
 }
 
-int rocRhoPimple::createControl()
+int comRhoPimpleModule::createControl()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -113,7 +230,7 @@ int rocRhoPimple::createControl()
     return 0;
 }
 
-int rocRhoPimple::createDyMControls()
+int comRhoPimpleModule::createDyMControls()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -147,7 +264,7 @@ int rocRhoPimple::createDyMControls()
     return 0;
 }
 
-int rocRhoPimple::initContinuityErrs()
+int comRhoPimpleModule::initContinuityErrs()
 {
 
 #ifndef initContinuityErrs_H
@@ -160,7 +277,7 @@ int rocRhoPimple::initContinuityErrs()
     return 0;
 }
 
-int rocRhoPimple::createFields()
+int comRhoPimpleModule::createFields()
 {
     Foam::Time &runTime(*runTimePtr);
     Foam::argList &args(*argsPtr);
@@ -267,7 +384,7 @@ int rocRhoPimple::createFields()
     return 0;
 }
 
-int rocRhoPimple::createMRF()
+int comRhoPimpleModule::createMRF()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -276,7 +393,7 @@ int rocRhoPimple::createMRF()
     return 0;
 }
 
-int rocRhoPimple::compressibleCreatePhi()
+int comRhoPimpleModule::compressibleCreatePhi()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -295,7 +412,7 @@ int rocRhoPimple::compressibleCreatePhi()
     return 0;
 }
 
-int rocRhoPimple::createFvOptions()
+int comRhoPimpleModule::createFvOptions()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
@@ -310,7 +427,7 @@ int rocRhoPimple::createFvOptions()
     return 0;
 }
 
-int rocRhoPimple::createFieldRefs()
+int comRhoPimpleModule::createFieldRefs()
 {
     fluidThermo &thermo(*pThermoPtr);
 
@@ -319,7 +436,7 @@ int rocRhoPimple::createFieldRefs()
     return 0;
 }
 
-int rocRhoPimple::createRhoUfIfPresent()
+int comRhoPimpleModule::createRhoUfIfPresent()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -347,7 +464,7 @@ int rocRhoPimple::createRhoUfIfPresent()
     return 0;
 }
 
-int rocRhoPimple::compressibleCourantNo()
+int comRhoPimpleModule::compressibleCourantNo()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -376,7 +493,7 @@ int rocRhoPimple::compressibleCourantNo()
     return 0;
 }
 
-int rocRhoPimple::setInitialDeltaT()
+int comRhoPimpleModule::setInitialDeltaT()
 {
     Foam::Time &runTime(*runTimePtr);
 
@@ -398,7 +515,7 @@ int rocRhoPimple::setInitialDeltaT()
     return 0;
 }
 
-int rocRhoPimple::loop()
+int comRhoPimpleModule::loop()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -547,7 +664,7 @@ int rocRhoPimple::loop()
     return 0;
 }
 
-int rocRhoPimple::readDyMControls()
+int comRhoPimpleModule::readDyMControls()
 {
     pimpleControl &pimple(*pimplePtr);
 
@@ -572,7 +689,7 @@ int rocRhoPimple::readDyMControls()
     return 0;
 }
 
-int rocRhoPimple::setRDeltaT()
+int comRhoPimpleModule::setRDeltaT()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -655,7 +772,7 @@ int rocRhoPimple::setRDeltaT()
     return 0;
 }
 
-int rocRhoPimple::correctPhi_()
+int comRhoPimpleModule::correctPhi_()
 {
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
@@ -675,7 +792,7 @@ int rocRhoPimple::correctPhi_()
     return 0;
 }
 
-int rocRhoPimple::meshCourantNo()
+int comRhoPimpleModule::meshCourantNo()
 {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
@@ -699,7 +816,7 @@ int rocRhoPimple::meshCourantNo()
     return 0;
 }
 
-int rocRhoPimple::rhoEqn_()
+int comRhoPimpleModule::rhoEqn_()
 {
     volScalarField &rho(*rhoPtr);
     surfaceScalarField &phi(*phiPtr);
@@ -716,7 +833,7 @@ int rocRhoPimple::rhoEqn_()
     return 0;
 }
 
-int rocRhoPimple::UEqn_()
+int comRhoPimpleModule::UEqn_()
 {
     pimpleControl &pimple(*pimplePtr);
     volScalarField &rho(*rhoPtr);
@@ -759,7 +876,7 @@ int rocRhoPimple::UEqn_()
     return 0;
 }
 
-int rocRhoPimple::EEqn_()
+int comRhoPimpleModule::EEqn_()
 {
     volScalarField &rho(*rhoPtr);
     volVectorField &U(*UPtr);
@@ -803,7 +920,7 @@ int rocRhoPimple::EEqn_()
     return 0;
 }
 
-int rocRhoPimple::pcEqn()
+int comRhoPimpleModule::pcEqn()
 {
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
@@ -969,7 +1086,7 @@ int rocRhoPimple::pcEqn()
     return 0;
 }
 
-int rocRhoPimple::compressibleContinuityErrs()
+int comRhoPimpleModule::compressibleContinuityErrs()
 {
     volScalarField &rho(*rhoPtr);
     fluidThermo &thermo(*pThermoPtr);
@@ -991,7 +1108,7 @@ int rocRhoPimple::compressibleContinuityErrs()
     return 0;
 }
 
-int rocRhoPimple::pEqn_()
+int comRhoPimpleModule::pEqn_()
 {
     dynamicFvMesh &mesh(*meshPtr);
     pimpleControl &pimple(*pimplePtr);
@@ -1142,7 +1259,7 @@ int rocRhoPimple::pEqn_()
     return 0;
 }
 
-int rocRhoPimple::readTimeControls()
+int comRhoPimpleModule::readTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
@@ -1157,12 +1274,12 @@ int rocRhoPimple::readTimeControls()
     return 0;
 }
 
-rocRhoPimple::~rocRhoPimple()
+comRhoPimpleModule::~comRhoPimpleModule()
 {
    finalize();
 }
 
-int rocRhoPimple::finalize()
+int comRhoPimpleModule::finalize()
 {
     //delete argsPtr;
     //delete runTimePtr;
@@ -1197,3 +1314,22 @@ int rocRhoPimple::finalize()
 
     return 0;
 }
+//===================================================================
+
+
+/*
+//^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// C/C++ bindings to load rocFoam
+extern "C" void comfoam_load_module(const char *name)
+{
+  comRhoPimpleModule::Load(name);
+}
+
+// C/C++ bindings to unload rocFoam
+extern "C" void comfoam_unload_module(const char *name)
+{
+  comRhoPimpleModule::Unload(name);
+}
+//===================================================================
+
+*/

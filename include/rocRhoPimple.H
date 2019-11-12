@@ -1,7 +1,7 @@
-#ifndef ROCRHOPIMPLE_
-#define ROCRHOPIMPLE_
+#ifndef COMRHOPIMPLE_
+#define COMRHOPIMPLE_
 
-#include "rocFoam.H"
+#include "comFoam.H"
 
 #include "CorrectPhi.H"
 #include "fluidThermo.H"
@@ -9,10 +9,8 @@
 #include "pimpleControl.H"
 #include "pressureControl.H"
 
-class rocRhoPimple : public rocFoam
+class comRhoPimpleModule : public comFoamModule
 {
-private:
-protected:
 public:
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
     pimpleControl *pimplePtr;
@@ -37,21 +35,27 @@ public:
     scalar cumulativeContErr = 0;
     //--------------------------------------
 
+
+    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    static void Load(const char *name);
+    static void Unload(const std::string &name);
+
+
     //  Constructor, Deconstructor ^^^^^^^^^
-    rocRhoPimple();
-    rocRhoPimple(int argc, char *argv[]);
-    ~rocRhoPimple();
+    comRhoPimpleModule();
+    comRhoPimpleModule(int argc, char *argv[]);
+
+    ~comRhoPimpleModule();
     //--------------------------------------
 
-    //  Main/virtual functions ^^^^^^^^^^^^^^^^^^^^^
+    //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     int initialize(int argc, char *argv[]);
     int loop();
     int finalize();
-
-    int createControl();
     //--------------------------------------
 
     //  Execution functions ^^^^^^^^^^^^^^^^
+    int createControl();
     int createDyMControls();
     int readTimeControls();
     int initContinuityErrs();
@@ -78,6 +82,15 @@ public:
     int compressibleContinuityErrs();
     int pEqn_();
     //--------------------------------------
+
+private:
+
+protected:
+    //int flowInit(int *pargc, void **pargv, int *verbIn);
+    //int flowLoop();
+
+    //int flowStat();
+    //int flowFin();
 };
 
 #endif
