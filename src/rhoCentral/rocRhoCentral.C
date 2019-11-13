@@ -72,41 +72,9 @@ void rhoCentral::load(const char *name)
 
     COM_set_object(globalName.c_str(), 0, comFoamPtr);
 
-
-    /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector<COM_Type> types(13,COM_INT);
-
-    types[0] = COM_RAWDATA;
-    types[2] = COM_VOID;
-
-    COM_set_member_function
-    (
-        (name + string(".flowInit")).c_str(),
-        reinterpret_cast<Member_func_ptr>(&rhoCentral::flowInit),
-        globalName.c_str(), "biii", &types[0]
-    );
-
-
-    COM_set_member_function
-    (
-        (name + string(".flowLoop")).c_str(),
-        reinterpret_cast<Member_func_ptr>(&rhoCentral::flowLoop),
-        globalName.c_str(), "b", &types[0]
-    );
-
-    //COM_set_member_function
-    //(
-    //    (name + string(".flowFin")).c_str(),
-    //    reinterpret_cast<Member_func_ptr>(&rhoCentral::flowFin),
-    //    globalName.c_str(), "b", &types[0]
-    //);
-
-    //  Registering nproc for this module to COM ^^^^^^^^^^
-    COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
-    COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
-    COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
-
     COM_window_init_done(name); 
+
+    comFoamPtr->flowRegister();
 
     return;
 }

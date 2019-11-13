@@ -20,6 +20,11 @@ extern "C" void comfoam_load_module(const char *name, char *solverType)
     {
         rhoPimple::load(name);
     }
+    else
+    {
+        std::cout << "comFoam.load: Undefined solverType " << solverType << std::endl;
+        throw -4;
+    }
 }
 
 // C/C++ bindings to unload rocFoam
@@ -32,6 +37,11 @@ extern "C" void comfoam_unload_module(const char *name, const char *solverType)
     else if (solverType == "rocRhoPimple")
     {
         rhoPimple::unload(name);
+    }
+    else
+    {
+        std::cout << "comFoam.load: Undefined solverType " << solverType << std::endl;
+        throw -4;
     }
 }//===================================================================
 

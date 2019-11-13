@@ -33,6 +33,8 @@ private:
 protected:
     int flowInit(int *pargc, void **pargv, int *verbIn);
     int flowLoop();
+    
+    int flowRegister();
 
     //virtual int flowFin() { return 0; }
     //virtual int flowStat() { return 0; }
