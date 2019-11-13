@@ -7,7 +7,7 @@ int masterRank;
 int masterNProc;
 bool runParallel;
 
-std::string solverType;
+char *solverType;
 
 //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int numDataItems=0;
@@ -43,7 +43,7 @@ void comDrvFin();
 
 int main(int argc, char *argv[])
 {
-    comDrvInit(argc,argv);
+    comDrvInit(argc, argv);
     //comDrvStat();
     comDrvRun();
     comDrvFin();
@@ -64,13 +64,15 @@ void comDrvInit(int argc, char *argv[])
 
     if (masterRank==0)
     {
-        std::cout << "comFoam.main: Setting up communicator..."
+        std::cout << "rocFoam.main: Setting up communicator..."
                   << std::endl;
 
-        std::cout << "comFoam.main:Rank " << masterRank
-                  << ", NPROC = " << masterNProc << ", "
-                  << ", Init COMM = " << masterComm
+        std::cout << "rocFoam.main:Rank " << masterRank
+                  << ", NProc = " << masterNProc
+                  << ", COMM = " << masterComm
                   << std::endl;
+
+        std::cout << std::endl;
     }
 
     COM_init(&argc, &argv);
@@ -81,7 +83,7 @@ void comDrvInit(int argc, char *argv[])
 
     // Run in parallel mode?
     runParallel = false;
-    solverType = string("rocRhoCentral");
+    solverType = (char*)"rocRhoCentral";
     
 
     std::string arg;
@@ -100,13 +102,17 @@ void comDrvInit(int argc, char *argv[])
             }
             else if (ss.str() == "-rocRhoCentral")
             {
-                solverType = string("rocRhoCentral");
+                solverType = (char*)"rocRhoCentral";
+            }
+            else if (ss.str() == "-rocRhoPimple")
+            {
+                solverType = (char*)"rocRhoPimple";
             }
             else
             {
                 if (masterRank==0)
                 {
-                    std::cout << "comFoam.Main: Unknown argumnet"
+                    std::cout << "rocFoam.main: Unknown argumnet"
                               << ss.str() << std::endl;
                 }
                 throw -1;
@@ -119,7 +125,7 @@ void comDrvInit(int argc, char *argv[])
     {
         if (masterRank==0)
         {
-            std::cout << "comFoam.Main: Running in PRALLEL with solver " 
+            std::cout << "rocFoam.main: Running in PRALLEL with solver " 
                       << solverType << "." << std::endl;
         }
     }
@@ -129,7 +135,7 @@ void comDrvInit(int argc, char *argv[])
 
         if (masterRank==0)
         {
-            std::cout << "comFoam.Main: Running in SERIAL with solver " 
+            std::cout << "rocFoam.main: Running in SERIAL with solver " 
                       << solverType << "." << std::endl;
         }
     }
@@ -139,7 +145,7 @@ void comDrvInit(int argc, char *argv[])
     {
         if (masterRank==0)
         {
-            std::cout << "comFoam.Main: NProc>1 detected for a serial job."
+            std::cout << "rocFoam.main: NProc>1 detected for a serial job."
                       << std::endl;
             throw -1;
         }    
@@ -149,21 +155,21 @@ void comDrvInit(int argc, char *argv[])
 
     //  Setting the defual communicator. Is it needed?
     COM_set_default_communicator(newComm);
-    if (masterRank==0)
+    
+    /*if (masterRank==0)
     {
-        std::cout << "comFoam.Main: New COMM = "
+        std::cout << "rocFoam.main: New COMM = "
                   << newComm << std::endl;
         std::cout << std::endl;
-    }
+    } */
 
-    //COM_LOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");   
-    comfoam_load_module("CFModule", "rhoCentral");
+    comfoam_load_module("ROCFOAM", solverType);
 
     // getting number of processes  
     if (masterRank==0)
     {
         int *nProcReg;
-        COM_get_array("CFModule.winNProc", 0, &nProcReg);
+        COM_get_array("ROCFOAM.winNProc", 0, &nProcReg);
         std::cout << "The communicator registered in OFModule uses "
                   << *nProcReg << " prcesses"
                   << std::endl;
@@ -172,48 +178,52 @@ void comDrvInit(int argc, char *argv[])
     }
 
     //  Get the handle for the initialize function ^^^^^^^^
-    flowInitHandle = COM_get_function_handle("CFModule.flowInit");
+    flowInitHandle = COM_get_function_handle("ROCFOAM.flowInit");
     if (flowInitHandle <= 0)
     { // fail
-        std::cout << "comFoam.main: Could not get handle for initialize."
+        std::cout << "rocFoam.main: Could not get handle for initialize."
                   << std::endl;
         throw -2;
     }
     else
     {
-        std::cout << "comFoam.main: Acquired a handle for initialize."
-                  << std::endl;    
-
-        std::cout << std::endl;
+        if (masterRank==0)
+        {
+            std::cout << "rocFoam.main: Acquired a handle for initialize."
+                      << std::endl;    
+        }
     }
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    flowLoopHandle = COM_get_function_handle("CFModule.flowLoop");
+    flowLoopHandle = COM_get_function_handle("ROCFOAM.flowLoop");
     if (flowLoopHandle <= 0)
     { // fail
-        std::cout << "comFoam.main: Could not get handle for loop."
+        std::cout << "rocFoam.main: Could not get handle for loop."
                   << std::endl;
         throw -2;
     }
     else
     {
-        std::cout << "comFoam.main: Acquired a handle for loop."
-                  << std::endl;    
+        if (masterRank==0)
+        {
 
-        std::cout << std::endl;
+            std::cout << "rocFoam.main: Acquired a handle for loop."
+                      << std::endl;
+            std::cout << std::endl;    
+        }
     }
 
     //  Get the handle for the finalize function ^^^^^^^^^^
-    /*int flowFinHandle = COM_get_function_handle("CFModule.flowFin");
+    /*int flowFinHandle = COM_get_function_handle("ROCFOAM.flowFin");
     if (flowFinHandle <= 0)
     { // fail
-        std::cout << "comFoam.main: Could not get handle for finalize."
+        std::cout << "rocFoam.main: Could not get handle for finalize."
                   << std::endl;
         throw -2;
     }
     else
     {
-        std::cout << "comFoam.main: Acquired a handle for finLauncher."
+        std::cout << "rocFoam.main: Acquired a handle for finLauncher."
                   << std::endl;    
     }*/
 
@@ -247,10 +257,10 @@ void comDrvStat()
     //  Get information about what was ^^^^^^^^^^
     //  registered in this window  
     std::string output;
-    COM_get_dataitems("CFModule", &numDataItems, output);
+    COM_get_dataitems("ROCFOAM", &numDataItems, output);
     std::istringstream Istr(output);
 
-    std::cout << "comFoam.main: numDataItems "
+    std::cout << "rocFoam.main: numDataItems "
               << numDataItems << std::endl;
 
     for (int i=0; i<numDataItems; ++i)
@@ -258,18 +268,18 @@ void comDrvStat()
         std::string name;
         Istr >> name;
         dataItemNames.push_back(name);
-        std::cout << "comFoam.main: DataItem # "
+        std::cout << "rocFoam.main: DataItem # "
                   << i << ": " << name << std::endl;
     }
 
     //  List of panes in this window ^^^^^^^^^^^^
-    COM_get_panes("CFModule", &numPanes, &paneList);
-    std::cout << "comFoam.main: Number of Panes "
+    COM_get_panes("ROCFOAM", &numPanes, &paneList);
+    std::cout << "rocFoam.main: Number of Panes "
               << numPanes << std::endl;
 
     for (int i=0; i<numPanes; ++i) 
     {
-        std::cout << "comFoam.main: Pane ID # "
+        std::cout << "rocFoam.main: Pane ID # "
                   << i+1 << "="<< paneList[i] << std::endl;
     }
 
@@ -277,14 +287,14 @@ void comDrvStat()
     int pane = paneList[0];
 
     //  Get for grid coordinates ^^^^^^^^^^^^^^^^
-    COM_get_array("CFModule.nc", pane, &Coord);
+    COM_get_array("ROCFOAM.nc", pane, &Coord);
 
     //  Check for expected number of nodes ^^^^^^
-    COM_get_size("CFModule.nc", pane, &numNodes);
+    COM_get_size("ROCFOAM.nc", pane, &numNodes);
 
     //  Get connectivity tables for panes ^^^^^^^
     std::string stringNames;
-    COM_get_connectivities("CFModule", pane, &numConn, stringNames);
+    COM_get_connectivities("ROCFOAM", pane, &numConn, stringNames);
     std::istringstream ConnISS(stringNames);
 
     for (int i=0; i<numConn; ++i)
@@ -292,12 +302,12 @@ void comDrvStat()
         std::string name;
         ConnISS >> name;
         connNames.push_back(name);
-        std::cout << "comFoam.main: Connectivity Table # "
+        std::cout << "rocFoam.main: Connectivity Table # "
                   << i+1 << ": " << name << std::endl;
     }
 
     //  Number of nodes per element ^^^^^^^^^^^^^
-    std::string fullConnName("CFModule."+connNames[0]);
+    std::string fullConnName("ROCFOAM."+connNames[0]);
     COM_get_dataitem
     (
         fullConnName,
@@ -307,23 +317,23 @@ void comDrvStat()
         &getDataItemUnits
     );
 
-    std::cout << "comFoam.main: getDataItemLoc "
+    std::cout << "rocFoam.main: getDataItemLoc "
               << getDataItemLoc << std::endl;
 
-    std::cout << "comFoam.main: getDataItemType "
+    std::cout << "rocFoam.main: getDataItemType "
               << getDataItemType << std::endl;
 
-    std::cout << "comFoam.main: numElementNodes "
+    std::cout << "rocFoam.main: numElementNodes "
               << numElementNodes << std::endl;
 
-    std::cout << "comFoam.main: getDataItemUnits "
+    std::cout << "rocFoam.main: getDataItemUnits "
               << getDataItemUnits << std::endl;
     
     COM_get_array(fullConnName.c_str(), pane, &Conn);
     COM_get_size(fullConnName, pane, &numElem);
 
 
-    std::cout << "comFoam.main: Conn numElem "
+    std::cout << "rocFoam.main: Conn numElem "
               << numElem << std::endl;
 
     //  Put elements into a vector so we can ^^^^
@@ -338,7 +348,7 @@ void comDrvStat()
     }
 
     //  Get non-mesh data items ^^^^^^^^^^^^^^^^^
-    std::string name("CFModule.time");
+    std::string name("ROCFOAM.time");
     COM_get_dataitem
     (
         name,
@@ -348,7 +358,7 @@ void comDrvStat()
         &getDataItemUnits
     );
 
-    std::cout << "comFoam.main: timeArrayLength "
+    std::cout << "rocFoam.main: timeArrayLength "
               << timeArrayLength << std::endl;
 
     return;
@@ -368,8 +378,8 @@ void comDrvRun()
 void comDrvFin()
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
-    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "CFModule");
-    comfoam_unload_module("CFModule", "rhoCentral");
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
+    comfoam_unload_module("ROCFOAM", solverType);
 
     COM_set_default_communicator(masterComm);
     

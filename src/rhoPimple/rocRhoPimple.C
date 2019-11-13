@@ -4,8 +4,7 @@ using namespace COM;
 
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoPimple::rhoPimple()
-    : comFoam(),
-      pimplePtr(NULL),
+    : pimplePtr(NULL),
       pressureControlPtr(NULL),
       dpdtPtr(NULL),
       KPtr(NULL),
@@ -23,8 +22,7 @@ rhoPimple::rhoPimple()
 {}
 
 rhoPimple::rhoPimple(int argc, char *argv[])
-    : comFoam(),
-      pimplePtr(NULL),
+    : pimplePtr(NULL),
       pressureControlPtr(NULL),
       dpdtPtr(NULL),
       KPtr(NULL),
@@ -47,11 +45,8 @@ rhoPimple::rhoPimple(int argc, char *argv[])
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void rhoPimple::Load(const char *name)
+void rhoPimple::load(const char *name)
 {
-    Foam::Info << "RFModule.Load: Loading rhoPimple with name "
-               << name << "." << Foam::endl;
-
     //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
     MPI_Comm tmpComm;
     tmpComm = COM_get_default_communicator();  
@@ -60,17 +55,17 @@ void rhoPimple::Load(const char *name)
     MPI_Comm_rank(tmpComm, &tmpRank);
     MPI_Comm_size(tmpComm, &tmpNProc);
     
-    Foam::Info << "RFModoule.Load: Rank #" << tmpRank
-               << " on communicator " << tmpComm
-               << " with " << tmpNProc << " processes."
-               << Foam::endl;
+    if (tmpRank == 0)
+    {
+        std::cout << "rocFoam.load: Loading rocRhoCentral with name "
+                   << name << "." << std::endl;
 
-    Foam::Info << "RFModule.Load: Rank #" << tmpRank
-               << " Loading FsiFoamModule with name " 
-               << name << Foam::endl;
+        std::cout << "rocFoam.load: Rank = " << tmpRank
+                  << ", NProc = " << tmpNProc
+                  << ", COMM = " << tmpComm << std::endl;
 
-    Foam::Info << Foam::endl;
-
+        std::cout << std::endl;
+    }
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     rhoPimple *comFoamPtr = new rhoPimple();
@@ -105,7 +100,7 @@ void rhoPimple::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowInit")).c_str(),
-        (Member_func_ptr)(&rhoPimple::flowInit),
+        reinterpret_cast<Member_func_ptr>(&rhoPimple::flowInit),
         globalName.c_str(), "biii", &types[0]
     );
 
@@ -113,14 +108,14 @@ void rhoPimple::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowLoop")).c_str(),
-        (Member_func_ptr)(&rhoPimple::flowLoop),
+        reinterpret_cast<Member_func_ptr>(&rhoPimple::flowLoop),
         globalName.c_str(), "b", &types[0]
     );
 
     //COM_set_member_function
     //(
     //    (name + string(".flowFin")).c_str(),
-    //    (Member_func_ptr)(&rhoPimple::flowFin),
+    //    reinterpret_cast<Member_func_ptr>(&rhoPimple::flowFin),
     //    globalName.c_str(), "b", &types[0]
     //);
 
@@ -137,10 +132,10 @@ void rhoPimple::Load(const char *name)
 
 
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void rhoPimple::Unload(const std::string &name)
+void rhoPimple::unload(const std::string &name)
 {
-    std::cout << "RFModule.Unload: Unloading rhoPimple with name "
-              << name << "." << std::endl;
+    Foam::Info << "rocFoam.unload: Unloading rocRhoPimple with name "
+               << name << "." << Foam::endl;
 
     rhoPimple *comFoamPtr = NULL;
     std::string globalName(name+".global");
@@ -1316,20 +1311,3 @@ int rhoPimple::finalize()
 }
 //===================================================================
 
-
-/*
-//^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-// C/C++ bindings to load rocFoam
-extern "C" void comfoam_load_module(const char *name)
-{
-  rhoPimple::Load(name);
-}
-
-// C/C++ bindings to unload rocFoam
-extern "C" void comfoam_unload_module(const char *name)
-{
-  rhoPimple::Unload(name);
-}
-//===================================================================
-
-*/

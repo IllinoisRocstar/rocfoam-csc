@@ -2,18 +2,17 @@
 
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoCentral::rhoCentral()
-    : comFoam(),
-      posPtr(NULL),
+    : posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
       pThermoPtr(NULL),
       fluxScheme(""),
       inviscid(false)
-{};
+{
+};
 
 rhoCentral::rhoCentral(int argc, char *argv[])
-    : comFoam(),
-      posPtr(NULL),
+    : posPtr(NULL),
       negPtr(NULL),
       amaxSfPtr(NULL),
       pThermoPtr(NULL),
@@ -27,11 +26,8 @@ rhoCentral::rhoCentral(int argc, char *argv[])
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void rhoCentral::Load(const char *name)
+void rhoCentral::load(const char *name)
 {
-    Foam::Info << "RFModule.Load: Loading rhoCentral with name "
-               << name << "." << Foam::endl;
-
     //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
     MPI_Comm tmpComm;
     tmpComm = COM_get_default_communicator();  
@@ -40,16 +36,17 @@ void rhoCentral::Load(const char *name)
     MPI_Comm_rank(tmpComm, &tmpRank);
     MPI_Comm_size(tmpComm, &tmpNProc);
     
-    Foam::Info << "RFModoule.Load: Rank #" << tmpRank
-               << " on communicator " << tmpComm
-               << " with " << tmpNProc << " processes."
-               << Foam::endl;
+    if (tmpRank == 0)
+    {
+        std::cout << "rocFoam.load: Loading rhoCentral with name "
+                   << name << "." << std::endl;
 
-    Foam::Info << "RFModule.Load: Rank #" << tmpRank
-               << " Loading FsiFoamModule with name " 
-               << name << Foam::endl;
+        std::cout << "rocFoam.load: Rank = " << tmpRank
+                  << ", NProc = " << tmpNProc
+                  << ", COMM = " << tmpComm << std::endl;
 
-    Foam::Info << Foam::endl;
+        std::cout << std::endl;
+    }
 
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,7 +82,7 @@ void rhoCentral::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowInit")).c_str(),
-        (Member_func_ptr)(&rhoCentral::flowInit),
+        reinterpret_cast<Member_func_ptr>(&rhoCentral::flowInit),
         globalName.c_str(), "biii", &types[0]
     );
 
@@ -93,14 +90,14 @@ void rhoCentral::Load(const char *name)
     COM_set_member_function
     (
         (name + string(".flowLoop")).c_str(),
-        (Member_func_ptr)(&rhoCentral::flowLoop),
+        reinterpret_cast<Member_func_ptr>(&rhoCentral::flowLoop),
         globalName.c_str(), "b", &types[0]
     );
 
     //COM_set_member_function
     //(
     //    (name + string(".flowFin")).c_str(),
-    //    (Member_func_ptr)(&rhoCentral::flowFin),
+    //    reinterpret_cast<Member_func_ptr>(&rhoCentral::flowFin),
     //    globalName.c_str(), "b", &types[0]
     //);
 
@@ -117,10 +114,10 @@ void rhoCentral::Load(const char *name)
 
 
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void rhoCentral::Unload(const std::string &name)
+void rhoCentral::unload(const std::string &name)
 {
-    std::cout << "RFModule.Unload: Unloading rhoCentral with name "
-              << name << "." << std::endl;
+    Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
+               << name << "." << Foam::endl;
 
     rhoCentral *comFoamPtr = NULL;
     std::string globalName(name+".global");

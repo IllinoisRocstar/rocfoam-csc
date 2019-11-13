@@ -1,8 +1,7 @@
 #include "comFoam.H"
 
 comFoam::comFoam()
-    : rocFoam(),
-      solverType(""),
+    : solverType(""),
       winName(""),
       winComm(NULL),
       winNProc(0),
@@ -10,8 +9,7 @@ comFoam::comFoam()
 {};
 
 comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
-    : rocFoam(),
-      solverType(""),
+    : solverType(""),
       winName(""),
       winComm(NULL),
       winNProc(0),
@@ -25,14 +23,14 @@ comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
 int comFoam::flowInit(int *pargc, void **pargv, int *verbIn)
 {
     int argc = *pargc;
-    char** argv = (char**)(pargv);
+    char** argv = reinterpret_cast<char**>(pargv);
 
     Foam::Info << "RFModule.flowInit: Initializing flow solver." << Foam::endl;
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
-    std::string name="CFModule";
+    std::string name="ROCFOAM";
     std::string globalName(name+".global");
     COM_get_object(globalName.c_str(), 0, &comFoamPtr);
 
@@ -52,7 +50,7 @@ int comFoam::flowLoop()
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
-    std::string name="CFModule";
+    std::string name="ROCFOAM";
     std::string globalName(name+".global");
     COM_get_object(globalName.c_str(), 0, &comFoamPtr);
 

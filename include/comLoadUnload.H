@@ -10,28 +10,28 @@ COM_EXTERN_MODULE(comfoam);
 
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
-extern "C" void comfoam_load_module(const char *name, const char *solverType)
+extern "C" void comfoam_load_module(const char *name, char *solverType)
 {
-    if (solverType == "rhoCentral")
+    if (solverType == "rocRhoCentral")
     {
-        rhoCentral::Load(name);
+        rhoCentral::load(name);
     }
-    else if (solverType == "rhoPimple")
+    else if (solverType == "rocRhoPimple")
     {
-        rhoPimple::Load(name);
+        rhoPimple::load(name);
     }
 }
 
 // C/C++ bindings to unload rocFoam
 extern "C" void comfoam_unload_module(const char *name, const char *solverType)
 {
-    if (solverType == "rhoCentral")
+    if (solverType == "rocRhoCentral")
     {
-        rhoCentral::Unload(name);
+        rhoCentral::unload(name);
     }
-    else if (solverType == "rhoPimple")
+    else if (solverType == "rocRhoPimple")
     {
-        rhoPimple::Unload(name);
+        rhoPimple::unload(name);
     }
 }//===================================================================
 
