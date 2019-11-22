@@ -19,6 +19,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
 # Finding libraries ############################################################
 
+option(ENABLE_TESTS "Enabling Testing of RocFOAM" ON)
+
+if(ENABLE_TESTS)
+   enable_testing()
+endif()
+
 # Find OpenFOAM
 # checking OpenFOAM version
 string(FIND $ENV{WM_PROJECT_VERSION} "7" OF7)
@@ -93,7 +99,7 @@ foreach(include_dir ${rocfoam_INC_DIRS})
 endforeach()
 
 target_compile_options(rocfoam
-    PRIVATE
+    PUBLIC
         -Wall
         -Wextra
         -Wold-style-cast
@@ -106,16 +112,16 @@ target_compile_options(rocfoam
 
 # Link OpenFOAM
 target_link_libraries(rocfoam
-    PRIVATE
+    PUBLIC
         ${OPNF_LIBRARIES}
         ${IMPACT_LIB}
 )
 
 target_include_directories(rocfoam SYSTEM
-    PRIVATE
+    PUBLIC
         ${OPNF_INCLUDE_DIRS}
         ${IMPACT_HDR}
-)
+        )
 
 target_compile_definitions(rocfoam
     PUBLIC
@@ -146,7 +152,7 @@ install(TARGETS rocfoam
 add_executable(rocRhoCentral ${rocCntDrv_SRCS})
 target_link_libraries(rocRhoCentral rocfoam)
 target_include_directories(rocRhoCentral SYSTEM
-    PRIVATE
+    PUBLIC
         ${OPNF_INCLUDE_DIRS}
 )
 
@@ -167,5 +173,10 @@ target_include_directories(rocFoam SYSTEM
 install(TARGETS rocRhoCentral rocRhoPimple rocFoam
          RUNTIME DESTINATION bin
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+if(ENABLE_TESTS)
+   add_subdirectory(testing)
+endif()
 

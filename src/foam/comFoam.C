@@ -34,7 +34,6 @@ int comFoam::flowInit(int *pargc, void **pargv, int *verbIn)
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-
     std::string name="ROCFOAM";
     std::string globalName(name+".global");
     COM_get_object(globalName.c_str(), 0, &comFoamPtr);

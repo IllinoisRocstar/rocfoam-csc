@@ -176,9 +176,11 @@ int rhoPimple::initialize(int argc, char *argv[])
         // ---------------------------------------------------
     }
 
-    Foam::Info << "End of initialization of rhoPimple module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
-    return 0;
+    initializeStat = 0;
+
+    return initializeStat;
 }
 
 int rhoPimple::createControl()
@@ -475,7 +477,9 @@ int rhoPimple::setInitialDeltaT()
         }
     }
 
-    return 0;
+    loopStat = 0;
+
+    return loopStat;
 }
 
 int rhoPimple::loop()
@@ -1251,22 +1255,22 @@ int rhoPimple::finalize()
     //delete psiPtr;
     //delete ePtr;
 
-    delete rhoPtr;
-    delete UPtr;
-    delete rhoUPtr;
-    delete rhoEPtr;
-    delete phiPtr;
+    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr = NULL;}
+    if (UPtr != NULL) {delete UPtr; UPtr = NULL;}
+    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr = NULL;}
+    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr = NULL;}
+    if (phiPtr != NULL) {delete phiPtr; phiPtr = NULL;}
 
     // delete meshPtr;
     // delete turbulencePtr;
     // delete trDeltaT;
 
-    delete pimplePtr;
-    delete pressureControlPtr;
-    delete dpdtPtr;
-    delete KPtr;
-    delete fvOptionsPtr;
-    delete MRFPtr;
+    if (pimplePtr != NULL) {delete pimplePtr; pimplePtr = NULL;}
+    if (pressureControlPtr != NULL) {delete pressureControlPtr; pressureControlPtr = NULL;}
+    if (dpdtPtr != NULL) {delete dpdtPtr; dpdtPtr = NULL;}
+    if (KPtr != NULL) {delete KPtr; KPtr = NULL;}
+    if (fvOptionsPtr != NULL) {delete fvOptionsPtr; fvOptionsPtr = NULL;}
+    if (MRFPtr != NULL) {delete MRFPtr; MRFPtr = NULL;}
 
     //delete UEqnPtr;
 
@@ -1275,7 +1279,9 @@ int rhoPimple::finalize()
     // delete divrhoUPtr;
     // delete tUEqnPtr;
 
-    return 0;
+    finalizeStat = 0;
+
+    return finalizeStat;
 }
 //===================================================================
 

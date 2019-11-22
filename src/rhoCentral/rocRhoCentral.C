@@ -144,9 +144,11 @@ int rhoCentral::initialize(int argc, char *argv[])
 
     turbulence.validate();
 
-    Foam::Info << "End of initialization of rhoCentral module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoCentral." << Foam::endl;
 
-    return 0;
+    initializeStat = 0;
+
+    return initializeStat;
 }
 
 
@@ -399,7 +401,9 @@ int rhoCentral::loop()
 
     Info << "End\n" << endl;
 
-    return 0;
+    loopStat = 0;
+
+    return loopStat;
 }
 
 int rhoCentral::createFields()
@@ -641,21 +645,20 @@ int rhoCentral::setRDeltaT()
 
 rhoCentral::~rhoCentral()
 {
-    finalize();
+    finalizeStat = finalize();
 }
 
 int rhoCentral::finalize()
 {
     // Delete thing that are allocated here
-    delete posPtr;
-    delete negPtr;
-    delete amaxSfPtr;
-
-    delete UPtr;
-    delete rhoPtr;
-    delete rhoUPtr;
-    delete rhoEPtr;
-    delete phiPtr;
+    if (posPtr != NULL) {delete posPtr; posPtr = NULL;}
+    if (negPtr != NULL) {delete negPtr; negPtr = NULL;}
+    if (amaxSfPtr != NULL) {delete amaxSfPtr; amaxSfPtr = NULL;}
+    if (UPtr != NULL) {delete UPtr; UPtr=NULL;}
+    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr=NULL;}
+    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr=NULL;}
+    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr=NULL;}
+    if (phiPtr != NULL) {delete phiPtr; phiPtr=NULL;}
 
     //delete argsPtr; Let it be the last thing to delete in the
     //                parrent class:rocFoam
@@ -671,6 +674,8 @@ int rhoCentral::finalize()
     //delete turbulencePtr;
     //delete trDeltaT;
 
-    return 0;
+    finalizeStat = 0;
+    
+    return finalizeStat;
 }
 //===================================================================

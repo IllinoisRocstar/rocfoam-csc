@@ -36,10 +36,10 @@ int flowStatHandle;
 int flowLoopHandle;
 int flowFinHandle;
 
-void comDrvInit(int argc, char *argv[]);
-void comDrvStat();
-void comDrvRun();
-void comDrvFin();
+int comDrvInit(int argc, char *argv[]);
+int comDrvStat();
+int comDrvRun();
+int comDrvFin();
 
 int main(int argc, char *argv[])
 {
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 }
 
 
-void comDrvInit(int argc, char *argv[])
+int comDrvInit(int argc, char *argv[])
 {
 
     MPI_Init(&argc, &argv);
@@ -83,7 +83,7 @@ void comDrvInit(int argc, char *argv[])
 
     // Run in parallel mode?
     runParallel = false;
-    solverType = (char*)"rocRhoCentral";
+    solverType = const_cast<char *>("rocRhoCentral");
     
 
     std::string arg;
@@ -102,13 +102,13 @@ void comDrvInit(int argc, char *argv[])
             }
             else if (ss.str() == "-rocRhoCentral")
             {
-                solverType = (char*)"rocRhoCentral";
+                solverType = const_cast<char *>("rocRhoCentral");
             }
             else if (ss.str() == "-rocRhoPimple")
             {
-                solverType = (char*)"rocRhoPimple";
+                solverType = const_cast<char *>("rocRhoPimple");
             }
-            else
+            /* else
             {
                 if (masterRank==0)
                 {
@@ -116,8 +116,7 @@ void comDrvInit(int argc, char *argv[])
                               << ss.str() << std::endl;
                 }
                 throw -1;
-            }
-
+            } */
         }
     }
 
@@ -156,13 +155,6 @@ void comDrvInit(int argc, char *argv[])
     //  Setting the defual communicator. Is it needed?
     COM_set_default_communicator(newComm);
     
-    /*if (masterRank==0)
-    {
-        std::cout << "rocFoam.main: New COMM = "
-                  << newComm << std::endl;
-        std::cout << std::endl;
-    } */
-
     comfoam_load_module("ROCFOAM", solverType);
 
     // getting number of processes  
@@ -248,11 +240,11 @@ void comDrvInit(int argc, char *argv[])
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle, &myArgc, &myArgv, &verb);
     
-    return;
+    return 0;
 }
 
 
-void comDrvStat()
+int comDrvStat()
 {
     //  Get information about what was ^^^^^^^^^^
     //  registered in this window  
@@ -361,21 +353,21 @@ void comDrvStat()
     std::cout << "rocFoam.main: timeArrayLength "
               << timeArrayLength << std::endl;
 
-    return;
+    return 0;
 }
 
 
 
-void comDrvRun()
+int comDrvRun()
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     COM_call_function(flowLoopHandle);
     
-    return;
+    return 0;
 }
 
 
-void comDrvFin()
+int comDrvFin()
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
     //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
@@ -387,6 +379,8 @@ void comDrvFin()
 
     MPI_Barrier(masterComm);
     MPI_Finalize();
+    
+    return 0;
 }    
 
 

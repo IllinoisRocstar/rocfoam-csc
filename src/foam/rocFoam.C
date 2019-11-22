@@ -21,7 +21,11 @@ rocFoam::rocFoam()
       phiPtr(NULL),
       meshPtr(NULL),
       turbulencePtr(NULL),
-      trDeltaT(NULL)
+      trDeltaT(NULL),
+      initializeStat(-1),
+      loopStat(-1),
+      finalizeStat(-1)
+      
 {}
 
 rocFoam::~rocFoam()
@@ -32,7 +36,7 @@ rocFoam::~rocFoam()
 int rocFoam::finalize()
 {
     // Delete thing that are allocated here
-    delete runTimePtr;
+    if (runTimePtr != NULL) delete runTimePtr;
 
     if (argsPtr != NULL)
     {
