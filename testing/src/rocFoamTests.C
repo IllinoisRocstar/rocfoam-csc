@@ -69,7 +69,7 @@ protected:
         solverType = const_cast<char *>("rocRhoCentral");
         
 
-        std::string arg;
+        //std::string arg;
         std::stringstream ss;
         if (argc > 1)
         {

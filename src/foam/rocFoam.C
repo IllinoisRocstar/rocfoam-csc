@@ -36,7 +36,11 @@ rocFoam::~rocFoam()
 int rocFoam::finalize()
 {
     // Delete thing that are allocated here
-    if (runTimePtr != NULL) delete runTimePtr;
+    if (runTimePtr != NULL)
+    {
+      delete runTimePtr;
+      runTimePtr = NULL;
+    }
 
     if (argsPtr != NULL)
     {
@@ -46,6 +50,7 @@ int rocFoam::finalize()
          // this. One option is not to delete this.
 
          delete argsPtr;
+         argsPtr = NULL;
     }
 
     return 0;
@@ -260,9 +265,6 @@ int rocFoam::addFunctionObjectOptions()
 int rocFoam::setRootCase()
 {
     Foam::argList &args(*argsPtr);
-
-
-Foam::Info << "args.checkRootCase() = " << args.checkRootCase() << Foam::endl;
 
     // Foam::argList args(argc, argv);
     if (!args.checkRootCase())
