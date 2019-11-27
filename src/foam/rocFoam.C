@@ -1,7 +1,10 @@
 #include "rocFoam.H"
+#include <vector>
+
 
 rocFoam::rocFoam()
-    : argsPtr(NULL),
+    : solverType(NULL),
+      argsPtr(NULL),
       runTimePtr(NULL),
       listOptions(false),
       LTS(false),
@@ -24,8 +27,8 @@ rocFoam::rocFoam()
       trDeltaT(NULL),
       initializeStat(-1),
       loopStat(-1),
-      finalizeStat(-1)
-      
+      finalizeStat(-1),
+      testStat(-1.0)
 {}
 
 rocFoam::~rocFoam()
@@ -262,6 +265,13 @@ int rocFoam::addFunctionObjectOptions()
     return 0;
 }
 
+int rocFoam::createArgs(int argc, char *argv[])
+{
+    argsPtr = new Foam::argList(argc, argv);
+    return 0;
+}
+
+
 int rocFoam::setRootCase()
 {
     Foam::argList &args(*argsPtr);
@@ -482,8 +492,7 @@ int rocFoam::createTime()
     Foam::Info << "Create time\n" << Foam::endl;
     // Foam::Time runTimePtr(Foam::Time::controlDictName, *argsPtr);
     runTimePtr = new Foam::Time(Foam::Time::controlDictName, args);
-    // Mohammad: Not quite sure where this line should be
-
+    
     return 0;
 }
 

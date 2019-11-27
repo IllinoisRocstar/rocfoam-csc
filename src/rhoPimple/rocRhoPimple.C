@@ -19,7 +19,9 @@ rhoPimple::rhoPimple()
       checkMeshCourantNo(false),
       moveMeshOuterCorrectors(false),
       cumulativeContErr(0.0)
-{}
+{
+    solverType = const_cast<char *>("rocRhoPimple");
+}
 
 rhoPimple::rhoPimple(int argc, char *argv[])
     : pimplePtr(NULL),
@@ -38,6 +40,7 @@ rhoPimple::rhoPimple(int argc, char *argv[])
       moveMeshOuterCorrectors(false),
       cumulativeContErr(0.0)
 {
+    solverType = const_cast<char *>("rocRhoPimple");
     initialize(argc, argv);
 }
 //===================================================================
@@ -122,8 +125,8 @@ void rhoPimple::unload(const std::string &name)
 //^^^ DEFINITION OF OPENFOAM-RELATED METHODS ^^^^^^^^^^^^^^^^^^^^^^^^
 int rhoPimple::initialize(int argc, char *argv[])
 {
-    // Mohammad: Not quite sure where this line should be
-    argsPtr = new Foam::argList(argc, argv);
+    // Not quite sure where this line should be
+    createArgs(argc, argv);
 
     //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     PostProcess(argc, argv);
@@ -1283,5 +1286,72 @@ int rhoPimple::finalize()
 
     return finalizeStat;
 }
+
+double rhoPimple::errorEvaluate(int argc, char *argv[])
+{
+    createArgs(argc, argv);
+    setRootCase();
+    
+    Foam::argList &args(*argsPtr);
+    
+    if (args.optionFound("list"))
+    {
+        functionObjectList::list();
+        return 0;
+    }
+    
+    createTime();
+    createDynamicFvMesh();
+    createDyMControls();
+    initContinuityErrs();
+
+    Foam::Time &runTime(*runTimePtr);
+    
+    Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
+    
+    std::vector<volScalarField> rhoVec;
+    std::vector<volVectorField> rhoUVec;
+    std::vector<volScalarField> UMagVec;
+    std::vector<volScalarField> rhoEVec;
+
+    forAll(timeDirs, timei)
+    {
+        runTime.setTime(timeDirs[timei], timei);
+
+        Info << "iTime = " << timei <<", " << "Time = " << runTime.timeName() << endl;
+
+        FatalIOError.throwExceptions();
+
+        createFields();
+
+        volScalarField &rho(*rhoPtr);
+        volVectorField &rhoU(*UPtr);
+        volScalarField &rhoE(*KPtr);
+        
+        rhoVec.push_back(rho);
+        rhoUVec.push_back(rhoU);
+        UMagVec.push_back(magSqr(rhoU));
+        rhoEVec.push_back(rhoE);
+    }
+
+    Info << "Field vectors created. " << endl;
+
+    rhoVec[0]  = mag(rhoVec[2]  - rhoVec[1]);
+    UMagVec[0] = mag(UMagVec[2]-UMagVec[1]);
+    rhoEVec[0] = mag(rhoEVec[2] - rhoEVec[1]);
+    
+    Info << "Infinity norm = " << max(rhoVec[0]) << endl;
+    Info << "Infinity norm = " << max(UMagVec[0]) << endl;
+    Info << "Infinity norm = " << max(rhoEVec[0]) << endl;
+
+    double maxError = std::max( max(rhoVec[0]).value(), max(UMagVec[0]).value() );
+    testStat = std::max( maxError , max(rhoEVec[0]).value() );
+    
+    return testStat;
+}
+
+
+
+
 //===================================================================
 

@@ -51,6 +51,7 @@ public:
 
     int centralCourantNo();
     int setRDeltaT();
+    double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
 
 private:

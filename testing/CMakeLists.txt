@@ -77,9 +77,9 @@ target_include_directories(runRhoFoamTest
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
 )
 
-add_executable(regression src/regression.C)
-target_link_libraries(regression rocfoam gtest gtest_main)
-target_include_directories(regression
+add_executable(normtest src/normTest.C)
+target_link_libraries(normtest rocfoam gtest gtest_main)
+target_include_directories(normtest
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
 )
@@ -101,64 +101,65 @@ set (TEST_SOURCE_ROCFOM_RHOPIMPLE  ${CMAKE_CURRENT_BINARY_DIR}/data/forwardStep/
 #MESSAGE(STATUS "TEST_SOURCE_RHOPimple : ${TEST_SOURCE_RHOPIMPLE}")
 
 #SET (TEST_RESULTS ${TEST_DATA}/testResults)
-
 #add_test(NAME Usage COMMAND runRhoCentralTest)
 
+
+#^^^ Tesing rocRhoCentral ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 add_test(NAME rocRhoCentralSerial
          COMMAND
-         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
          runRhoCentralTest -case ${TEST_SOURCE_RHOCENTRAL}
          WORKING_DIRECTORY ${TEST_RESULTS})
 
-#add_test(NAME rocRhoCentralParallel
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         mpirun -np 2 runRhoCentralTest -case ${TEST_SOURCE_RHOCENTRAL} -parallel
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocRhoPimpleSerial
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         runRhoPimpleTest -case ${TEST_SOURCE_RHOPIMPLE}
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocRhoPimpleParallel
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         mpirun -np 2 runRhoPimpleTest -case ${TEST_SOURCE_RHOPIMPLE} -parallel
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-
-
-#add_test(NAME rocFoamRhoCentralSerial
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocFoamRhoCentralParallel
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral -parallel
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-
-#add_test(NAME rocFoamRhoPimpleSerial
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocFoamRhoPimpleParallel
-#         COMMAND
-#         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-#         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple -parallel
-#         WORKING_DIRECTORY ${TEST_RESULTS})
-
-         
-add_test(NAME rocRhoCentralRegression
+add_test(NAME rocRhoCentralParallel
          COMMAND
-         #${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
-         regression -rocRhoCentral -caseI ${TEST_SOURCE_RHOCENTRAL} -caseII ${TEST_SOURCE_RHOCENTRAL}
+         mpirun -np 2 runRhoCentralTest -case ${TEST_SOURCE_RHOCENTRAL} -parallel
          WORKING_DIRECTORY ${TEST_RESULTS})
-         
+#--------------------------------------------------------------------
+
+#^^^ Tesing rocRhoPimple ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+add_test(NAME rocRhoPimpleSerial
+         COMMAND
+         ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}" 
+         runRhoPimpleTest -case ${TEST_SOURCE_RHOPIMPLE}
+         WORKING_DIRECTORY ${TEST_RESULTS})
+
+add_test(NAME rocRhoPimpleParallel
+         COMMAND
+         mpirun -np 2 runRhoPimpleTest -case ${TEST_SOURCE_RHOPIMPLE} -parallel
+         WORKING_DIRECTORY ${TEST_RESULTS})
+#--------------------------------------------------------------------
+
+#^^^ Tesing rocFoam ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+add_test(NAME rocFoamRhoCentralSerial
+         COMMAND
+         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral
+         WORKING_DIRECTORY ${TEST_RESULTS})
+
+add_test(NAME rocFoamRhoCentralParallel
+         COMMAND
+         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral -parallel
+         WORKING_DIRECTORY ${TEST_RESULTS})
+
+
+add_test(NAME rocFoamRhoPimpleSerial
+         COMMAND
+         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple
+         WORKING_DIRECTORY ${TEST_RESULTS})
+
+add_test(NAME rocFoamRhoPimpleParallel
+         COMMAND
+         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple -parallel
+         WORKING_DIRECTORY ${TEST_RESULTS})
+#--------------------------------------------------------------------
+
+#^^^ Tesing infinity norms ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+add_test(NAME rocRhoCentralNormTest
+         COMMAND
+         normtest -rocRhoCentral -case ${TEST_SOURCE_RHOCENTRAL}
+         WORKING_DIRECTORY ${TEST_RESULTS})
+
+add_test(NAME rocRhoPimpleNormTest
+         COMMAND
+         normtest -rocRhoPimple -case ${TEST_SOURCE_RHOPIMPLE}
+         WORKING_DIRECTORY ${TEST_RESULTS})
+#--------------------------------------------------------------------
