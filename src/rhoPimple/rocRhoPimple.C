@@ -19,7 +19,9 @@ rhoPimple::rhoPimple()
       checkMeshCourantNo(false),
       moveMeshOuterCorrectors(false),
       cumulativeContErr(0.0)
-{}
+{
+    solverType = const_cast<char *>("rocRhoPimple");
+}
 
 rhoPimple::rhoPimple(int argc, char *argv[])
     : pimplePtr(NULL),
@@ -38,6 +40,7 @@ rhoPimple::rhoPimple(int argc, char *argv[])
       moveMeshOuterCorrectors(false),
       cumulativeContErr(0.0)
 {
+    solverType = const_cast<char *>("rocRhoPimple");
     initialize(argc, argv);
 }
 //===================================================================
@@ -122,8 +125,8 @@ void rhoPimple::unload(const std::string &name)
 //^^^ DEFINITION OF OPENFOAM-RELATED METHODS ^^^^^^^^^^^^^^^^^^^^^^^^
 int rhoPimple::initialize(int argc, char *argv[])
 {
-    // Mohammad: Not quite sure where this line should be
-    argsPtr = new Foam::argList(argc, argv);
+    // Not quite sure where this line should be
+    createArgs(argc, argv);
 
     //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     PostProcess(argc, argv);
@@ -176,9 +179,11 @@ int rhoPimple::initialize(int argc, char *argv[])
         // ---------------------------------------------------
     }
 
-    Foam::Info << "End of initialization of rhoPimple module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
-    return 0;
+    initializeStat = 0;
+
+    return initializeStat;
 }
 
 int rhoPimple::createControl()
@@ -475,7 +480,9 @@ int rhoPimple::setInitialDeltaT()
         }
     }
 
-    return 0;
+    loopStat = 0;
+
+    return loopStat;
 }
 
 int rhoPimple::loop()
@@ -1251,22 +1258,22 @@ int rhoPimple::finalize()
     //delete psiPtr;
     //delete ePtr;
 
-    delete rhoPtr;
-    delete UPtr;
-    delete rhoUPtr;
-    delete rhoEPtr;
-    delete phiPtr;
+    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr = NULL;}
+    if (UPtr != NULL) {delete UPtr; UPtr = NULL;}
+    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr = NULL;}
+    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr = NULL;}
+    if (phiPtr != NULL) {delete phiPtr; phiPtr = NULL;}
 
     // delete meshPtr;
     // delete turbulencePtr;
     // delete trDeltaT;
 
-    delete pimplePtr;
-    delete pressureControlPtr;
-    delete dpdtPtr;
-    delete KPtr;
-    delete fvOptionsPtr;
-    delete MRFPtr;
+    if (pimplePtr != NULL) {delete pimplePtr; pimplePtr = NULL;}
+    if (pressureControlPtr != NULL) {delete pressureControlPtr; pressureControlPtr = NULL;}
+    if (dpdtPtr != NULL) {delete dpdtPtr; dpdtPtr = NULL;}
+    if (KPtr != NULL) {delete KPtr; KPtr = NULL;}
+    if (fvOptionsPtr != NULL) {delete fvOptionsPtr; fvOptionsPtr = NULL;}
+    if (MRFPtr != NULL) {delete MRFPtr; MRFPtr = NULL;}
 
     //delete UEqnPtr;
 
@@ -1275,7 +1282,76 @@ int rhoPimple::finalize()
     // delete divrhoUPtr;
     // delete tUEqnPtr;
 
-    return 0;
+    finalizeStat = 0;
+
+    return finalizeStat;
 }
+
+double rhoPimple::errorEvaluate(int argc, char *argv[])
+{
+    createArgs(argc, argv);
+    setRootCase();
+    
+    Foam::argList &args(*argsPtr);
+    
+    if (args.optionFound("list"))
+    {
+        functionObjectList::list();
+        return 0;
+    }
+    
+    createTime();
+    createDynamicFvMesh();
+    createDyMControls();
+    initContinuityErrs();
+
+    Foam::Time &runTime(*runTimePtr);
+    
+    Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
+    
+    std::vector<volScalarField> rhoVec;
+    std::vector<volVectorField> rhoUVec;
+    std::vector<volScalarField> UMagVec;
+    std::vector<volScalarField> rhoEVec;
+
+    forAll(timeDirs, timei)
+    {
+        runTime.setTime(timeDirs[timei], timei);
+
+        Info << "iTime = " << timei <<", " << "Time = " << runTime.timeName() << endl;
+
+        FatalIOError.throwExceptions();
+
+        createFields();
+
+        volScalarField &rho(*rhoPtr);
+        volVectorField &rhoU(*UPtr);
+        volScalarField &rhoE(*KPtr);
+        
+        rhoVec.push_back(rho);
+        rhoUVec.push_back(rhoU);
+        UMagVec.push_back(magSqr(rhoU));
+        rhoEVec.push_back(rhoE);
+    }
+
+    Info << "Field vectors created. " << endl;
+
+    rhoVec[0]  = mag(rhoVec[2]  - rhoVec[1]);
+    UMagVec[0] = mag(UMagVec[2]-UMagVec[1]);
+    rhoEVec[0] = mag(rhoEVec[2] - rhoEVec[1]);
+    
+    Info << "Infinity norm = " << max(rhoVec[0]) << endl;
+    Info << "Infinity norm = " << max(UMagVec[0]) << endl;
+    Info << "Infinity norm = " << max(rhoEVec[0]) << endl;
+
+    double maxError = std::max( max(rhoVec[0]).value(), max(UMagVec[0]).value() );
+    testStat = std::max( maxError , max(rhoEVec[0]).value() );
+    
+    return testStat;
+}
+
+
+
+
 //===================================================================
 

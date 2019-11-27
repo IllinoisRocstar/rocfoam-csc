@@ -1,7 +1,10 @@
 #include "rocFoam.H"
+#include <vector>
+
 
 rocFoam::rocFoam()
-    : argsPtr(NULL),
+    : solverType(NULL),
+      argsPtr(NULL),
       runTimePtr(NULL),
       listOptions(false),
       LTS(false),
@@ -21,7 +24,11 @@ rocFoam::rocFoam()
       phiPtr(NULL),
       meshPtr(NULL),
       turbulencePtr(NULL),
-      trDeltaT(NULL)
+      trDeltaT(NULL),
+      initializeStat(-1),
+      loopStat(-1),
+      finalizeStat(-1),
+      testStat(-1.0)
 {}
 
 rocFoam::~rocFoam()
@@ -32,7 +39,11 @@ rocFoam::~rocFoam()
 int rocFoam::finalize()
 {
     // Delete thing that are allocated here
-    delete runTimePtr;
+    if (runTimePtr != NULL)
+    {
+      delete runTimePtr;
+      runTimePtr = NULL;
+    }
 
     if (argsPtr != NULL)
     {
@@ -42,6 +53,7 @@ int rocFoam::finalize()
          // this. One option is not to delete this.
 
          delete argsPtr;
+         argsPtr = NULL;
     }
 
     return 0;
@@ -253,12 +265,16 @@ int rocFoam::addFunctionObjectOptions()
     return 0;
 }
 
+int rocFoam::createArgs(int argc, char *argv[])
+{
+    argsPtr = new Foam::argList(argc, argv);
+    return 0;
+}
+
+
 int rocFoam::setRootCase()
 {
     Foam::argList &args(*argsPtr);
-
-
-Foam::Info << "args.checkRootCase() = " << args.checkRootCase() << Foam::endl;
 
     // Foam::argList args(argc, argv);
     if (!args.checkRootCase())
@@ -476,8 +492,7 @@ int rocFoam::createTime()
     Foam::Info << "Create time\n" << Foam::endl;
     // Foam::Time runTimePtr(Foam::Time::controlDictName, *argsPtr);
     runTimePtr = new Foam::Time(Foam::Time::controlDictName, args);
-    // Mohammad: Not quite sure where this line should be
-
+    
     return 0;
 }
 

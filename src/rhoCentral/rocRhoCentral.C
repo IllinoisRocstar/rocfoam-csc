@@ -9,6 +9,7 @@ rhoCentral::rhoCentral()
       fluxScheme(""),
       inviscid(false)
 {
+    solverType = const_cast<char *>("rocRhoCentral");
 };
 
 rhoCentral::rhoCentral(int argc, char *argv[])
@@ -19,6 +20,7 @@ rhoCentral::rhoCentral(int argc, char *argv[])
       fluxScheme(""),
       inviscid(false)
 {
+    solverType = const_cast<char *>("rocRhoCentral");
     initialize(argc, argv);
 }
 //===================================================================
@@ -106,7 +108,9 @@ void rhoCentral::unload(const std::string &name)
 int rhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
-    argsPtr = new Foam::argList(argc, argv);
+
+    // Not quite sure where this line should be
+    createArgs(argc, argv);
 
     //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     PostProcess(argc, argv);
@@ -144,9 +148,11 @@ int rhoCentral::initialize(int argc, char *argv[])
 
     turbulence.validate();
 
-    Foam::Info << "End of initialization of rhoCentral module." << Foam::endl;
+    Foam::Info << "End of initialization of rhoCentral." << Foam::endl;
 
-    return 0;
+    initializeStat = 0;
+
+    return initializeStat;
 }
 
 
@@ -399,7 +405,9 @@ int rhoCentral::loop()
 
     Info << "End\n" << endl;
 
-    return 0;
+    loopStat = 0;
+
+    return loopStat;
 }
 
 int rhoCentral::createFields()
@@ -428,7 +436,8 @@ int rhoCentral::createFields()
             "U",
             runTime.timeName(),
             mesh,
-            IOobject::MUST_READ, IOobject::AUTO_WRITE
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
         ),
         mesh
     );
@@ -441,7 +450,8 @@ int rhoCentral::createFields()
             "rho",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ, IOobject::AUTO_WRITE
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
         ),
         thermo.rho()
     );
@@ -641,21 +651,20 @@ int rhoCentral::setRDeltaT()
 
 rhoCentral::~rhoCentral()
 {
-    finalize();
+    finalizeStat = finalize();
 }
 
 int rhoCentral::finalize()
 {
     // Delete thing that are allocated here
-    delete posPtr;
-    delete negPtr;
-    delete amaxSfPtr;
-
-    delete UPtr;
-    delete rhoPtr;
-    delete rhoUPtr;
-    delete rhoEPtr;
-    delete phiPtr;
+    if (posPtr != NULL) {delete posPtr; posPtr = NULL;}
+    if (negPtr != NULL) {delete negPtr; negPtr = NULL;}
+    if (amaxSfPtr != NULL) {delete amaxSfPtr; amaxSfPtr = NULL;}
+    if (UPtr != NULL) {delete UPtr; UPtr=NULL;}
+    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr=NULL;}
+    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr=NULL;}
+    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr=NULL;}
+    if (phiPtr != NULL) {delete phiPtr; phiPtr=NULL;}
 
     //delete argsPtr; Let it be the last thing to delete in the
     //                parrent class:rocFoam
@@ -671,6 +680,71 @@ int rhoCentral::finalize()
     //delete turbulencePtr;
     //delete trDeltaT;
 
-    return 0;
+    finalizeStat = 0;
+    
+    return finalizeStat;
 }
+
+
+double rhoCentral::errorEvaluate(int argc, char *argv[])
+{
+    createArgs(argc, argv);
+    setRootCase();
+    
+    Foam::argList &args(*argsPtr);
+    
+    if (args.optionFound("list"))
+    {
+        functionObjectList::list();
+        return 0;
+    }
+    
+    createTime();
+    createDynamicFvMesh();
+
+    Foam::Time &runTime(*runTimePtr);
+    
+    Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
+    
+    std::vector<volScalarField> rhoVec;
+    std::vector<volVectorField> rhoUVec;
+    std::vector<volScalarField> UMagVec;
+    std::vector<volScalarField> rhoEVec;
+
+    forAll(timeDirs, timei)
+    {
+        runTime.setTime(timeDirs[timei], timei);
+
+        Info << "iTime = " << timei <<", " << "Time = " << runTime.timeName() << endl;
+
+        FatalIOError.throwExceptions();
+
+        createFields();
+
+        volScalarField &rho(*rhoPtr);
+        volVectorField &rhoU(*rhoUPtr);
+        volScalarField &rhoE(*rhoEPtr);
+        
+        rhoVec.push_back(rho);
+        rhoUVec.push_back(rhoU);
+        UMagVec.push_back(magSqr(rhoU));
+        rhoEVec.push_back(rhoE);
+    }
+
+    Info << "Field vectors created. " << endl;
+
+    rhoVec[0]  = mag(rhoVec[2]  - rhoVec[1]);
+    UMagVec[0] = mag(UMagVec[2]-UMagVec[1]);
+    rhoEVec[0] = mag(rhoEVec[2] - rhoEVec[1]);
+    
+    Info << "Infinity norm = " << max(rhoVec[0]) << endl;
+    Info << "Infinity norm = " << max(UMagVec[0]) << endl;
+    Info << "Infinity norm = " << max(rhoEVec[0]) << endl;
+
+    double maxError = std::max( max(rhoVec[0]).value(), max(UMagVec[0]).value() );
+    testStat = std::max( maxError , max(rhoEVec[0]).value() );
+    
+    return testStat;
+}
+
 //===================================================================

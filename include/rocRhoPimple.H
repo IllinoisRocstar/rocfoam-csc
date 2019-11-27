@@ -81,6 +81,8 @@ public:
     int pcEqn();
     int compressibleContinuityErrs();
     int pEqn_();
+
+    double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
 
 private:

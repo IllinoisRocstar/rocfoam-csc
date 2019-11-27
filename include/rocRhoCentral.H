@@ -41,7 +41,7 @@ public:
     int loop();
     int finalize();
     //--------------------------------------
-
+    
     //  Execution functions ^^^^^^^^^^^^^^^^
     int createFields();
     int createFieldRefs();
@@ -51,6 +51,7 @@ public:
 
     int centralCourantNo();
     int setRDeltaT();
+    double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
 
 private:

@@ -11,6 +11,7 @@
 class rocFoam
 {
 private:
+    char *solverType;
 protected:
 public:
     //  Initializations ^^^^^^^^^^^^^^
@@ -59,13 +60,28 @@ public:
     virtual int initialize(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
     virtual int finalize();
+    //--------------------------------------
+    
+    //  Methods status ^^^^^^^^^^^^^^^^^^^^^
+    int initializeStat;
+    int loopStat;
+    int finalizeStat;
+    
+    double testStat;
+    //--------------------------------------
 
+
+    //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int createFields() { return 0; };
     virtual int setRDeltaT() { return 0; };
     virtual int createControl();
+
+    virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
     //--------------------------------------
 
     //  Execution functions ^^^^^^^^^^^^^^^^
+    int createArgs(int argc, char *argv[]);
+
     int PostProcess(int argc, char *argv[]);
     int addRegionOption();
     int addDictOption();
