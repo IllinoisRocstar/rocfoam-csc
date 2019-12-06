@@ -26,9 +26,11 @@ public:
     bool listOptions;
     bool LTS;
     bool adjustTimeStep;
+    bool overrideTimeStep;
 
     scalar maxCo;
     scalar maxDeltaT;
+    scalar overrideDeltaT;
     scalar CoNum;
     scalar meanCoNum;
     //--------------------------------
@@ -59,12 +61,14 @@ public:
     virtual int initialize() { return 0; };
     virtual int initialize(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
+    virtual int step() { return 0; };
     virtual int finalize();
     //--------------------------------------
     
     //  Methods status ^^^^^^^^^^^^^^^^^^^^^
     int initializeStat;
     int loopStat;
+    int stepStat;
     int finalizeStat;
     
     double testStat;
@@ -74,7 +78,7 @@ public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int createFields() { return 0; };
     virtual int setRDeltaT() { return 0; };
-    virtual int createControl();
+    virtual int createControl() { return 0; };
 
     virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
     //--------------------------------------
@@ -94,11 +98,15 @@ public:
 
     int createTime();
     int createTimeControls();
+    int readTimeControls();
+
+    int setDeltaT();
+    int setDeltaT(scalar &overrideDeltaT);
+
     // int createMesh();
     int createDynamicFvMesh();
 
     int createRDeltaT();
-    int setDeltaT();
     //--------------------------------------
 };
 

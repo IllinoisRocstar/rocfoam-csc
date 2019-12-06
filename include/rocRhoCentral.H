@@ -39,6 +39,7 @@ public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     int initialize(int argc, char *argv[]);
     int loop();
+    int step();
     int finalize();
     //--------------------------------------
     
@@ -47,7 +48,6 @@ public:
     int createFieldRefs();
 
     int readFluxScheme();
-    int readTimeControls();
 
     int centralCourantNo();
     int setRDeltaT();

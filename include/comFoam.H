@@ -16,6 +16,11 @@ public:
     int winNProc;
     int winRank;
 
+    scalar winTime;
+    scalar winDeltaT;
+    int winRun;
+    
+
     //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     //static void Load(const char *name);
     //static void Unload(const std::string &name);
@@ -33,6 +38,7 @@ private:
 protected:
     int flowInit(int *pargc, void **pargv, int *verbIn);
     int flowLoop();
+    int flowStep();
     
     int flowRegister();
 

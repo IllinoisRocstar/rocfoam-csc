@@ -5,7 +5,10 @@ comFoam::comFoam()
       winName(""),
       winComm(NULL),
       winNProc(0),
-      winRank(0)
+      winRank(0),
+      winTime(0.0),
+      winDeltaT(0.0),
+      winRun(1)
 {};
 
 comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
@@ -13,7 +16,10 @@ comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
       winName(""),
       winComm(NULL),
       winNProc(0),
-      winRank(0)
+      winRank(0),
+      winTime(0.0),
+      winDeltaT(0.0),
+      winRun(1)
 {
     flowInit(pargc, pargv, verbIn);
 }
@@ -66,6 +72,23 @@ int comFoam::flowLoop()
     return 0;
 }
 
+int comFoam::flowStep()
+{
+
+    Foam::Info << "rocFoam.flowStep: Stepping flow solver." << Foam::endl;
+
+    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
+    comFoam *comFoamPtr = NULL;
+
+    std::string name="ROCFOAM";
+    std::string globalName(name+".global");
+    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+    comFoamPtr->step();
+    
+    return 0;
+}
+
 //^^^^^ REGISTER FUNCTIONS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::flowRegister()
 {
@@ -109,6 +132,13 @@ int comFoam::flowRegister()
         globalName.c_str(), "b", &types[0]
     );
 
+    COM_set_member_function
+    (
+        (name + string(".flowStep")).c_str(),
+        reinterpret_cast<Member_func_ptr>(&comFoam::flowStep),
+        globalName.c_str(), "b", &types[0]
+    );
+
     //COM_set_member_function
     //(
     //    (name + string(".flowFin")).c_str(),
@@ -116,10 +146,22 @@ int comFoam::flowRegister()
     //    globalName.c_str(), "b", &types[0]
     //);
 
-    //  Registering nproc for this module to COM ^^^^^^^^^^
+    //  Registering data of this module to COM ^^^^^^^^^^
     COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
     COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
     COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
+
+    COM_new_dataitem( (name+string(".winTime")).c_str(), 'w', COM_DOUBLE, 1, "");
+    COM_set_size(     (name+string(".winTime")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winTime")).c_str(), 0, &(comFoamPtr->winTime));
+
+    COM_new_dataitem( (name+string(".winDeltaT")).c_str(), 'w', COM_DOUBLE, 1, "");
+    COM_set_size(     (name+string(".winDeltaT")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winDeltaT")).c_str(), 0, &(comFoamPtr->winDeltaT) );
+
+    COM_new_dataitem( (name+string(".winRun")).c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     (name+string(".winRun")).c_str(), 0, 1);
+    COM_set_array(    (name+string(".winRun")).c_str(), 0, &(comFoamPtr->winRun));
 
     COM_window_init_done(name); 
 

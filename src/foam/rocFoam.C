@@ -1,7 +1,6 @@
 #include "rocFoam.H"
 #include <vector>
 
-
 rocFoam::rocFoam()
     : solverType(NULL),
       argsPtr(NULL),
@@ -9,8 +8,10 @@ rocFoam::rocFoam()
       listOptions(false),
       LTS(false),
       adjustTimeStep(false),
+      overrideTimeStep(false),
       maxCo(0.0),
       maxDeltaT(0.0),
+      overrideDeltaT(small),
       CoNum(0.0),
       meanCoNum(0.0),
       pPtr(NULL),
@@ -27,6 +28,7 @@ rocFoam::rocFoam()
       trDeltaT(NULL),
       initializeStat(-1),
       loopStat(-1),
+      stepStat(-1),
       finalizeStat(-1),
       testStat(-1.0)
 {}
@@ -470,21 +472,6 @@ int rocFoam::listOutput()
     return 0;
 }
 
-int rocFoam::createControl()
-{
-    /*
-        #if defined(NO_CONTROL)
-        #elif defined(PISO_CONTROL)
-           #include "createPisoControl.H"
-        #elif defined(PIMPLE_CONTROL)
-           #include "createPimpleControl.H"
-        #elif defined(SIMPLE_CONTROL)
-           #include "createSimpleControl.H"
-        #endif
-    */
-    return 0;
-}
-
 int rocFoam::createTime()
 {
     Foam::argList &args(*argsPtr);
@@ -496,43 +483,117 @@ int rocFoam::createTime()
     return 0;
 }
 
+// ^^^ The two folloing functions are the same ^^^^^^^^^^^^^^^^^^^^^^
 int rocFoam::createTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
-    // bool adjustTimeStep =
     adjustTimeStep =
         runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
-    // scalar maxCo =
     maxCo = runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
 
-    // scalar maxDeltaT =
     maxDeltaT =
         runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
 
     return 0;
 }
 
-int rocFoam::createDynamicFvMesh()
+int rocFoam::readTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
-    Info << "Create mesh for time = " << runTime.timeName() << nl << endl;
+    adjustTimeStep =
+        runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
-    meshPtr = dynamicFvMesh::New
-    (
-        IOobject
-        (
-            dynamicFvMesh::defaultRegion,
-            runTime.timeName(),
-            runTime,
-            IOobject::MUST_READ
-        )
-    );
+    maxCo = runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
+
+    maxDeltaT =
+        runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
 
     return 0;
 }
+//-------------------------------------------------------------------
+
+int rocFoam::setDeltaT()
+{
+    Foam::Time &runTime(*runTimePtr);
+
+    if (adjustTimeStep && !overrideTimeStep)
+    {
+        scalar maxDeltaTFact = maxCo / (CoNum + small);
+        scalar deltaTFact = min
+        (
+            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
+            1.2
+        );
+
+        runTime.setDeltaT(min(deltaTFact * runTime.deltaTValue(), maxDeltaT));
+
+        Info << "deltaT = " << runTime.deltaTValue() << endl;
+    }
+    /* else if (overrideTimeStep && !adjustTimeStep)
+    {
+        FatalErrorInFunction
+            << "AdjustTimeStep should be set in control dictionary" << Foam::endl;    
+    } */
+    else if (overrideTimeStep)
+    {
+        scalar maxDeltaTFact = maxCo / (CoNum + small);
+        scalar deltaTFact = min
+        (
+            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
+            1.2
+        );
+
+        scalar mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
+        if (overrideDeltaT > mainDeltaT)
+        {
+            Info << "Warning: deltaT = " << mainDeltaT 
+                 << ", overrideDeltaT = " << overrideDeltaT << endl;
+        }
+
+        runTime.setDeltaT(overrideDeltaT);
+
+        Info << "deltaT = " << runTime.deltaTValue() << endl;
+    }
+    
+    return 0;
+}
+
+/*
+int rocFoam::setDeltaT(scalar &overrideDeltaT)
+{
+    Foam::Time &runTime(*runTimePtr);
+
+    if (!adjustTimeStep)
+    {
+        FatalErrorInFunction
+            << "AdjustTimeStep should be set in control dictionary" << Foam::endl;
+    }
+    else
+    {
+        scalar maxDeltaTFact = maxCo / (CoNum + small);
+        scalar deltaTFact = min
+        (
+            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
+            1.2
+        );
+
+        scalar mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
+        if (overrideDeltaT > mainDeltaT)
+        {
+            Info << "Warning: deltaT = " << mainDeltaT 
+                 << ", overrideDeltaT = " << overrideDeltaT << endl;
+        }
+
+        runTime.setDeltaT(overrideDeltaT);
+
+        Info << "deltaT = " << runTime.deltaTValue() << endl;
+    }
+    return 0;
+}
+*/
 
 int rocFoam::createRDeltaT()
 {
@@ -567,23 +628,22 @@ int rocFoam::createRDeltaT()
     return 0;
 }
 
-int rocFoam::setDeltaT()
+int rocFoam::createDynamicFvMesh()
 {
     Foam::Time &runTime(*runTimePtr);
 
-    if (adjustTimeStep)
-    {
-        scalar maxDeltaTFact = maxCo / (CoNum + small);
-        scalar deltaTFact = min
+    Info << "Create mesh for time = " << runTime.timeName() << nl << endl;
+
+    meshPtr = dynamicFvMesh::New
+    (
+        IOobject
         (
-            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
-            1.2
-        );
+            dynamicFvMesh::defaultRegion,
+            runTime.timeName(),
+            runTime,
+            IOobject::MUST_READ
+        )
+    );
 
-        runTime.setDeltaT(min(deltaTFact * runTime.deltaTValue(), maxDeltaT));
-
-        Info << "deltaT = " << runTime.deltaTValue() << endl;
-    }
     return 0;
 }
-

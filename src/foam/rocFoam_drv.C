@@ -30,22 +30,35 @@ std::string getDataItemUnits;
 
 int timeArrayLength;
 
-//  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int flowInitHandle;
 int flowStatHandle;
 int flowLoopHandle;
+int flowStepHandle;
 int flowFinHandle;
 
+// Registered veriables with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
+int *fluidRun;
+double *fluidTime;
+double *fluidDeltaT;
+
+// Declaration of functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comDrvInit(int argc, char *argv[]);
+int comGetFunctionHandles();
+int comGetDataItems();
 int comDrvStat();
-int comDrvRun();
+int comDrvLoop();
+int comDrvStep();
 int comDrvFin();
+
+
 
 int main(int argc, char *argv[])
 {
     comDrvInit(argc, argv);
     //comDrvStat();
-    comDrvRun();
+    //comDrvLoop();
+    comDrvStep();
     comDrvFin();
 
     return 0;
@@ -115,7 +128,7 @@ int comDrvInit(int argc, char *argv[])
                     std::cout << "rocFoam.main: Unknown argumnet"
                               << ss.str() << std::endl;
                 }
-                throw -1;
+                return -1;
             } */
         }
     }
@@ -146,7 +159,7 @@ int comDrvInit(int argc, char *argv[])
         {
             std::cout << "rocFoam.main: NProc>1 detected for a serial job."
                       << std::endl;
-            throw -1;
+            return -1;
         }    
     
     }
@@ -157,67 +170,7 @@ int comDrvInit(int argc, char *argv[])
     
     comfoam_load_module("ROCFOAM", solverType);
 
-    // getting number of processes  
-    if (masterRank==0)
-    {
-        int *nProcReg;
-        COM_get_array("ROCFOAM.winNProc", 0, &nProcReg);
-        std::cout << "The communicator registered in OFModule uses "
-                  << *nProcReg << " prcesses"
-                  << std::endl;
-
-        std::cout << std::endl;
-    }
-
-    //  Get the handle for the initialize function ^^^^^^^^
-    flowInitHandle = COM_get_function_handle("ROCFOAM.flowInit");
-    if (flowInitHandle <= 0)
-    { // fail
-        std::cout << "rocFoam.main: Could not get handle for initialize."
-                  << std::endl;
-        throw -2;
-    }
-    else
-    {
-        if (masterRank==0)
-        {
-            std::cout << "rocFoam.main: Acquired a handle for initialize."
-                      << std::endl;    
-        }
-    }
-
-    //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    flowLoopHandle = COM_get_function_handle("ROCFOAM.flowLoop");
-    if (flowLoopHandle <= 0)
-    { // fail
-        std::cout << "rocFoam.main: Could not get handle for loop."
-                  << std::endl;
-        throw -2;
-    }
-    else
-    {
-        if (masterRank==0)
-        {
-
-            std::cout << "rocFoam.main: Acquired a handle for loop."
-                      << std::endl;
-            std::cout << std::endl;    
-        }
-    }
-
-    //  Get the handle for the finalize function ^^^^^^^^^^
-    /*int flowFinHandle = COM_get_function_handle("ROCFOAM.flowFin");
-    if (flowFinHandle <= 0)
-    { // fail
-        std::cout << "rocFoam.main: Could not get handle for finalize."
-                  << std::endl;
-        throw -2;
-    }
-    else
-    {
-        std::cout << "rocFoam.main: Acquired a handle for finLauncher."
-                  << std::endl;    
-    }*/
+    comGetFunctionHandles();
 
     //  Make a dummy argc/argv for OpenFOAM. ^^^^
     //  No options passed from the command
@@ -239,10 +192,169 @@ int comDrvInit(int argc, char *argv[])
 
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle, &myArgc, &myArgv, &verb);
+
+    comGetDataItems();
+  
+    return 0;
+}
+
+
+int comGetFunctionHandles()
+{
+    //  Get the handle for the initialize function ^^^^^^^^
+    flowInitHandle = COM_get_function_handle("ROCFOAM.flowInit");
+    if (flowInitHandle <= 0)
+    { // fail
+        std::cout << "rocFoam.main: Could not get handle for initialize."
+                  << std::endl;
+        return -2;
+    }
+    else
+    {
+        if (masterRank==0)
+        {
+            std::cout << "rocFoam.main: Acquired a handle for initialize."
+                      << std::endl;    
+        }
+    }
+
+    //  Get the handle for the loop function ^^^^^^^^^^^^^^
+    flowLoopHandle = COM_get_function_handle("ROCFOAM.flowLoop");
+    if (flowLoopHandle <= 0)
+    { // fail
+        std::cout << "rocFoam.main: Could not get handle for loop."
+                  << std::endl;
+        return -2;
+    }
+    else
+    {
+        if (masterRank==0)
+        {
+
+            std::cout << "rocFoam.main: Acquired a handle for loop."
+                      << std::endl;
+            std::cout << std::endl;    
+        }
+    }
+
+
+    //  Get the handle for the loop function ^^^^^^^^^^^^^^
+    flowStepHandle = COM_get_function_handle("ROCFOAM.flowStep");
+    if (flowStepHandle <= 0)
+    { // fail
+        std::cout << "rocFoam.main: Could not get handle for step."
+                  << std::endl;
+        return -2;
+    }
+    else
+    {
+        if (masterRank==0)
+        {
+
+            std::cout << "rocFoam.main: Acquired a handle for step."
+                      << std::endl;
+            std::cout << std::endl;    
+        }
+    }
+
+
+    //  Get the handle for the finalize function ^^^^^^^^^^
+    /*int flowFinHandle = COM_get_function_handle("ROCFOAM.flowFin");
+    if (flowFinHandle <= 0)
+    { // fail
+        std::cout << "rocFoam.main: Could not get handle for finalize."
+                  << std::endl;
+        return -2;
+    }
+    else
+    {
+        std::cout << "rocFoam.main: Acquired a handle for finLauncher."
+                  << std::endl;    
+    }*/
+
+    return 0;
+}
+
+int comGetDataItems()
+{
+    // getting number of processes  
+    int *nProcReg;
+    COM_get_array("ROCFOAM.winNProc", 0, &nProcReg);
+    Info << "The communicator registered in OFModule uses "
+         << *nProcReg << " prcesses"
+         << endl;
+
+    COM_get_array("ROCFOAM.winRun", 0, &fluidRun);
+    Info << "rocFoam.main: Stepping status = " 
+         << *fluidRun
+         << endl;
+
+    COM_get_array("ROCFOAM.winTime", 0, &fluidTime);
+    Info << "rocFoam.main: Simulation time = "
+         << *fluidTime
+         << endl;
+
+
+    COM_get_array("ROCFOAM.winDeltaT", 0, &fluidDeltaT);
+    Info << "rocFoam.main: Simulation Time step = "
+         << *fluidDeltaT
+         << endl;
+
+    return 0;
+}
+
+
+int comDrvLoop()
+{
+    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
+    COM_call_function(flowLoopHandle);
     
     return 0;
 }
 
+int comDrvStep()
+{
+    //  Call the flow stepper ^^^^^^^^^^^^^^^^^^
+
+    Info << "\nStarting time loop\n" << endl;
+    while (*fluidRun)
+    {
+        COM_call_function(flowStepHandle);
+    }
+    Info << "End\n" << endl;
+
+    Info << "rocFoam.main: Stepping status = " 
+         << *fluidRun
+         << endl;
+
+    Info << "rocFoam.main: Simulation time = "
+         << *fluidTime
+         << endl;
+
+    Info << "rocFoam.main: Simulation Time step = "
+         << *fluidDeltaT
+         << endl;
+
+    return 0;
+}
+
+
+
+int comDrvFin()
+{
+    //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
+    comfoam_unload_module("ROCFOAM", solverType);
+
+    COM_set_default_communicator(masterComm);
+    
+    COM_finalize();
+
+    MPI_Barrier(masterComm);
+    MPI_Finalize();
+    
+    return 0;
+}    
 
 int comDrvStat()
 {
@@ -355,32 +467,3 @@ int comDrvStat()
 
     return 0;
 }
-
-
-
-int comDrvRun()
-{
-    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowLoopHandle);
-    
-    return 0;
-}
-
-
-int comDrvFin()
-{
-    //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
-    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
-    comfoam_unload_module("ROCFOAM", solverType);
-
-    COM_set_default_communicator(masterComm);
-    
-    COM_finalize();
-
-    MPI_Barrier(masterComm);
-    MPI_Finalize();
-    
-    return 0;
-}    
-
-

@@ -51,13 +51,13 @@ public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     int initialize(int argc, char *argv[]);
     int loop();
+    int step();
     int finalize();
     //--------------------------------------
 
     //  Execution functions ^^^^^^^^^^^^^^^^
     int createControl();
     int createDyMControls();
-    int readTimeControls();
     int initContinuityErrs();
 
     int createFields();

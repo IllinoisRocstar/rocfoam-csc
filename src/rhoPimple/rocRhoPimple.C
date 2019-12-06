@@ -181,8 +181,16 @@ int rhoPimple::initialize(int argc, char *argv[])
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
+    // Setting comFoam variables that will be registered ^^
+    //   with COM. This are needed for flow control when
+    //   solver runs step-by-step.
+    Foam::Time &runTime(*runTimePtr);
+    winTime = runTime.value();
+    winDeltaT = runTime.deltaTValue();
+    winRun = static_cast<int>(runTime.run());
+    //-----------------------------------------------------
+    
     initializeStat = 0;
-
     return initializeStat;
 }
 
@@ -480,9 +488,7 @@ int rhoPimple::setInitialDeltaT()
         }
     }
 
-    loopStat = 0;
-
-    return loopStat;
+    return 0;
 }
 
 int rhoPimple::loop()
@@ -631,8 +637,167 @@ int rhoPimple::loop()
 
     Info << "End\n" << endl;
 
-    return 0;
+    loopStat = 0;
+
+    return loopStat;
 }
+
+
+int rhoPimple::step()
+{
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+    pimpleControl &pimple(*pimplePtr);
+    volScalarField &rho(*rhoPtr);
+    volVectorField &U(*UPtr);
+    surfaceScalarField &phi(*phiPtr);
+    fluidThermo &thermo(*pThermoPtr);
+    IOMRFZoneList &MRF(*MRFPtr);
+    compressible::turbulenceModel &turbulence(*turbulencePtr);
+    autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
+
+    {
+        //  readDyMControls.H  ^^^^^^^^^^^
+        readDyMControls();
+        // -------------------------------
+
+        // Store divrhoU from the previous mesh so that it can be mapped
+        // and used in correctPhi to ensure the corrected phi has the
+        // same divergence
+        if (correctPhi)
+        {
+            divrhoUPtr = new volScalarField
+            (
+                "divrhoU",
+                fvc::div(fvc::absolute(phi, rho, U))
+            );
+
+        }
+
+        if (LTS)
+        {
+            //  setRDeltaT.H  ^^^^^^^^^^^^^^^
+            setRDeltaT();
+            // -------------------------------
+        }
+        else
+        {
+            //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
+            compressibleCourantNo();
+            // ---------------------------------------------
+
+            //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            setDeltaT();
+            // ---------------------------------------------
+        }
+
+        runTime++;
+
+        Info << "Time = " << runTime.timeName() << nl << endl;
+
+        // --- Pressure-velocity PIMPLE corrector loop
+        while (pimple.loop())
+        {
+            if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
+            {
+                // Store momentum to set rhoUf for introduced faces.
+                autoPtr<volVectorField> rhoU;
+                if (rhoUf.valid())
+                {
+                    rhoU = new volVectorField("rhoU", rho * U);
+                }
+
+                // Do any mesh changes
+                mesh.update();
+
+                if (mesh.changing())
+                {
+                    MRF.update();
+
+                    if (correctPhi)
+                    {
+                        // Calculate absolute flux
+                        // from the mapped surface velocity
+                        phi = mesh.Sf() & rhoUf();
+
+                        //  correctPhi.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        correctPhi_();
+                        // ---------------------------------------------
+
+                        // Make the fluxes relative to the mesh-motion
+                        fvc::makeRelative(phi, rho, U);
+                    }
+
+                    if (checkMeshCourantNo)
+                    {
+                        //  meshCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        meshCourantNo();
+                        // ---------------------------------------------
+                    }
+                }
+            }
+
+            if (pimple.firstPimpleIter() && !pimple.simpleRho())
+            {
+                //  rhoEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                rhoEqn_();
+                // ---------------------------------------------
+            }
+
+            //  UEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            UEqn_();
+            // -------------------------------------------
+
+            //  EEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            EEqn_();
+            // --------------------------------------------
+
+            // --- Pressure corrector loop
+            while (pimple.correct())
+            {
+                if (pimple.consistent())
+                {
+                    //  pcEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    pcEqn();
+                    // --------------------------------------------
+                }
+                else
+                {
+                    //  pEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    pEqn_();
+                    // --------------------------------------------
+                }
+            }
+
+            if (pimple.turbCorr())
+            {
+                turbulence.correct();
+            }
+        }
+
+        rho = thermo.rho();
+
+        runTime.write();
+
+        Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+             << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl
+             << endl;
+    }
+
+    // Setting comFoam variables that will be registered ^^
+    //   with COM. This are needed for flow control when
+    //   solver runs step-by-step.
+    winTime = runTime.value();
+    winDeltaT = runTime.deltaTValue();
+    winRun = static_cast<int>(runTime.run());
+    //-----------------------------------------------------
+
+    stepStat = 0;
+    return stepStat;
+}
+
+
+
 
 int rhoPimple::readDyMControls()
 {
@@ -1225,21 +1390,6 @@ int rhoPimple::pEqn_()
             dpdt -= fvc::div(fvc::meshPhi(rho, U), p);
         }
     }
-
-    return 0;
-}
-
-int rhoPimple::readTimeControls()
-{
-    Foam::Time &runTime(*runTimePtr);
-
-    adjustTimeStep =
-        runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
-
-    maxCo = runTime.controlDict().lookupOrDefault<scalar>("maxCo", 1.0);
-
-    maxDeltaT =
-        runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
 
     return 0;
 }
