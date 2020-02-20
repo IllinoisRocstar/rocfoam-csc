@@ -60,7 +60,7 @@ void rhoPimple::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.load: Loading rocRhoCentral with name "
+        std::cout << "rocFoam.load: Loading rocRhoPimple with name "
                    << name << "." << std::endl;
 
         std::cout << "rocFoam.load: Rank = " << tmpRank
@@ -73,10 +73,12 @@ void rhoPimple::load(const char *name)
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     rhoPimple *comFoamPtr = new rhoPimple();
 
+    // Communicator can also be set from the second argument of the
+    // the call bellow. Check this later.
     COM_new_window(name, MPI_COMM_NULL);
     //COM_new_window(name, tmpComm);
 
-    comFoamPtr->winName = name;
+    comFoamPtr->winNameVol = name;
 
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;

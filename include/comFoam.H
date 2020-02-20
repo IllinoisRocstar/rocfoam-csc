@@ -9,18 +9,6 @@ class comFoam : public COM_Object, public rocFoam
 
 public:
 
-    std::string solverType;
-    std::string winName; /// Tracks *this* window name.
-    MPI_Comm winComm; /// Tracks *this* window communicator.
-    
-    int winNProc;
-    int winRank;
-
-    scalar winTime;
-    scalar winDeltaT;
-    int winRun;
-    
-
     //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     //static void Load(const char *name);
     //static void Unload(const std::string &name);
@@ -33,7 +21,34 @@ public:
     comFoam(int *pargc, void **pargv, int *verbIn);
 
     ~comFoam() {}; 
-private:
+
+protected:
+
+    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string winNameVol; /// Tracks *this* volume window name.
+    std::string winNameSurf; /// Tracks *this* volume window name.
+
+    std::string solverType;
+    MPI_Comm winComm; /// Tracks *this* window communicator.
+    
+    int winNProc;
+    int winRank;
+
+    scalar winTime;
+    scalar winDeltaT;
+    int winRun;
+    
+    //  Nodal Coordinates
+    
+    double *comXYZ = NULL; // [x1,y1,z1, x2,y2,z2, ... ,xN,yN,zN]
+    int nComponents = 3;
+    int nNodes = 0;
+
+    int *comFaces = NULL;
+    int *comOwner = NULL;
+    int *comNeighb = NULL;
+    int nFaces = 0;
+
 
 protected:
     int flowInit(int *pargc, void **pargv, int *verbIn);

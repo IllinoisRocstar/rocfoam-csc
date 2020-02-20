@@ -141,6 +141,16 @@ int comDrvInit(int argc, char *argv[])
                       << solverType << "." << std::endl;
         }
     }
+    else if (!runParallel && masterNProc > 1)
+    {
+        if (masterRank==0)
+        {
+            std::cout << "rocFoam.main: NProc>1 detected for a serial job."
+                      << std::endl;
+            return -1;
+        }    
+    
+    }
     else
     {
         runParallel = false;
@@ -152,18 +162,6 @@ int comDrvInit(int argc, char *argv[])
         }
     }
     if (masterRank==0) std::cout << std::endl;
-
-    if (!runParallel && masterNProc > 1)
-    {
-        if (masterRank==0)
-        {
-            std::cout << "rocFoam.main: NProc>1 detected for a serial job."
-                      << std::endl;
-            return -1;
-        }    
-    
-    }
-
 
     //  Setting the defual communicator. Is it needed?
     COM_set_default_communicator(newComm);
@@ -317,10 +315,12 @@ int comDrvStep()
     //  Call the flow stepper ^^^^^^^^^^^^^^^^^^
 
     Info << "\nStarting time loop\n" << endl;
-    while (*fluidRun)
+
+    //while (*fluidRun)
     {
         COM_call_function(flowStepHandle);
     }
+
     Info << "End\n" << endl;
 
     Info << "rocFoam.main: Stepping status = " 

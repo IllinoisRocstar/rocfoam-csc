@@ -1,8 +1,8 @@
 #include "comFoam.H"
 
 comFoam::comFoam()
-    : solverType(""),
-      winName(""),
+    : winNameVol(""),
+      solverType(""),
       winComm(NULL),
       winNProc(0),
       winRank(0),
@@ -12,8 +12,8 @@ comFoam::comFoam()
 {};
 
 comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
-    : solverType(""),
-      winName(""),
+    : winNameVol(""),
+      solverType(""),
       winComm(NULL),
       winNProc(0),
       winRank(0),
@@ -146,23 +146,32 @@ int comFoam::flowRegister()
     //    globalName.c_str(), "b", &types[0]
     //);
 
-    //  Registering data of this module to COM ^^^^^^^^^^
-    COM_new_dataitem( (name+string(".winNProc")).c_str(), 'w', COM_INT, 1, "");
-    COM_set_size(     (name+string(".winNProc")).c_str(), 0, 1);
-    COM_set_array(    (name+string(".winNProc")).c_str(), 0, &(comFoamPtr->winNProc));
+    //  Registering data of this module to COM ^^^^^^^^^^^^
+    std::string dataName="";
 
-    COM_new_dataitem( (name+string(".winTime")).c_str(), 'w', COM_DOUBLE, 1, "");
-    COM_set_size(     (name+string(".winTime")).c_str(), 0, 1);
-    COM_set_array(    (name+string(".winTime")).c_str(), 0, &(comFoamPtr->winTime));
+    dataName = name+string(".winNProc");
+    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     dataName.c_str(), 0, 1);
+    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winNProc));
 
-    COM_new_dataitem( (name+string(".winDeltaT")).c_str(), 'w', COM_DOUBLE, 1, "");
-    COM_set_size(     (name+string(".winDeltaT")).c_str(), 0, 1);
-    COM_set_array(    (name+string(".winDeltaT")).c_str(), 0, &(comFoamPtr->winDeltaT) );
+    dataName = name+string(".winTime");
+    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
+    COM_set_size(     dataName.c_str(), 0, 1);
+    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winTime));
 
-    COM_new_dataitem( (name+string(".winRun")).c_str(), 'w', COM_INT, 1, "");
-    COM_set_size(     (name+string(".winRun")).c_str(), 0, 1);
-    COM_set_array(    (name+string(".winRun")).c_str(), 0, &(comFoamPtr->winRun));
+    dataName = name+string(".winDeltaT");
+    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
+    COM_set_size(     dataName.c_str(), 0, 1);
+    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winDeltaT) );
 
+    dataName = name+string(".winRun");
+    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
+    COM_set_size(     dataName.c_str(), 0, 1);
+    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
+
+
+ 
+    
     COM_window_init_done(name); 
 
     return 0;
