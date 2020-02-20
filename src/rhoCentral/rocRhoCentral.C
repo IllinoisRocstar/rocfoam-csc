@@ -51,13 +51,19 @@ void rhoCentral::load(const char *name)
     }
 
 
+    std::string volName = name+string("VOL");
+    std::string srfName = name+string("SRF");
+
+
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     rhoCentral *comFoamPtr = new rhoCentral();
 
     //COM_new_window(name, MPI_COMM_NULL);
-    COM_new_window(name, tmpComm);
+    COM_new_window(volName, tmpComm);
+    //COM_new_window(srfName, tmpComm);
 
-    comFoamPtr->winNameVol = name;
+    comFoamPtr->winVolName = volName;
+    comFoamPtr->winSrfName = srfName;
 
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;
@@ -68,15 +74,16 @@ void rhoCentral::load(const char *name)
     MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->winRank));
     MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
 
-    std::string globalName = name + string(".global");
+    std::string objectName = volName + string(".object");
 
-    COM_new_dataitem(globalName.c_str(), 'w', COM_VOID, 1, "");
+    COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
 
-    COM_set_object(globalName.c_str(), 0, comFoamPtr);
+    COM_set_object(objectName.c_str(), 0, comFoamPtr);
 
-    COM_window_init_done(name); 
+    COM_window_init_done(volName);
+    //COM_window_init_done(srfName);  
 
-    comFoamPtr->flowRegister();
+    comFoamPtr->registerFunctions(volName.c_str());
 
     return;
 }
@@ -84,20 +91,25 @@ void rhoCentral::load(const char *name)
 
 
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-void rhoCentral::unload(const std::string &name)
+void rhoCentral::unload(const char *name)
 {
     Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
                << name << "." << Foam::endl;
 
-    rhoCentral *comFoamPtr = NULL;
-    std::string globalName(name+".global");
+    comFoam *comFoamPtr = NULL;
 
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+    std::string volName = name+string("VOL");
+    std::string srfName = name+string("SRF");
+
+    std::string objectName(volName+".object");
+
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     //comFoamPtr->finalize();
     delete comFoamPtr;
 
-    COM_delete_window(std::string(name));
+    COM_delete_window(std::string(volName));
+    //COM_delete_window(std::string(srfName));
 }
 //---------------------------------------------------------
 
@@ -438,10 +450,6 @@ int rhoCentral::step()
     compressible::turbulenceModel &turbulence(*turbulencePtr);
 
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
-
-
-extractData();
-
 
     // Courant numbers used to adjust the time-step
     // scalar CoNum = 0.0;

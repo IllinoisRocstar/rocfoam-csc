@@ -38,7 +38,7 @@ public:
 
     //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     static void load(const char *name);
-    static void unload(const std::string &name);
+    static void unload(const char *name);
 
 
     //  Constructor, Deconstructor ^^^^^^^^^

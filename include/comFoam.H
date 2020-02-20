@@ -18,15 +18,51 @@ public:
 
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam();
-    comFoam(int *pargc, void **pargv, int *verbIn);
+    comFoam(int *pargc, void **pargv, const char *name);
 
     ~comFoam() {}; 
 
 protected:
 
-    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string winNameVol; /// Tracks *this* volume window name.
-    std::string winNameSurf; /// Tracks *this* volume window name.
+    int nPoints;
+    int nFaces;
+    int nCells;
+    int nPatches;
+
+    // Field Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector< std::vector<double> > vecPoints;
+    std::vector< std::vector<int> > vecFaceToPointConn;
+    std::vector<int> vecOwners;
+    std::vector<int> vecNeighbs;
+    
+    std::vector< std::vector<double> > vecFieldVel;
+    std::vector<double> vecFieldRho;
+    std::vector<double> vecFieldP;
+    std::vector<double> vecFieldT;
+    //-------------------------------------------
+
+    // Patch Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector< std::vector<int> > patchGlobalPointIndex;
+    std::vector< std::vector< std::vector<int> >> patchLocalConnectivity;
+
+    std::vector< std::vector< std::vector<double> >> vecPatchVel;
+    std::vector< std::vector<double> > vecPatchRho;
+    std::vector< std::vector<double> > vecPatchP;
+    std::vector< std::vector<double> > vecPatchT;
+
+    std::vector<std::string> vecPatchName;
+    std::vector<std::string> vecPatchType;
+    // Note: I need to change this
+    std::vector< wordList > vecPatchInGroup;
+
+    std::vector<int> vecPatchStart;
+    std::vector<int> vecPatchNFaces;
+    std::vector<int> vecPatchNPoints;
+    //-------------------------------------------
+
+    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string winVolName; /// Tracks *this* volume window name.
+    std::string winSrfName; /// Tracks *this* volume window name.
 
     std::string solverType;
     MPI_Comm winComm; /// Tracks *this* window communicator.
@@ -47,19 +83,20 @@ protected:
     int *comFaces = NULL;
     int *comOwner = NULL;
     int *comNeighb = NULL;
-    int nFaces = 0;
 
 
 protected:
-    int flowInit(int *pargc, void **pargv, int *verbIn);
-    int flowLoop();
-    int flowStep();
-    
-    int flowRegister();
+    int flowInit(int *pargc, void **pargv, const char *name);
+    int flowLoop(const char *name);
+    int flowStep(const char *name);
 
+    int flowExtractData(const char *name);
+    
+    
     //virtual int flowFin() { return 0; }
     //virtual int flowStat() { return 0; }
 
+    int registerFunctions(const char *name);
     int extractData();
 };
 

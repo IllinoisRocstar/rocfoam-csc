@@ -36,6 +36,7 @@ int flowStatHandle;
 int flowLoopHandle;
 int flowStepHandle;
 int flowFinHandle;
+int flowExtractDataHandle;
 
 // Registered veriables with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
 int *fluidRun;
@@ -45,13 +46,12 @@ double *fluidDeltaT;
 // Declaration of functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comDrvInit(int argc, char *argv[]);
 int comGetFunctionHandles();
+int comExtractData();
 int comGetDataItems();
 int comDrvStat();
 int comDrvLoop();
 int comDrvStep();
 int comDrvFin();
-
-
 
 int main(int argc, char *argv[])
 {
@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
 
 int comDrvInit(int argc, char *argv[])
 {
@@ -98,7 +97,6 @@ int comDrvInit(int argc, char *argv[])
     runParallel = false;
     solverType = const_cast<char *>("rocRhoCentral");
     
-
     std::string arg;
     std::stringstream ss;
     if (argc > 1)
@@ -186,21 +184,23 @@ int comDrvInit(int argc, char *argv[])
         myArgv[1] = const_cast<char *>("-parallel");
     }
 
-    int verb=3;
+    //int verb=3;
 
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowInitHandle, &myArgc, &myArgv, &verb);
+    COM_call_function(flowInitHandle, &myArgc, &myArgv, "ROCFOAM");
 
     comGetDataItems();
   
     return 0;
 }
 
-
 int comGetFunctionHandles()
 {
     //  Get the handle for the initialize function ^^^^^^^^
-    flowInitHandle = COM_get_function_handle("ROCFOAM.flowInit");
+    std::string name = "ROCFOAM"+string("VOL");
+
+    std::string functionName = name+string(".flowInit");
+    flowInitHandle = COM_get_function_handle(functionName.c_str());
     if (flowInitHandle <= 0)
     { // fail
         std::cout << "rocFoam.main: Could not get handle for initialize."
@@ -217,7 +217,8 @@ int comGetFunctionHandles()
     }
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    flowLoopHandle = COM_get_function_handle("ROCFOAM.flowLoop");
+    functionName = name+string(".flowLoop");
+    flowLoopHandle = COM_get_function_handle(functionName.c_str());
     if (flowLoopHandle <= 0)
     { // fail
         std::cout << "rocFoam.main: Could not get handle for loop."
@@ -228,16 +229,14 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-
             std::cout << "rocFoam.main: Acquired a handle for loop."
                       << std::endl;
-            std::cout << std::endl;    
         }
     }
 
-
-    //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    flowStepHandle = COM_get_function_handle("ROCFOAM.flowStep");
+    //  Get the handle for the step function ^^^^^^^^^^^^^^
+    functionName = name+string(".flowStep");
+    flowStepHandle = COM_get_function_handle(functionName.c_str());
     if (flowStepHandle <= 0)
     { // fail
         std::cout << "rocFoam.main: Could not get handle for step."
@@ -248,10 +247,30 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-
             std::cout << "rocFoam.main: Acquired a handle for step."
                       << std::endl;
-            std::cout << std::endl;    
+        }
+    }
+
+
+    //  Get the handle for the step function ^^^^^^^^^^^^^^
+    functionName = name+string(".flowExtractData");
+    flowExtractDataHandle =
+        COM_get_function_handle(functionName.c_str());
+
+    if (flowExtractDataHandle <= 0)
+    { // fail
+        std::cout << "rocFoam.main: Could not get handle for flowExtractData."
+                  << std::endl;
+        return -2;
+    }
+    else
+    {
+        if (masterRank==0)
+        {
+            std::cout << "rocFoam.main: Acquired a handle for flowExtractData."
+                      << std::endl;
+            std::cout << std::endl;
         }
     }
 
@@ -276,24 +295,29 @@ int comGetFunctionHandles()
 int comGetDataItems()
 {
     // getting number of processes  
+    std::string name = "ROCFOAM"+string("VOL");
+
     int *nProcReg;
-    COM_get_array("ROCFOAM.winNProc", 0, &nProcReg);
+    std::string dataName = name+string(".winNProc");
+    COM_get_array(dataName.c_str(), 0, &nProcReg);
     Info << "The communicator registered in OFModule uses "
          << *nProcReg << " prcesses"
          << endl;
 
-    COM_get_array("ROCFOAM.winRun", 0, &fluidRun);
+    dataName = name+string(".winRun");
+    COM_get_array(dataName.c_str(), 0, &fluidRun);
     Info << "rocFoam.main: Stepping status = " 
          << *fluidRun
          << endl;
 
-    COM_get_array("ROCFOAM.winTime", 0, &fluidTime);
+    dataName = name+string(".winTime");
+    COM_get_array(dataName.c_str(), 0, &fluidTime);
     Info << "rocFoam.main: Simulation time = "
          << *fluidTime
          << endl;
 
-
-    COM_get_array("ROCFOAM.winDeltaT", 0, &fluidDeltaT);
+    dataName = name+string(".winDeltaT");
+    COM_get_array(dataName.c_str(), 0, &fluidDeltaT);
     Info << "rocFoam.main: Simulation Time step = "
          << *fluidDeltaT
          << endl;
@@ -301,11 +325,19 @@ int comGetDataItems()
     return 0;
 }
 
+int comExtractData()
+{
+    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
+    COM_call_function(flowExtractDataHandle, "ROCFOAM");
+    
+    return 0;
+}
+
 
 int comDrvLoop()
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowLoopHandle);
+    COM_call_function(flowLoopHandle, "ROCFOAM");
     
     return 0;
 }
@@ -318,7 +350,7 @@ int comDrvStep()
 
     //while (*fluidRun)
     {
-        COM_call_function(flowStepHandle);
+        COM_call_function(flowStepHandle, "ROCFOAM");
     }
 
     Info << "End\n" << endl;
@@ -338,13 +370,12 @@ int comDrvStep()
     return 0;
 }
 
-
-
 int comDrvFin()
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
     //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
-    comfoam_unload_module("ROCFOAM", solverType);
+    std::string name = "ROCFOAM";
+    comfoam_unload_module(name.c_str(), solverType);
 
     COM_set_default_communicator(masterComm);
     
@@ -360,8 +391,10 @@ int comDrvStat()
 {
     //  Get information about what was ^^^^^^^^^^
     //  registered in this window  
+    std::string name = "ROCFOAM"+string("VOL");
+
     std::string output;
-    COM_get_dataitems("ROCFOAM", &numDataItems, output);
+    COM_get_dataitems(name.c_str(), &numDataItems, output);
     std::istringstream Istr(output);
 
     std::cout << "rocFoam.main: numDataItems "
@@ -377,7 +410,7 @@ int comDrvStat()
     }
 
     //  List of panes in this window ^^^^^^^^^^^^
-    COM_get_panes("ROCFOAM", &numPanes, &paneList);
+    COM_get_panes(name.c_str(), &numPanes, &paneList);
     std::cout << "rocFoam.main: Number of Panes "
               << numPanes << std::endl;
 
@@ -391,27 +424,29 @@ int comDrvStat()
     int pane = paneList[0];
 
     //  Get for grid coordinates ^^^^^^^^^^^^^^^^
-    COM_get_array("ROCFOAM.nc", pane, &Coord);
+    std::string dataName = name+string(".nc");
+    COM_get_array(dataName.c_str(), pane, &Coord);
 
     //  Check for expected number of nodes ^^^^^^
-    COM_get_size("ROCFOAM.nc", pane, &numNodes);
+    COM_get_size(dataName.c_str(), pane, &numNodes);
 
     //  Get connectivity tables for panes ^^^^^^^
     std::string stringNames;
-    COM_get_connectivities("ROCFOAM", pane, &numConn, stringNames);
+    COM_get_connectivities(name.c_str(), pane, &numConn, stringNames);
     std::istringstream ConnISS(stringNames);
 
     for (int i=0; i<numConn; ++i)
     {
-        std::string name;
-        ConnISS >> name;
-        connNames.push_back(name);
+        std::string nameTmp;
+        ConnISS >> nameTmp;
+        connNames.push_back(nameTmp);
         std::cout << "rocFoam.main: Connectivity Table # "
-                  << i+1 << ": " << name << std::endl;
+                  << i+1 << ": " << nameTmp << std::endl;
     }
 
     //  Number of nodes per element ^^^^^^^^^^^^^
-    std::string fullConnName("ROCFOAM."+connNames[0]);
+    dataName = name+connNames[0];
+    std::string fullConnName = dataName.c_str();
     COM_get_dataitem
     (
         fullConnName,
@@ -452,10 +487,11 @@ int comDrvStat()
     }
 
     //  Get non-mesh data items ^^^^^^^^^^^^^^^^^
-    std::string name("ROCFOAM.time");
+    dataName = name+string(".time");
+    
     COM_get_dataitem
     (
-        name,
+        dataName,
         &getDataItemLoc,
         &getDataItemType, 
         &timeArrayLength,

@@ -1,7 +1,12 @@
 #include "comFoam.H"
 
 comFoam::comFoam()
-    : winNameVol(""),
+    : nPoints(0),
+      nFaces(0),
+      nCells(0),
+      nPatches(0),
+      winVolName(""),
+      winSrfName(""),
       solverType(""),
       winComm(NULL),
       winNProc(0),
@@ -11,8 +16,13 @@ comFoam::comFoam()
       winRun(1)
 {};
 
-comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
-    : winNameVol(""),
+comFoam::comFoam(int *pargc, void **pargv, const char *name)
+    : nPoints(0),
+      nFaces(0),
+      nCells(0),
+      nPatches(0),
+      winVolName(""),
+      winSrfName(""),
       solverType(""),
       winComm(NULL),
       winNProc(0),
@@ -21,11 +31,11 @@ comFoam::comFoam(int *pargc, void **pargv, int *verbIn)
       winDeltaT(0.0),
       winRun(1)
 {
-    flowInit(pargc, pargv, verbIn);
+    flowInit(pargc, pargv, name);
 }
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int comFoam::flowInit(int *pargc, void **pargv, int *verbIn)
+int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 {
     MPI_Comm tmpComm = COM_get_default_communicator();  
 
@@ -38,59 +48,94 @@ int comFoam::flowInit(int *pargc, void **pargv, int *verbIn)
                   << std::endl;
     }
 
+std::cout<<__LINE__<< std::endl;
+
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-    std::string name="ROCFOAM";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+
+std::cout<<__LINE__<<std::endl;
+
+    std::string volName = name+string("VOL");
+
+std::cout<<__LINE__<<std::endl;
+
+    std::string objectName = volName+string(".object");
+
+std::cout<<__LINE__<<std::endl;
+
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+
+
+std::cout<<__LINE__<<std::endl;
 
     int argc = *pargc;
     char** argv = reinterpret_cast<char**>(pargv);
 
     comFoamPtr->initialize(argc, argv);
-    
+
+Foam::Info<<__LINE__<<endl;
+
     //  Other initializations ^^^^^^^^^^^^^^^^^^^
+    // extractData can be called here, or in
+    // rocFoam driver with comExtractData
+
+    comFoamPtr->extractData();
+
+Foam::Info<<__LINE__<<endl;
 
     return 0;
 }
 
 
-int comFoam::flowLoop()
+int comFoam::flowLoop(const char *name)
 {
-
     Foam::Info << "rocFoam.flowLoop: Iterating flow solver." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-
-    std::string name="ROCFOAM";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+    std::string volName = name+string("VOL");
+    std::string objectName = volName+string(".object");
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     comFoamPtr->loop();
     
     return 0;
 }
 
-int comFoam::flowStep()
+int comFoam::flowStep(const char *name)
 {
 
     Foam::Info << "rocFoam.flowStep: Stepping flow solver." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-
-    std::string name="ROCFOAM";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+    std::string volName = name+string("VOL");
+    std::string objectName = volName+string(".object");
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     comFoamPtr->step();
     
     return 0;
 }
 
+int comFoam::flowExtractData(const char *name)
+{
+
+    Foam::Info << "rocFoam.extractData: Extracting flow data." << Foam::endl;
+
+    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
+    comFoam *comFoamPtr = NULL;
+    std::string volName = name+string("VOL");
+    std::string objectName = volName+string(".object");
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+
+    comFoamPtr->extractData();
+    
+    return 0;
+}
+
 //^^^^^ REGISTER FUNCTIONS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int comFoam::flowRegister()
+int comFoam::registerFunctions(const char *name)
 {
     //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
     MPI_Comm tmpComm = COM_get_default_communicator();  
@@ -100,16 +145,16 @@ int comFoam::flowRegister()
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.flowRegister: Registering flow functions."
-                  << std::endl << std::endl;
+        std::cout << "rocFoam.flowRegister: Registering flow functions with name "
+                  << name << std::endl;
     }
     
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
-    std::string name="ROCFOAM";
-    std::string globalName(name+".global");
-    COM_get_object(globalName.c_str(), 0, &comFoamPtr);
+    //std::string name="ROCFOAM";
+    std::string objectName = name+string(".object");
+    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<COM_Type> types(13,COM_INT);
@@ -117,39 +162,55 @@ int comFoam::flowRegister()
     types[0] = COM_RAWDATA;
     types[2] = COM_VOID;
 
+    std::string functionName = name+string(".flowInit");
     COM_set_member_function
     (
-        (name + string(".flowInit")).c_str(),
+        functionName.c_str(),
         reinterpret_cast<Member_func_ptr>(&comFoam::flowInit),
-        globalName.c_str(), "biii", &types[0]
+        objectName.c_str(),
+        "biii",
+        &types[0]
     );
 
-
+    functionName = name+string(".flowLoop");
     COM_set_member_function
     (
-        (name + string(".flowLoop")).c_str(),
+        functionName.c_str(),
         reinterpret_cast<Member_func_ptr>(&comFoam::flowLoop),
-        globalName.c_str(), "b", &types[0]
+        objectName.c_str(),
+        "bi",
+        &types[0]
     );
 
+    functionName = name+string(".flowStep");
     COM_set_member_function
     (
-        (name + string(".flowStep")).c_str(),
+        functionName.c_str(),
         reinterpret_cast<Member_func_ptr>(&comFoam::flowStep),
-        globalName.c_str(), "b", &types[0]
+        objectName.c_str(),
+        "bi",
+        &types[0]
+    );
+
+    functionName = name+string(".flowExtractData");
+    COM_set_member_function
+    (
+        functionName.c_str(),
+        reinterpret_cast<Member_func_ptr>(&comFoam::flowExtractData),
+        objectName.c_str(),
+        "bi",
+        &types[0]
     );
 
     //COM_set_member_function
     //(
     //    (name + string(".flowFin")).c_str(),
     //    reinterpret_cast<Member_func_ptr>(&rhoCentral::flowFin),
-    //    globalName.c_str(), "b", &types[0]
+    //    objectName.c_str(), "b", &types[0]
     //);
 
     //  Registering data of this module to COM ^^^^^^^^^^^^
-    std::string dataName="";
-
-    dataName = name+string(".winNProc");
+    std::string dataName = name+string(".winNProc");
     COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
     COM_set_size(     dataName.c_str(), 0, 1);
     COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winNProc));
@@ -169,9 +230,6 @@ int comFoam::flowRegister()
     COM_set_size(     dataName.c_str(), 0, 1);
     COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
 
-
- 
-    
     COM_window_init_done(name); 
 
     return 0;
@@ -179,11 +237,6 @@ int comFoam::flowRegister()
 //---------------------------------------------------------
 
 //===================================================================
-
-
-
-
-
 
 
 int comFoam::extractData()
@@ -196,20 +249,26 @@ int comFoam::extractData()
     const volScalarField &T(*TPtr);
     const volScalarField &rho(*rhoPtr);
 
-
     // Mesh and conmnectivities ^^^^^^^^^^^^^^^^^
-    const pointField &points    = mesh.points();
-    const faceList  &faces      = mesh.faces();
-    const labelList &faceOwner  = mesh.faceOwner();
-    const labelList &faceNeighb = mesh.faceNeighbour();    
+    const pointField &points     = mesh.points();
+    const cellList   &cells      = mesh.cells();
+    const faceList   &faces      = mesh.faces();
+    const labelList  &faceOwner  = mesh.faceOwner();
+    const labelList  &faceNeighb = mesh.faceNeighbour();    
     const polyBoundaryMesh &patches = mesh.boundaryMesh();
-
-    int nPoints  = mesh.nPoints();
-    int nFaces   = faces.size();
-    int nPatches = patches.size();
     //-------------------------------------------
 
+    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector< std::vector<double> > vecVecTmpDouble;
+    std::vector<double> vecTmpDouble;
+    
+    std::vector<int> vecTmpInt;
+    //-------------------------------------------
 
+    nPoints = mesh.nPoints();
+    nFaces  = mesh.nFaces();
+    nCells  = mesh.nCells();
+    nPatches = patches.size();
 
     //  Registering node data of this module to COM ^^^^^^^
 
@@ -234,30 +293,38 @@ int comFoam::extractData()
     }
     */
     
-    
 
     // Field Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector< std::vector<double> > vecPoints;
-    std::vector< std::vector<int> > vecFaceToPointConn;
-    std::vector<int> vecOwners;
-    std::vector<int> vecNeighbs;
+    vecPoints.clear();
+    vecFaceToPointConn.clear();
+    vecOwners.clear();
+    vecNeighbs.clear();
     
-
-
-    std::vector< std::vector<double> > vecFieldVel;
-    std::vector<double> vecFieldRho;
-    std::vector<double> vecFieldP;
-    std::vector<double> vecFieldT;
-    //-------------------------------------------
-    
-    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector<double> vecTmpDouble;
-    
-    std::vector<int> vecTmpInt;
+    vecFieldVel.clear();
+    vecFieldRho.clear();
+    vecFieldP.clear();
+    vecFieldT.clear();
     //-------------------------------------------
 
+    // Patch Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    patchGlobalPointIndex.clear();
+    patchLocalConnectivity.clear();
 
-    // Save point positions and filed data ^^^^^^
+    vecPatchVel.clear();
+    vecPatchRho.clear();
+    vecPatchP.clear();
+    vecPatchT.clear();
+
+    vecPatchName.clear();
+    vecPatchType.clear();
+    vecPatchInGroup.clear();
+
+    vecPatchStart.clear();
+    vecPatchNFaces.clear();
+    vecPatchNPoints.clear();
+    //-------------------------------------------
+
+    // Save point positions ^^^^^^^^^^^^^^^^^^^^^
     forAll(points, i)
     {
         vecTmpDouble.clear();
@@ -266,7 +333,29 @@ int comFoam::extractData()
             vecTmpDouble.push_back(points[i][j]);
         }
         vecPoints.push_back(vecTmpDouble);
+    }
+
+    // Save faceToCell and  faceToPoint conn ^^^^
+    forAll(faces, i)
+    {
+        const labelList &pointsList = faces[i];
         
+        vecOwners.push_back(faceOwner[i]);
+        vecNeighbs.push_back(faceNeighb[i]);
+
+        vecTmpInt.clear();
+        forAll(pointsList, j)
+        {
+            vecTmpInt.push_back(pointsList[j]);
+        }
+        
+        vecFaceToPointConn.push_back(vecTmpInt);
+    }
+    //-------------------------------------------
+
+    // Save cell-centered field data ^^^^^^^^^^^^
+    forAll(cells, i)
+    {
         vecTmpDouble.clear();
         for(int j=0; j<nComponents; j++)
         {
@@ -280,533 +369,155 @@ int comFoam::extractData()
     }
     //-------------------------------------------
 
-    // Save faceToCell and  faceToPoint conn ^^^^
-    forAll(faces, i)
+    // Save Patch faceToNode connectivity  ^^^^^^
+    // Local and Global
+    forAll(patches, ipatch)
     {
-        const labelList &points = faces[i];
-        
-        vecOwners.push_back(faceOwner[i]);
-        vecNeighbs.push_back(faceNeighb[i]);
+        const polyPatch &patch = patches[ipatch];
 
-        vecTmpInt.clear();
-        forAll(points, j)
+        const word &patchName = patch.name();
+        const word &patchType = patch.type();
+        const wordList &patchInGroup = patch.inGroups();
+
+        const label &patchStart = patch.start();
+        const int &patchSize = patch.size();
+
+        vecPatchName   .push_back(patchName);
+        vecPatchType   .push_back(patchType);
+        vecPatchInGroup.push_back(patchInGroup);
+        vecPatchStart  .push_back(patchStart);
+        vecPatchNFaces .push_back(patchSize);
+
+        std::vector<int> vecTmpInt_patchGlobalPointIndex;
+        std::vector<std::vector<int>> vecTmpInt_patchLocalConnectivity;
+
+        for(int iface=0; iface<patchSize; iface++)
         {
-            vecTmpInt.push_back(points[j]);
+            const label &face = patchStart + iface;
+            const labelList &pointsList = faces[face];
+
+            vecTmpInt.clear();
+            forAll(pointsList, ipoint)
+            {
+                const int &point = pointsList[ipoint];
+                std::vector<int>::iterator index = std::find
+                                  (
+                                    vecTmpInt_patchGlobalPointIndex.begin(),
+                                    vecTmpInt_patchGlobalPointIndex.end(),
+                                    point
+                                  );
+
+                if  ( index == vecTmpInt_patchGlobalPointIndex.end() )
+                {
+                    vecTmpInt_patchGlobalPointIndex.push_back(point);
+
+                    index = vecTmpInt_patchGlobalPointIndex.end() - 1;
+                }
+
+                int indexVal = std::distance(vecTmpInt_patchGlobalPointIndex.begin(), index);
+                vecTmpInt.push_back( indexVal );
+            }
+            vecTmpInt_patchLocalConnectivity.push_back(vecTmpInt);
         }
-        
-        vecFaceToPointConn.push_back(vecTmpInt);
+
+        patchGlobalPointIndex.push_back(vecTmpInt_patchGlobalPointIndex);
+        patchLocalConnectivity.push_back(vecTmpInt_patchLocalConnectivity);
+
+        vecPatchNPoints.push_back(vecTmpInt_patchGlobalPointIndex.size()) ;
     }
     //-------------------------------------------
 
+    //  Save Flow Quantities on Patches ^^^^^^^^^
+    vecPatchVel.clear();
+    vecPatchRho.clear();
+    vecPatchP.clear();
+    vecPatchT.clear();
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
+    {
+        const int &nFaces = vecPatchNFaces[ipatch];
 
-        
-        
-        
-
-        std::vector< std::vector< std::vector<double> >> patchVel;
-        std::vector< std::vector<double> > patchRho;
-        std::vector< std::vector<double> > patchP;
-        std::vector< std::vector<double> > patchT;
-
-        std::vector<std::string> vecPatchName;
-        std::vector<std::string> vecPatchType;
-        // Note: I need to change this
-        std::vector< wordList > vecPatchInGroup;
-
-        std::vector<int> vecPatchStart;
-        std::vector<int> vecPatchNFaces;
-        std::vector<int> vecPatchNPoints;
-
-        
-
-
-        std::vector< std::vector<int> > patchGlobalPointIndex;
-        std::vector< std::vector< std::vector<int> >> patchLocalConnectivity;
-
-
-        forAll(patches, ipatch)
+        //  Patch Face Velocity
+        vecVecTmpDouble.clear();
+        if (vecPatchType[ipatch] != string("empty"))
         {
-
-//if (ipatch >= 1) break;
-
-            const polyPatch &patch = patches[ipatch];
-
-            const word &patchName = patch.name();
-            const word &patchType = patch.type();
-            const wordList &patchInGroup = patch.inGroups();
-
-            const label& patchStart = patch.start();
-            const int& patchSize = patch.size();
-
-            vecPatchName   .push_back(patchName);
-            vecPatchType   .push_back(patchType);
-            vecPatchInGroup.push_back(patchInGroup);
-            vecPatchStart  .push_back(patchStart);
-            vecPatchNFaces .push_back(patchSize);
-
-            //std::vector<int> vecTmpInt_globalFaceIndex;
-            //std::vector<int> vecTmpInt_localFaceIndex;
-            
-            std::vector<int> vecTmpInt_patchGlobalPointIndex;
-
-            //std::vector<int> VecTmpInt_globalConnectivity;
-            std::vector<std::vector<int>> vecTmpInt_patchLocalConnectivity;
-
-            Foam::Info << " Patch " << patchName << " patchStart = " << patchStart << " patchSize = " << patchSize << endl;
-
-            //VecTmpInt_globalFaceIndex.clear();
-
-            vecTmpInt_patchGlobalPointIndex.clear();
-            vecTmpInt_patchLocalConnectivity.clear();
-            for(int iface=0; iface<patchSize; iface++) //iface<5; iface++) 
-            {
-                const label& face = patchStart + iface; //patch.whichFace(patchStart + iFace);
-                
-                //vecTmpInt_localFaceIndex.push_back(iface);
-                //vecTmpInt_globalFaceIndex.push_back(face);
-
-                const labelList &points = faces[face];
-                int nPoints = points.size();
-
-//Foam::Info << "      face " << " local-to-global " << iface << endl << "       ";
-
-                
-                std::vector<int> vecTmpInt;
-                //vecTmpInt.clear();
-                forAll(points, ipoint)
-                {
-                    const int& point = points[ipoint];
-
-//Foam::Info << point << " ";
-
-
-                    //VecTmpInt_globalConnectivity.push_back( point );
-
-                    std::vector<int>::iterator index = std::find
-                                      (
-                                        vecTmpInt_patchGlobalPointIndex.begin(),
-                                        vecTmpInt_patchGlobalPointIndex.end(),
-                                        point
-                                      );
-
-                    if  ( index == vecTmpInt_patchGlobalPointIndex.end() )
-                    {
-                        vecTmpInt_patchGlobalPointIndex.push_back(point);
-
-                        index = vecTmpInt_patchGlobalPointIndex.end() - 1;
-                    }
-
-                    int indexVal = std::distance(vecTmpInt_patchGlobalPointIndex.begin(), index);
-                    vecTmpInt.push_back( indexVal );
-                }
-                vecTmpInt_patchLocalConnectivity.push_back(vecTmpInt);
-
-
-//Foam::Info << endl;
-
-            }
-
-            patchGlobalPointIndex.push_back(vecTmpInt_patchGlobalPointIndex);
-            patchLocalConnectivity.push_back(vecTmpInt_patchLocalConnectivity);
-
-            vecPatchNPoints.push_back(vecTmpInt_patchGlobalPointIndex.size()) ;
-        }
-
-
-Foam::Info << endl;
-
-        for(int ipatch=0; ipatch<nPatches; ipatch++)
-        {
-
-if (vecPatchName[ipatch] != string("outlet")) continue;
-
-            Foam::Info << " Patch " << vecPatchName[ipatch]
-                       << " patchStart = " << vecPatchStart[ipatch]
-                       << " nFaces = " << vecPatchNFaces[ipatch]
-                       << " nPoints = " << vecPatchNPoints[ipatch]
-                       << endl;
-        }
-
-
-
-        //  Save Flow Quantities
-        std::vector< std::vector<double> > vecVecTmpDouble;
-        std::vector<double> vecTmpDouble;
-        
-
-        patchVel.clear();
-        patchRho.clear();
-        patchP.clear();
-        patchT.clear();
-        for(int ipatch=0; ipatch<nPatches ; ipatch++)
-        {
-
-            int faceStart = vecPatchStart[ipatch];
-            int nFaces = vecPatchNFaces[ipatch];
-
-            vecVecTmpDouble.clear();
-            if (vecPatchType[ipatch] != string("empty"))
-            {
-                for(int iface=0; iface<nFaces; iface++)
-                {
-Foam::Info << ipatch << iface;
-
-                    vecTmpDouble.clear();
-                    for(int k=0; k<nComponents; k++)
-                    {
-                        vecTmpDouble.push_back( U.boundaryField()[ipatch][iface].component(k) );
-                    }
-                    vecVecTmpDouble.push_back(vecTmpDouble);
-
-Foam::Info << " " << ipatch << iface << endl;
-
-                }
-            }
-            patchVel.push_back(vecVecTmpDouble);
-
-
-
-            //  Patch Face Density
-            vecTmpDouble.clear();
-            if (vecPatchType[ipatch] != string("empty"))
-            {
-                for(int iface=0; iface<nFaces; iface++)
-                {
-                    vecTmpDouble.push_back( rho.boundaryField()[ipatch][iface] );
-                }
-            }
-            patchRho.push_back(vecTmpDouble);
-
-            //  Patch Face Pressure
-            vecTmpDouble.clear();
-            if (vecPatchType[ipatch] != string("empty"))
-            {
-                for(int iface=0; iface<nFaces; iface++)
-                {
-                    vecTmpDouble.push_back( p.boundaryField()[ipatch][iface] );
-                }
-            }
-            patchP.push_back(vecTmpDouble);
-
-
-            //  Patch Face Temperature
-            vecTmpDouble.clear();
-            if (vecPatchType[ipatch] != string("empty"))
-            {
-                for(int iface=0; iface<nFaces; iface++)
-                {
-                    vecTmpDouble.push_back( T.boundaryField()[ipatch][iface] );
-                }
-            }
-            patchT.push_back(vecTmpDouble);
-
-
-
-        }
-
-
-        for(int ipatch=0; ipatch<nPatches; ipatch++)
-        {
-            Foam::Info << " Patch = " << vecPatchName[ipatch] << " patchID = " << ipatch << endl;
-
-            int faceStart = vecPatchStart[ipatch];
-            int nFaces =  patchVel[ipatch].size(); // vecPatchNFaces[ipatch];
-            
-            Foam::Info << " Global Face Indices = ";
             for(int iface=0; iface<nFaces; iface++)
             {
-                Foam::Info << faceStart+iface << " ";
-            }
-            Foam::Info << endl;
-
-            
-            for(int iface=0; iface<nFaces; iface++)
-            {
-                Foam::Info  << "     "
-                            << "faceID = " << iface
-                            << " V = " << patchVel[ipatch][iface][0]
-                            << ", " << patchVel[ipatch][iface][1] 
-                            << ", " << patchVel[ipatch][iface][2]
-                            << " Rho = " << patchRho[ipatch][iface]
-                            << " P = " << patchP[ipatch][iface] 
-                            << " T = " << patchT[ipatch][iface]
-                            << endl;
-            }
-            Foam::Info << endl;
-        }
-        
-Foam::Info << endl;
-
-
-
-
-
-
-/*
-        for(int ipatch=0; ipatch<nPatches; ipatch++)
-        {
-            int npoints = vecPatchNPoints[ipatch];
-
-            //  Patch Nodeal Velocity
-            vecVecTmpDouble.clear();
-            for(int ipoint=0; ipoint<npoints; ipoint++)
-            {
-                int index = patchGlobalPointIndex[ipatch][ipoint];
-            
                 vecTmpDouble.clear();
                 for(int k=0; k<nComponents; k++)
                 {
-                    vecTmpDouble.push_back(U[index].component(k));
+                    vecTmpDouble.push_back( U.boundaryField()[ipatch][iface].component(k) );
                 }
                 vecVecTmpDouble.push_back(vecTmpDouble);
             }
-            patchVel.push_back(vecVecTmpDouble);
-
-            //  Patch Nodeal Density
-            vecTmpDouble.clear();
-            for(int ipoint=0; ipoint<npoints; ipoint++)
-            {
-                int index = patchGlobalPointIndex[ipatch][ipoint];
-                vecTmpDouble.push_back(rho[index]);
-            }
-            patchRho.push_back(vecTmpDouble);
-
-            //  Patch Nodeal Pressure
-            vecTmpDouble.clear();
-            for(int ipoint=0; ipoint<npoints; ipoint++)
-            {
-                int index = patchGlobalPointIndex[ipatch][ipoint];
-                vecTmpDouble.push_back(p[index]);
-            }
-            patchP.push_back(vecTmpDouble);
-
-            //  Patch Nodeal Temperature
-            vecTmpDouble.clear();
-            for(int ipoint=0; ipoint<npoints; ipoint++)
-            {
-                int index = patchGlobalPointIndex[ipatch][ipoint];
-                vecTmpDouble.push_back(T[index]);
-            }
-            patchT.push_back(vecTmpDouble);
         }
+        vecPatchVel.push_back(vecVecTmpDouble);
 
-        for( std::vector<std::vector<int>>::iterator itVecVec=patchGlobalPointIndex.begin(); itVecVec != patchGlobalPointIndex.end(); itVecVec++)
+        //  Patch Face Density
+        vecTmpDouble.clear();
+        if (vecPatchType[ipatch] != string("empty"))
         {
-            int ipatch = std::distance( patchGlobalPointIndex.begin(), itVecVec);
-
-if (vecPatchName[ipatch] != string("outlet")) continue;
-
-            Foam::Info << " Patch " << vecPatchName[ipatch] << " local-to-global " << ipatch << endl;
-
-            int npoints = vecPatchNPoints[ipatch];
-            Foam::Info << " Global Node Indices = ";
-            for(int ipoint=0; ipoint<npoints; ipoint++)
+            for(int iface=0; iface<nFaces; iface++)
             {
-                Foam::Info << patchGlobalPointIndex[ipatch][ipoint] << " ";
+                vecTmpDouble.push_back( rho.boundaryField()[ipatch][iface] );
             }
-            Foam::Info << endl;
-
-            
-            for( std::vector<int>::iterator itVec=itVecVec->begin(); itVec != itVecVec->end(); itVec++)
-            {
-                int ipoint = std::distance( itVecVec->begin(), itVec);
-            
-            
-                Foam::Info  << "     "
-                           << "PointID = " << *itVec
-                           << " V = " << patchVel[ipatch][ipoint][1]
-                              << ", " << patchVel[ipatch][ipoint][2] 
-                              << ", " << patchVel[ipatch][ipoint][3]
-                           << " Rho = " << patchRho[ipatch][ipoint]
-                           << " P = " << patchP[ipatch][ipoint] 
-                           << " T = " << patchT[ipatch][ipoint]  << endl;
-            }
-            Foam::Info << endl;
         }
+        vecPatchRho.push_back(vecTmpDouble);
+
+        //  Patch Face Pressure
+        vecTmpDouble.clear();
+        if (vecPatchType[ipatch] != string("empty"))
+        {
+            for(int iface=0; iface<nFaces; iface++)
+            {
+                vecTmpDouble.push_back( p.boundaryField()[ipatch][iface] );
+            }
+        }
+        vecPatchP.push_back(vecTmpDouble);
+
+        //  Patch Face Temperature
+        vecTmpDouble.clear();
+        if (vecPatchType[ipatch] != string("empty"))
+        {
+            for(int iface=0; iface<nFaces; iface++)
+            {
+                vecTmpDouble.push_back( T.boundaryField()[ipatch][iface] );
+            }
+        }
+        vecPatchT.push_back(vecTmpDouble);
+    }
+    //-------------------------------------------
+
+for(int ipatch=0; ipatch<nPatches; ipatch++)
+{
+    Foam::Info << " Patch = " << vecPatchName[ipatch] << " patchID = " << ipatch << endl;
+    int faceStart = vecPatchStart[ipatch];
+    int nFaces =  vecPatchVel[ipatch].size(); // vecPatchNFaces[ipatch];
+    
+    Foam::Info << " Global Face Indices = ";
+    for(int iface=0; iface<nFaces; iface++)
+    {
+        Foam::Info << faceStart+iface << " ";
+    }
+    Foam::Info << endl;
+    
+    for(int iface=0; iface<nFaces; iface++)
+    {
+        Foam::Info  << "     "
+                    << "faceID = " << iface
+                    << " V = " << vecPatchVel[ipatch][iface][0]
+                    << ", " << vecPatchVel[ipatch][iface][1] 
+                    << ", " << vecPatchVel[ipatch][iface][2]
+                    << " Rho = " << vecPatchRho[ipatch][iface]
+                    << " P = " << vecPatchP[ipatch][iface] 
+                    << " T = " << vecPatchT[ipatch][iface]
+                    << endl;
+    }
+    Foam::Info << endl;
+}
         
-        
-*/
 Foam::Info << endl;
 
-/*
-        for (
-                std::vector<std::vector<std::vector<int>>>::iterator
-                    itVecVecVec=patchLocalConnectivity.begin();
-                itVecVecVec != patchLocalConnectivity.end();
-                itVecVecVec++
-            )
-        {
-            int index = std::distance( 
-                                        patchLocalConnectivity.begin(),
-                                        itVecVecVec
-                                     );
 
-            Foam::Info << " Patch " << vecPatchName[index] << " connectivity " << endl;
-
-            for( std::vector<std::vector<int>>::iterator itVecVec=itVecVecVec->begin(); itVecVec != itVecVecVec->end(); itVecVec++)
-            {
-                int faceindex = std::distance( itVecVecVec->begin(), itVecVec);
-                Foam::Info << "      face " << " local-to-global " << faceindex << endl << "       ";
-                
-                for( std::vector<int>::iterator itVec=itVecVec->begin(); itVec != itVecVec->end(); itVec++)
-                {
-                    Foam::Info << *itVec << " ";
-                }
-                Foam::Info << endl;
-            }
-        }
-        
-        Foam::Info << endl;
-*/
-
-
-/*
-            
-            //  Patch Nodeal Velocity
-            vecVecTmp.clear();
-            for(int j=0; j<patchSize; j++)
-            {
-                int index = patchStart+j;
-
-                vecTmp.clear();
-                for(int k=0; k<nComponents; k++)
-                {
-                    vecTmp.push_back(U[index].component(k));
-                }
-
-                vecVecTmp.push_back(vecTmp);
-            }
-            vecPatchVel.push_back(vecVecTmp);
-
-
-
-            //  Patch Nodeal Density
-            vecTmp.clear();
-            for(int j=0; j<patchSize; j++)
-            {
-                int index=patchStart+j;
-                vecTmp.push_back(rho[index]);
-            }
-            vecPatchRho.push_back(vecTmp);
-
-            //  Patch Nodeal Pressure
-            vecTmp.clear();
-            for(int j=0; j<patchSize; j++)
-            {
-                int index=patchStart+j;
-                vecTmp.push_back(p[index]);
-            }
-            vecPatchP.push_back(vecTmp);
-
-            //  Patch Nodeal Temperature
-            vecTmp.clear();
-            for(int j=0; j<patchSize; j++)
-            {
-                int index=patchStart+j;
-                vecTmp.push_back(T[index]);
-            }
-            vecPatchT.push_back(vecTmp);
-
-
-            //Foam::Info << i << " " << patchName << " " 
-            //           << patchType << " " << patchInGroup 
-            //           << " " << patchStart << " " << patchSize << endl;
-        }
-        
-        Foam::Info <<  " SIZE OF T ==== " << vecPatchT.size() << endl;
-
-
-        for(std::vector< std::vector<double> >::iterator vvI=vecPatchRho.begin(); vvI != vecPatchRho.end(); vvI++)
-        {
-            Foam::Info << " Rho of partch " << std::distance(vecPatchRho.begin(), vvI) << " = ";
-            for(std::vector<double>::iterator vI=vvI->begin(); vI != vvI->begin()+5; vI++)
-            {
-                    Foam::Info << *vI << " ";
-            }
-            Foam::Info << endl;;
-        }
-*/
-
-
-
-    //dataName = name+string(".nc");
-    //COM_set_size( dataName.c_str(), 0, nNodes);
-    //COM_set_array(dataName.c_str(), 0, comXYZ, 3);
-        
-    
-
-    /*
-    const faceList &faces = mesh.faces();
-    int nFaces = faces.size();
-    comFaces  = new int[nFaces];
-    comOwner  = new int[nFaces];
-    comNeighb = new int[nFaces];
-    */
-
-
-
-
-/*
-
-    const cellList &cells = mesh.cells();
-    const faceList &faces = mesh.faces();
-    int nCells = cells.size();
-
-    std::vector<int> vecPoints;
-    std::vector< std::vector<int> > vecFaces;
-    std::vector< std::vector< std::vector<int> > > vecCells;
-
-
-Foam::Info << __LINE__ << endl;
-
-
-    forAll(cells, i)
-    {
-
-        vecFaces.clear();
-
-        const faceList &faces = mesh.faces();
-        forAll(faces, j)
-        {
-
-
-
-            const labelList &points = faces[j];
-            
-            vecPoints.clear();
-            forAll(points, k)
-            {            
-                vecPoints.push_back( points[k] );
-            }
-            vecFaces.push_back( vecPoints );
-
-        }
-
-//        vecCells.push_back( vecFaces );
-
-
-    }
-
-Foam::Info << __LINE__ << endl;
-
-*/
-
-//    std::vector< std::vector< std::vector<int> > >::iterator vvvIt = vecCells.begin();
-
-/*    for (std::vector< std::vector<int> >::iterator vvIt=vvvIt->begin(); vvIt != vvvIt->end(); vvIt++)
-    {
-        for (std::vector<int>::iterator vIt=vvIt->begin(); vIt != vvIt->end(); vIt++)
-        {
-            Foam::Info << "Ponits Vector = " << *vIt;
-        }
-        Foam::Info << Foam::endl;
-    }
-*/
-
-
-    //std::cout << "Cell Vector   = " << *vvvIt << endl;
-    //Foam::Info << "Face Vector   = " << *vvIt << Foam::endl;
-    //Foam::Info << "Ponits Vector = " << *vIt << Foam::endl;
 
     return 0;
 }
