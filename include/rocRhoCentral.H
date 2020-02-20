@@ -41,8 +41,6 @@ public:
     int loop();
     int step();
     int finalize();
-    
-int centralizedIO();
     //--------------------------------------
     
     //  Execution functions ^^^^^^^^^^^^^^^^

@@ -59,6 +59,8 @@ protected:
 
     //virtual int flowFin() { return 0; }
     //virtual int flowStat() { return 0; }
+
+    int extractData();
 };
 
 #endif
