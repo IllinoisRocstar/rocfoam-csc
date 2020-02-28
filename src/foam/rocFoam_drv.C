@@ -15,12 +15,21 @@ std::vector<std::string> dataItemNames;
 int numPanes;
 int* paneList;
 
-double* Coord;
+double *Coord;
 int numNodes = 0;
+int nComp = 0;
 
+int numCells = 0;
+double* cellVel;
+double* cellPres;
+double* cellTemp;
+double* cellRho;
+
+
+int *Conn8;
 int numConn;
 int numElem;
-int* Conn;
+
 std::vector<std::string> connNames;
 
 char getDataItemLoc;
@@ -47,7 +56,7 @@ double *fluidDeltaT;
 int comDrvInit(int argc, char *argv[]);
 int comGetFunctionHandles();
 int comExtractData();
-int comGetDataItems();
+int comGetDataItems(const char *name);
 int comDrvStat();
 int comDrvLoop();
 int comDrvStep();
@@ -189,7 +198,7 @@ int comDrvInit(int argc, char *argv[])
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle, &myArgc, &myArgv, "ROCFOAM");
 
-    comGetDataItems();
+    comGetDataItems("ROCFOAM");
   
     return 0;
 }
@@ -292,35 +301,167 @@ int comGetFunctionHandles()
     return 0;
 }
 
-int comGetDataItems()
+int comGetDataItems(const char *name)
 {
-    // getting number of processes  
-    std::string name = "ROCFOAM"+string("VOL");
+    std::string volName = name+string("VOL");
+
+    std::string output;
+    COM_get_dataitems(volName.c_str(), &numDataItems, output);
+    std::istringstream Istr(output);
+
+    Info << "rocFoam.main: numDataItems "
+         << numDataItems
+         << endl;
+
+    for (int i=0; i<numDataItems; ++i)
+    {
+        std::string nameTmp;
+        Istr >> nameTmp;
+        dataItemNames.push_back(nameTmp);
+        std::cout << "rocFoam.main: DataItem # "
+                  << i << ": " << nameTmp << std::endl;
+    }
+    Info << endl;
 
     int *nProcReg;
-    std::string dataName = name+string(".winNProc");
+    std::string dataName = volName+string(".winNProc");
     COM_get_array(dataName.c_str(), 0, &nProcReg);
-    Info << "The communicator registered in OFModule uses "
+    Info << "rocFoam.main: The ommunicator uses "
          << *nProcReg << " prcesses"
          << endl;
 
-    dataName = name+string(".winRun");
+    dataName = volName+string(".winRun");
     COM_get_array(dataName.c_str(), 0, &fluidRun);
     Info << "rocFoam.main: Stepping status = " 
          << *fluidRun
          << endl;
 
-    dataName = name+string(".winTime");
+    dataName = volName+string(".winTime");
     COM_get_array(dataName.c_str(), 0, &fluidTime);
     Info << "rocFoam.main: Simulation time = "
          << *fluidTime
          << endl;
 
-    dataName = name+string(".winDeltaT");
+    dataName = volName+string(".winDeltaT");
     COM_get_array(dataName.c_str(), 0, &fluidDeltaT);
     Info << "rocFoam.main: Simulation Time step = "
          << *fluidDeltaT
          << endl;
+
+    dataName = volName+string(".nc");
+    COM_get_array(dataName.c_str(), 1, &Coord, &nComp);
+    COM_get_size(dataName.c_str(), 1, &numNodes);
+    
+    Info << "rocFoam.main: Domain has "
+         << numNodes << " points and "
+         << nComp << " components."
+         << endl;
+//    for(int ipoint=0; ipoint<numNodes; ipoint++)
+//    {
+//        Info << "Node " << ipoint << " coordinates = ";
+//        for(int icomp=0; icomp<nComp; icomp++)
+//        {
+//            Info << *(Coord+ipoint*nComp+icomp) << " ";
+//        }
+//        Info << endl;
+//    }
+
+
+    dataName = volName+string(".:q8");
+    COM_get_array(dataName.c_str(), 1, &Conn8, &nComp);
+    COM_get_size(dataName.c_str(), 1, &numElem);
+    
+    Info << "rocFoam.main: Domain has "
+         << numElem << " connectivities and "
+         << nComp << " components."
+         << endl;
+
+/*
+    for(int icell=0; icell<numElem; icell++)
+    {
+        Info << "Cell " << icell << " connectivities = ";
+        for(int icomp=0; icomp<nComp; icomp++)
+        {
+            Info << *(Conn8+icell*nComp+icomp) << " ";
+        }
+        Info << endl;
+    }
+*/
+
+
+    dataName = volName+string(".vel");
+    COM_get_array(dataName.c_str(), 1, &cellVel, &nComp);
+    COM_get_size(dataName.c_str(), 1, &numCells);
+
+    Info << "rocFoam.main: Velocity has "
+         << numCells << " cells and "
+         << nComp << " components."
+         << endl;
+//    for(int icell=0; icell<numCells; icell++)
+//    {
+//        Info << "Cell " << icell << " velocity = ";
+//        for(int icomp=0; icomp<nComp; icomp++)
+//        {
+//            Info << *(cellVel+icell*nComp+icomp) << " ";
+//        }
+//        Info << endl;
+//    }
+    
+    dataName = volName+string(".pres");
+    COM_get_array(dataName.c_str(), 1, &cellPres, &nComp);
+    COM_get_size(dataName.c_str(), 1, &numCells);
+
+    Info << "rocFoam.main: Pressure has "
+         << numCells << " cells and "
+         << nComp << " components."
+         << endl;
+    for(int icell=0; icell<numCells; icell++)
+    {
+        Info << "Cell " << icell << " pressure = ";
+        for(int icomp=0; icomp<nComp; icomp++)
+        {
+            Info << *(cellPres+icell*nComp+icomp) << " ";
+        }
+        Info << endl;
+    }
+
+    
+    dataName = volName+string(".temp");
+    COM_get_array(dataName.c_str(), 1, &cellTemp);
+    COM_get_size(dataName.c_str(), 1, &numCells);
+
+    Info << "rocFoam.main: Temperature has "
+         << numCells << " cells and "
+         << nComp << " components."
+         << endl;
+//    for(int icell=0; icell<numCells; icell++)
+//    {
+//        Info << "Cell " << icell << " temperature = ";
+//        for(int icomp=0; icomp<nComp; icomp++)
+//        {
+//            Info << *(cellTemp+icell*nComp+icomp) << " ";
+//        }
+//        Info << endl;
+//    }
+
+
+    dataName = volName+string(".rho");
+    COM_get_array(dataName.c_str(), 1, &cellRho);
+    COM_get_size(dataName.c_str(), 1, &numCells);
+
+    Info << "rocFoam.main: Density has "
+         << numCells << " cells and "
+         << nComp << " components."
+         << endl;
+//    for(int icell=0; icell<numCells; icell++)
+//    {
+//        Info << "Cell " << icell << " density = ";
+//        for(int icomp=0; icomp<nComp; icomp++)
+//        {
+//            Info << *(cellRho+icell*nComp+icomp) << " ";
+//        }
+//        Info << endl;
+//    }
 
     return 0;
 }
@@ -468,7 +609,7 @@ int comDrvStat()
     std::cout << "rocFoam.main: getDataItemUnits "
               << getDataItemUnits << std::endl;
     
-    COM_get_array(fullConnName.c_str(), pane, &Conn);
+    COM_get_array(fullConnName.c_str(), pane, &Conn8);
     COM_get_size(fullConnName, pane, &numElem);
 
 
@@ -482,7 +623,7 @@ int comDrvStat()
     {
         for (int j=0; j<numElementNodes; ++j)
         {
-            connVector.push_back((Conn[i*numElementNodes+j]));
+            connVector.push_back((Conn8[i*numElementNodes+j]));
         }
     }
 

@@ -20,7 +20,10 @@ public:
     comFoam();
     comFoam(int *pargc, void **pargv, const char *name);
 
-    ~comFoam() {}; 
+    ~comFoam()
+    {   
+        deleteVolumeData();
+    }
 
 protected:
 
@@ -29,18 +32,36 @@ protected:
     int nCells;
     int nPatches;
 
-    // Field Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector< std::vector<double> > vecPoints;
+    // Volume Connectivity Vectors ^^^^^^^^^^^^^^
+    std::vector< std::vector< std::vector<int> >> vecCellToFaceConn;
+    std::vector< std::vector< std::vector<int> >> vecCellToPointConn;
+    //std::vector<std::vector< std::vector<int> >> vecCellToPointConnVTK;
+    std::vector< std::vector<int> > vecCellTypeLocalToGlobalMap;
     std::vector< std::vector<int> > vecFaceToPointConn;
     std::vector<int> vecOwners;
     std::vector<int> vecNeighbs;
     
-    std::vector< std::vector<double> > vecFieldVel;
-    std::vector<double> vecFieldRho;
-    std::vector<double> vecFieldP;
-    std::vector<double> vecFieldT;
     //-------------------------------------------
 
+    // COM VOLUME ARRAYS^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Connectivity ^^^^^^^^^^^^^^^^^^^
+    int   nCellTypes = 0;
+    int   nComponents = 3;
+    int*  nCellTypeMap = NULL;
+    int*  nCellTypeSize = NULL;
+    
+    int** cellTypeLocalToGlobalMap = NULL;
+    int** comArrCelltoPointConn = NULL;
+
+    // Field Data ^^^^^^^^^^^^^^^^^^^^^
+    double* comArrPoints = NULL;
+    double* comArrVel = NULL;
+    double* comArrP = NULL;
+    double* comArrT = NULL;
+    double* comArrRho = NULL;
+    //-------------------------------------------
+    
+    
     // Patch Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector< std::vector<int> > patchGlobalPointIndex;
     std::vector< std::vector< std::vector<int> >> patchLocalConnectivity;
@@ -74,11 +95,8 @@ protected:
     scalar winDeltaT;
     int winRun;
     
-    //  Nodal Coordinates
+
     
-    double *comXYZ = NULL; // [x1,y1,z1, x2,y2,z2, ... ,xN,yN,zN]
-    int nComponents = 3;
-    int nNodes = 0;
 
     int *comFaces = NULL;
     int *comOwner = NULL;
@@ -91,13 +109,23 @@ protected:
     int flowStep(const char *name);
 
     int flowExtractData(const char *name);
-    
+    int flowRegisterData(const char *name);
     
     //virtual int flowFin() { return 0; }
     //virtual int flowStat() { return 0; }
 
     int registerFunctions(const char *name);
-    int extractData();
+
+    int createVolumeConnectivities();
+    int createVolumeData();
+    int deleteVolumeData();
+    int updateVolumeData();
+    int registerData(const char *name);
+
+
+    int createSurfaceConnectivities();
+
+
 };
 
 #endif
