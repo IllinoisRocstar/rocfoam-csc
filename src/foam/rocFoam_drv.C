@@ -10,13 +10,14 @@ bool runParallel;
 char *solverType;
 
 //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// volume window
 int numDataItems=0;
 std::vector<std::string> dataItemNames;
 int numPanes;
 int* paneList;
 
-double *Coord;
-int numNodes = 0;
+double *volCoord;
+int volNumNodes = 0;
 int nComp = 0;
 
 int numCells = 0;
@@ -25,8 +26,7 @@ double* cellPres;
 double* cellTemp;
 double* cellRho;
 
-
-int *Conn8;
+int *Conn;
 int numConn;
 int numElem;
 
@@ -38,6 +38,12 @@ int numElementNodes;
 std::string getDataItemUnits;
 
 int timeArrayLength;
+
+
+// surface window
+
+
+
 
 //  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int flowInitHandle;
@@ -56,7 +62,8 @@ double *fluidDeltaT;
 int comDrvInit(int argc, char *argv[]);
 int comGetFunctionHandles();
 int comExtractData();
-int comGetDataItems(const char *name);
+int comGetVolDataItems(const char *name);
+int comGetSurfDataItems(const char *name);
 int comDrvStat();
 int comDrvLoop();
 int comDrvStep();
@@ -198,7 +205,9 @@ int comDrvInit(int argc, char *argv[])
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle, &myArgc, &myArgv, "ROCFOAM");
 
-    comGetDataItems("ROCFOAM");
+    comGetVolDataItems("ROCFOAMVOL");
+    comGetVolDataItems("ROCFOAMSURF");
+    //comGetSurfDataItems("ROCFOAM");
   
     return 0;
 }
@@ -301,139 +310,187 @@ int comGetFunctionHandles()
     return 0;
 }
 
-int comGetDataItems(const char *name)
+int comGetVolDataItems(const char *name)
 {
-    std::string volName = name+string("VOL");
+    std::string volName = name; //+string("VOL");
 
     std::string output;
     COM_get_dataitems(volName.c_str(), &numDataItems, output);
     std::istringstream Istr(output);
 
-    Info << "rocFoam.main: numDataItems "
+    Info << endl
+         << "rocFoam.main: window name = "
+         << volName
+         << endl;
+
+    Info << "rocFoam.main: numDataItems = "
          << numDataItems
          << endl;
 
+    dataItemNames.clear();
     for (int i=0; i<numDataItems; ++i)
     {
         std::string nameTmp;
         Istr >> nameTmp;
         dataItemNames.push_back(nameTmp);
-        std::cout << "rocFoam.main: DataItem # "
-                  << i << ": " << nameTmp << std::endl;
+        Info << "rocFoam.main: DataItem #"
+             << i << " = " << nameTmp << endl;
     }
     Info << endl;
 
-    int *nProcReg;
-    std::string dataName = volName+string(".winNProc");
-    COM_get_array(dataName.c_str(), 0, &nProcReg);
-    Info << "rocFoam.main: The ommunicator uses "
-         << *nProcReg << " prcesses"
-         << endl;
-
-    dataName = volName+string(".winRun");
-    COM_get_array(dataName.c_str(), 0, &fluidRun);
-    Info << "rocFoam.main: Stepping status = " 
-         << *fluidRun
-         << endl;
-
-    dataName = volName+string(".winTime");
-    COM_get_array(dataName.c_str(), 0, &fluidTime);
-    Info << "rocFoam.main: Simulation time = "
-         << *fluidTime
-         << endl;
-
-    dataName = volName+string(".winDeltaT");
-    COM_get_array(dataName.c_str(), 0, &fluidDeltaT);
-    Info << "rocFoam.main: Simulation Time step = "
-         << *fluidDeltaT
-         << endl;
-
-    dataName = volName+string(".nc");
-    COM_get_array(dataName.c_str(), 1, &Coord, &nComp);
-    COM_get_size(dataName.c_str(), 1, &numNodes);
-    
-    Info << "rocFoam.main: Domain has "
-         << numNodes << " points and "
-         << nComp << " components."
-         << endl;
-//    for(int ipoint=0; ipoint<numNodes; ipoint++)
-//    {
-//        Info << "Node " << ipoint << " coordinates = ";
-//        for(int icomp=0; icomp<nComp; icomp++)
-//        {
-//            Info << *(Coord+ipoint*nComp+icomp) << " ";
-//        }
-//        Info << endl;
-//    }
-
-
-    dataName = volName+string(".:q8");
-    COM_get_array(dataName.c_str(), 1, &Conn8, &nComp);
-    COM_get_size(dataName.c_str(), 1, &numElem);
-    
-    Info << "rocFoam.main: Domain has "
-         << numElem << " connectivities and "
-         << nComp << " components."
-         << endl;
-
-/*
-    for(int icell=0; icell<numElem; icell++)
+    std::string dataName = string("winNProc");
+    if (std::find(dataItemNames.begin(), dataItemNames.end(), dataName) != dataItemNames.end())
     {
-        Info << "Cell " << icell << " connectivities = ";
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << *(Conn8+icell*nComp+icomp) << " ";
-        }
-        Info << endl;
-    }
-*/
-
-
-    dataName = volName+string(".vel");
-    COM_get_array(dataName.c_str(), 1, &cellVel, &nComp);
-    COM_get_size(dataName.c_str(), 1, &numCells);
-
-    Info << "rocFoam.main: Velocity has "
-         << numCells << " cells and "
-         << nComp << " components."
-         << endl;
-//    for(int icell=0; icell<numCells; icell++)
-//    {
-//        Info << "Cell " << icell << " velocity = ";
-//        for(int icomp=0; icomp<nComp; icomp++)
-//        {
-//            Info << *(cellVel+icell*nComp+icomp) << " ";
-//        }
-//        Info << endl;
-//    }
-    
-    dataName = volName+string(".pres");
-    COM_get_array(dataName.c_str(), 1, &cellPres, &nComp);
-    COM_get_size(dataName.c_str(), 1, &numCells);
-
-    Info << "rocFoam.main: Pressure has "
-         << numCells << " cells and "
-         << nComp << " components."
-         << endl;
-    for(int icell=0; icell<numCells; icell++)
-    {
-        Info << "Cell " << icell << " pressure = ";
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << *(cellPres+icell*nComp+icomp) << " ";
-        }
-        Info << endl;
+        dataName = volName+string(".")+dataName;
+        int *nProcReg;
+        COM_get_array(dataName.c_str(), 0, &nProcReg);
+        Info << "rocFoam.main: The communicator uses "
+             << *nProcReg << " prcesses"
+             << endl;
     }
 
-    
-    dataName = volName+string(".temp");
-    COM_get_array(dataName.c_str(), 1, &cellTemp);
-    COM_get_size(dataName.c_str(), 1, &numCells);
+    dataName = string("winRun");
+    if (std::find(dataItemNames.begin(), dataItemNames.end(), dataName) != dataItemNames.end())
+    {
+        dataName = volName+string(".")+dataName;
+        COM_get_array(dataName.c_str(), 0, &fluidRun);
+        Info << "rocFoam.main: Stepping status = " 
+             << *fluidRun
+             << endl;
+    }
 
-    Info << "rocFoam.main: Temperature has "
-         << numCells << " cells and "
-         << nComp << " components."
-         << endl;
+    dataName = string("winTime");
+    if (std::find(dataItemNames.begin(), dataItemNames.end(), dataName) != dataItemNames.end())
+    {
+        dataName = volName+string(".")+dataName;
+        COM_get_array(dataName.c_str(), 0, &fluidTime);
+        Info << "rocFoam.main: Simulation time = "
+             << *fluidTime
+             << endl;
+    }
+
+    dataName = string("winDeltaT");
+    if (std::find(dataItemNames.begin(), dataItemNames.end(), dataName) != dataItemNames.end())
+    {
+        dataName = volName+string(".")+dataName;
+        COM_get_array(dataName.c_str(), 0, &fluidDeltaT);
+        Info << "rocFoam.main: Simulation Time step = "
+             << *fluidDeltaT
+             << endl;
+    }
+
+
+    //  List of panes in this window ^^^^^^^^^^^^
+    COM_get_panes(volName.c_str(), &numPanes, &paneList);
+    Info << "rocFoam.main: Number of Panes = "
+         << numPanes << endl;
+
+    for (int i=0; i<numPanes; ++i) 
+    {
+        dataName = volName+string(".nc");
+        COM_get_array(dataName.c_str(), paneList[i], &volCoord, &nComp);
+        COM_get_size(dataName.c_str(), paneList[i], &volNumNodes);
+        
+        Info << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+        Info << "    Domain has "
+             << volNumNodes << " points and "
+             << nComp << " components."
+             << endl;
+//      for(int ipoint=0; ipoint<volNumNodes; ipoint++)
+//      {
+//          Info << "Node " << ipoint << " volCoordinates = ";
+//          for(int icomp=0; icomp<nComp; icomp++)
+//          {
+//              Info << *(volCoord+ipoint*nComp+icomp) << " ";
+//          }
+//          Info << endl;
+//      }
+
+
+
+        std::string stringNames;
+        COM_get_connectivities(volName.c_str(), paneList[i], &numConn, stringNames);
+        std::istringstream ConnISS(stringNames);
+
+        Info << "    Pane["
+             << i << "] ID = "<< paneList[i] << ", with " 
+             << numConn << " connectivity types."<< endl;
+
+        for (int j=0; j<numConn; ++j)
+        {
+            std::string nameTmp;
+            ConnISS >> nameTmp;
+            connNames.push_back(nameTmp);
+
+            dataName = volName+string(".")+nameTmp;
+            COM_get_array(dataName.c_str(), paneList[i], &Conn, &nComp);
+            COM_get_size(dataName.c_str(), paneList[i], &numElem);
+
+            Info << "    Connectivity Table["
+                 << j << "] = " << nameTmp << ", "
+                 << numElem << " elements and "
+                 << nComp << " components."
+                 << endl;
+
+//            for(int icell=0; icell<numElem; icell++)
+//            {
+//                Info << "    Element " << icell << " connectivities = ";
+//                for(int icomp=0; icomp<nComp; icomp++)
+//                {
+//                    Info << *(Conn+icell*nComp+icomp) << " ";
+//                }
+//                Info << endl;
+//            }
+
+        }
+        Info << endl;
+
+
+        dataName = volName+string(".vel");
+        COM_get_array(dataName.c_str(), paneList[i], &cellVel, &nComp);
+        COM_get_size(dataName.c_str(), paneList[i], &numCells);
+
+        Info << "    Velocity has "
+             << numCells << " elements and "
+             << nComp << " components."
+             << endl;
+//        for(int icell=0; icell<numCells; icell++)
+//        {
+//            Info << "Cell " << icell << " velocity = ";
+//            for(int icomp=0; icomp<nComp; icomp++)
+//            {
+//                Info << *(cellVel+icell*nComp+icomp) << " ";
+//            }
+//            Info << endl;
+//        }
+    
+        dataName = volName+string(".pres");
+        COM_get_array(dataName.c_str(), paneList[i], &cellPres, &nComp);
+        COM_get_size(dataName.c_str(), paneList[i], &numCells);
+
+        Info << "    Pressure has "
+             << numCells << " elements and "
+             << nComp << " components."
+             << endl;
+//        for(int icell=0; icell<numCells; icell++)
+//        {
+//            Info << "Cell " << icell << " pressure = ";
+//            for(int icomp=0; icomp<nComp; icomp++)
+//            {
+//                Info << *(cellPres+icell*nComp+icomp) << " ";
+//            }
+//            Info << endl;
+//        }
+
+    
+        dataName = volName+string(".temp");
+        COM_get_array(dataName.c_str(), paneList[i], &cellTemp, &nComp);
+        COM_get_size(dataName.c_str(), paneList[i], &numCells);
+
+        Info << "    Temperature has "
+             << numCells << " elements and "
+             << nComp << " components."
+             << endl;
 //    for(int icell=0; icell<numCells; icell++)
 //    {
 //        Info << "Cell " << icell << " temperature = ";
@@ -445,14 +502,14 @@ int comGetDataItems(const char *name)
 //    }
 
 
-    dataName = volName+string(".rho");
-    COM_get_array(dataName.c_str(), 1, &cellRho);
-    COM_get_size(dataName.c_str(), 1, &numCells);
+        dataName = volName+string(".rho");
+        COM_get_array(dataName.c_str(), paneList[i], &cellRho, &nComp);
+        COM_get_size(dataName.c_str(), paneList[i], &numCells);
 
-    Info << "rocFoam.main: Density has "
-         << numCells << " cells and "
-         << nComp << " components."
-         << endl;
+        Info << "    Density has "
+             << numCells << " elements and "
+             << nComp << " components."
+             << endl;
 //    for(int icell=0; icell<numCells; icell++)
 //    {
 //        Info << "Cell " << icell << " density = ";
@@ -463,8 +520,61 @@ int comGetDataItems(const char *name)
 //        Info << endl;
 //    }
 
+        Info << "====================================================" << endl;
+
+    }
+
+    COM_free_buffer(&paneList);
+
     return 0;
 }
+
+int comGetSurfDataItems(const char *name)
+{
+    std::string surfName = name+string("SURF");
+
+    std::string output;
+    COM_get_dataitems(surfName.c_str(), &numDataItems, output);
+    std::istringstream Istr(output);
+
+    Info << endl
+         << "rocFoam.main: window name = "
+         << surfName
+         << endl;
+
+    Info << "rocFoam.main: numDataItems = "
+         << numDataItems
+         << endl;
+
+    for (int i=0; i<numDataItems; ++i)
+    {
+        std::string nameTmp;
+        Istr >> nameTmp;
+        dataItemNames.push_back(nameTmp);
+        Info << "rocFoam.main: DataItem #"
+             << i << " = " << nameTmp << endl;
+    }
+    Info << endl;
+
+
+    //  List of panes in this window ^^^^^^^^^^^^
+    COM_get_panes(surfName.c_str(), &numPanes, &paneList);
+    Info << "rocFoam.main: Number of Panes "
+         << numPanes << endl;
+    for (int i=0; i<numPanes; ++i) 
+    {
+        Info << "rocFoam.main: Pane ID #"
+             << i << " = "<< paneList[i] << endl;
+    }
+    Info << endl;
+    COM_free_buffer(&paneList);
+
+
+
+
+    return 0;
+}
+
 
 int comExtractData()
 {
@@ -564,12 +674,12 @@ int comDrvStat()
     //  Only one pane for serial runs ^^^^^^^^^^^
     int pane = paneList[0];
 
-    //  Get for grid coordinates ^^^^^^^^^^^^^^^^
+    //  Get for grid volCoordinates ^^^^^^^^^^^^^^^^
     std::string dataName = name+string(".nc");
-    COM_get_array(dataName.c_str(), pane, &Coord);
+    COM_get_array(dataName.c_str(), pane, &volCoord);
 
     //  Check for expected number of nodes ^^^^^^
-    COM_get_size(dataName.c_str(), pane, &numNodes);
+    COM_get_size(dataName.c_str(), pane, &volNumNodes);
 
     //  Get connectivity tables for panes ^^^^^^^
     std::string stringNames;
@@ -609,7 +719,7 @@ int comDrvStat()
     std::cout << "rocFoam.main: getDataItemUnits "
               << getDataItemUnits << std::endl;
     
-    COM_get_array(fullConnName.c_str(), pane, &Conn8);
+    COM_get_array(fullConnName.c_str(), pane, &Conn);
     COM_get_size(fullConnName, pane, &numElem);
 
 
@@ -623,7 +733,7 @@ int comDrvStat()
     {
         for (int j=0; j<numElementNodes; ++j)
         {
-            connVector.push_back((Conn8[i*numElementNodes+j]));
+            connVector.push_back((Conn[i*numElementNodes+j]));
         }
     }
 

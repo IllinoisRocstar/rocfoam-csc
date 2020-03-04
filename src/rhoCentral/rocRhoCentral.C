@@ -50,20 +50,16 @@ void rhoCentral::load(const char *name)
         std::cout << std::endl;
     }
 
-
+    // Register Volume Window ^^^^^^^^^^^^^^^^^^^
     std::string volName = name+string("VOL");
-    std::string srfName = name+string("SRF");
 
-
-    //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  Register module with COM
     rhoCentral *comFoamPtr = new rhoCentral();
 
     //COM_new_window(name, MPI_COMM_NULL);
     COM_new_window(volName, tmpComm);
-    //COM_new_window(srfName, tmpComm);
 
     comFoamPtr->winVolName = volName;
-    comFoamPtr->winSrfName = srfName;
 
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;
@@ -75,13 +71,21 @@ void rhoCentral::load(const char *name)
     MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
 
     std::string objectName = volName + string(".object");
-
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
-
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
-
     COM_window_init_done(volName);
-    //COM_window_init_done(srfName);  
+    //-------------------------------------------
+
+    // Register Surface Window ^^^^^^^^^^^^^^^^^^
+    std::string surfName = name+string("SURF");
+    COM_new_window(surfName, tmpComm);
+    comFoamPtr->winSurfName = surfName;
+
+    objectName = surfName + string(".object");
+    COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
+    COM_set_object(objectName.c_str(), 0, comFoamPtr);
+    COM_window_init_done(surfName);
+    //-------------------------------------------
 
     comFoamPtr->registerFunctions(volName.c_str());
 
@@ -99,17 +103,15 @@ void rhoCentral::unload(const char *name)
     comFoam *comFoamPtr = NULL;
 
     std::string volName = name+string("VOL");
-    std::string srfName = name+string("SRF");
-
     std::string objectName(volName+".object");
-
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     //comFoamPtr->finalize();
     delete comFoamPtr;
-
     COM_delete_window(std::string(volName));
-    //COM_delete_window(std::string(srfName));
+
+    std::string surfName = name+string("SURF");
+    COM_delete_window(std::string(surfName));
 }
 //---------------------------------------------------------
 
@@ -428,7 +430,6 @@ int rhoCentral::loop()
     loopStat = 0;
     return loopStat;
 }
-
 
 
 int rhoCentral::step()

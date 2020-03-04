@@ -23,67 +23,100 @@ public:
     ~comFoam()
     {   
         deleteVolumeData();
+        deleteSurfaceData();
     }
 
-protected:
+private:
 
-    int nPoints;
-    int nFaces;
-    int nCells;
-    int nPatches;
+    // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    int ca_nPoints;
+    int ca_nFaces;
+    int ca_nCells;
+    int ca_nPatches;
 
     // Volume Connectivity Vectors ^^^^^^^^^^^^^^
-    std::vector< std::vector< std::vector<int> >> vecCellToFaceConn;
-    std::vector< std::vector< std::vector<int> >> vecCellToPointConn;
-    //std::vector<std::vector< std::vector<int> >> vecCellToPointConnVTK;
-    std::vector< std::vector<int> > vecCellTypeLocalToGlobalMap;
-    std::vector< std::vector<int> > vecFaceToPointConn;
+    std::vector< std::vector<int> > vecCellToCellMap_localToGlobal;
     std::vector<int> vecOwners;
     std::vector<int> vecNeighbs;
-    
     //-------------------------------------------
 
-    // COM VOLUME ARRAYS^^^^^^^^^^^^^^^^^^^^^^^^^
+    // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Connectivity ^^^^^^^^^^^^^^^^^^^
-    int   nCellTypes = 0;
-    int   nComponents = 3;
-    int*  nCellTypeMap = NULL;
-    int*  nCellTypeSize = NULL;
-    
-    int** cellTypeLocalToGlobalMap = NULL;
-    int** comArrCelltoPointConn = NULL;
+    const int nComponents = 3;
+    int   ca_cellToPointConn_types = 0;
+    int*  ca_cellToPointConn_map = NULL;
+    int*  ca_cellToPointConn_size = NULL;
+
+    int** ca_cellToCellMap_localToGlobal = NULL;
+    int** ca_celltoPointConn = NULL;
+
+    int* ca_faces = NULL;
+    int* ca_owner = NULL;
+    int* ca_neighb = NULL;
 
     // Field Data ^^^^^^^^^^^^^^^^^^^^^
-    double* comArrPoints = NULL;
-    double* comArrVel = NULL;
-    double* comArrP = NULL;
-    double* comArrT = NULL;
-    double* comArrRho = NULL;
+    double* ca_Points = NULL;
+    double* ca_Vel = NULL;
+    double* ca_P = NULL;
+    double* ca_T = NULL;
+    double* ca_Rho = NULL;
     //-------------------------------------------
     
-    
-    // Patch Vectors ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector< std::vector<int> > patchGlobalPointIndex;
-    std::vector< std::vector< std::vector<int> >> patchLocalConnectivity;
-
-    std::vector< std::vector< std::vector<double> >> vecPatchVel;
-    std::vector< std::vector<double> > vecPatchRho;
-    std::vector< std::vector<double> > vecPatchP;
-    std::vector< std::vector<double> > vecPatchT;
-
-    std::vector<std::string> vecPatchName;
-    std::vector<std::string> vecPatchType;
-    // Note: I need to change this
-    std::vector< wordList > vecPatchInGroup;
-
-    std::vector<int> vecPatchStart;
-    std::vector<int> vecPatchNFaces;
-    std::vector<int> vecPatchNPoints;
+    // Patch Connectivity Vectors ^^^^^^^^^^^^^^
+    std::vector< std::vector< std::vector<int> >> vecPatchFaceToFaceMap_localToLocal;
+    std::vector< std::vector<int> >  vecPatchPointToPointMap_localToGlobal;
+    std::vector< std::vector< std::vector< std::vector<int> >>>
+        vecPatchFaceToPointConn_localToLocal;
     //-------------------------------------------
 
+    // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Connectivity ^^^^^^^^^^^^^^^^^^^
+    int* patchFaceToFaceMap_types = NULL;
+    int** patchFaceToFaceMap_map = NULL;
+    int** patchFaceToFaceMap_size = NULL;
+    int*** patchFaceToFaceMap_localToLocal = NULL;
+
+    int* patchPointToPointMap_size = NULL;
+    int** patchPointToPointMap_localToGlobal = NULL;
+
+    int* ca_patchFaceToPointConn_types = NULL;
+    int** ca_patchFaceToPointConn_map = NULL;
+    int** ca_patchFaceToPointConn_size = NULL;
+    int*** ca_patchFaceToPointConn_localToLocal = NULL;
+
+    // General data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string* ca_patchName = NULL;
+    std::string* ca_patchType = NULL;
+    wordList* ca_patchInGroup = NULL;
+    int* ca_patchStart = NULL;
+    int* ca_patchSize = NULL;
+
+    // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    double** ca_patchPoints = NULL;
+    double** ca_patchVel = NULL;
+    double** ca_patchRho = NULL;
+    double** ca_patchP = NULL;
+    double** ca_patchT = NULL;
+    //-------------------------------------------
+
+    // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    int createVolumeConnectivities();
+    int createVolumeData();
+    int deleteVolumeData();
+    int updateVolumeData();
+    int registerVolumeData(const char *name);
+
+    int createSurfaceConnectivities();
+    int createSurfaceData();
+    int deleteSurfaceData();
+    int updateSurfaceData();
+    int registerSurfaceData(const char *name);    
+    
+    
+protected:
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string winVolName; /// Tracks *this* volume window name.
-    std::string winSrfName; /// Tracks *this* volume window name.
+    std::string winSurfName; /// Tracks *this* volume window name.
 
     std::string solverType;
     MPI_Comm winComm; /// Tracks *this* window communicator.
@@ -95,36 +128,12 @@ protected:
     scalar winDeltaT;
     int winRun;
     
+    // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    int registerFunctions(const char *name);
 
-    
-
-    int *comFaces = NULL;
-    int *comOwner = NULL;
-    int *comNeighb = NULL;
-
-
-protected:
     int flowInit(int *pargc, void **pargv, const char *name);
     int flowLoop(const char *name);
     int flowStep(const char *name);
-
-    int flowExtractData(const char *name);
-    int flowRegisterData(const char *name);
-    
-    //virtual int flowFin() { return 0; }
-    //virtual int flowStat() { return 0; }
-
-    int registerFunctions(const char *name);
-
-    int createVolumeConnectivities();
-    int createVolumeData();
-    int deleteVolumeData();
-    int updateVolumeData();
-    int registerData(const char *name);
-
-
-    int createSurfaceConnectivities();
-
 
 };
 
