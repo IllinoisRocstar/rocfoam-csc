@@ -10,6 +10,12 @@ int comFoam::createSurfaceConnectivities()
 
     // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<int> vecTmpInt;
+
+    // Patch Connectivity Vectors ^^^^^^^^^^^^^^
+    std::vector< std::vector< std::vector<int> >> vecPatchFaceToFaceMap_localToLocal;
+    std::vector< std::vector<int> >  vecPatchPointToPointMap_localToGlobal;
+    std::vector< std::vector< std::vector< std::vector<int> >>>
+        vecPatchFaceToPointConn_localToLocal;
     //-------------------------------------------
 
     ca_nPatches = patches.size();
@@ -17,8 +23,6 @@ int comFoam::createSurfaceConnectivities()
     // Face-mapping vectors ^^^^^^^^^^^^^^^^^^^^^
     vecPatchFaceToFaceMap_localToLocal.clear();
     vecPatchFaceToFaceMap_localToLocal.resize(ca_nPatches);
-
-    int faceToPointTypeSize=4;
     forAll(patches, ipatch)
     {
         vecPatchFaceToFaceMap_localToLocal[ipatch].resize(faceToPointTypeSize);
@@ -49,7 +53,6 @@ int comFoam::createSurfaceConnectivities()
 
     // PointToPoint mapping Vector ^^^^^^^^^^^^^^
     vecPatchPointToPointMap_localToGlobal.clear();
-
     forAll(patches, ipatch)
     {
         const polyPatch& patch = patches[ipatch];
@@ -147,7 +150,7 @@ int comFoam::createSurfaceConnectivities()
     patchFaceToFaceMap_types = new int[ca_nPatches];
     patchFaceToFaceMap_map   = new int*[ca_nPatches];
     patchFaceToFaceMap_size  = new int*[ca_nPatches];
-    patchFaceToFaceMap_localToLocal = new int**[ca_nPatches];
+    ca_patchFaceToFaceMap_localToLocal = new int**[ca_nPatches];
 
     // face local to local
     forAll(patches, ipatch)
@@ -165,7 +168,7 @@ int comFoam::createSurfaceConnectivities()
 
         patchFaceToFaceMap_map[ipatch]  = new int[typeCount];
         patchFaceToFaceMap_size[ipatch] = new int[typeCount];
-        patchFaceToFaceMap_localToLocal[ipatch] = new int*[typeCount];
+        ca_patchFaceToFaceMap_localToLocal[ipatch] = new int*[typeCount];
 
         typeCount = 0;
         for (int itype=0; itype<totalnFaceTypes; itype++)
@@ -176,11 +179,11 @@ int comFoam::createSurfaceConnectivities()
                 patchFaceToFaceMap_map[ipatch][typeCount]  = itype+1;
                 patchFaceToFaceMap_size[ipatch][typeCount] = nfaces;
 
-                patchFaceToFaceMap_localToLocal[ipatch][typeCount] = new int[nfaces];
+                ca_patchFaceToFaceMap_localToLocal[ipatch][typeCount] = new int[nfaces];
             
                 for(int iface=0; iface<nfaces; iface++)
                 {
-                    patchFaceToFaceMap_localToLocal[ipatch][typeCount][iface] = 
+                    ca_patchFaceToFaceMap_localToLocal[ipatch][typeCount][iface] = 
                         vecPatchFaceToFaceMap_localToLocal[ipatch][itype][iface];
                 }
                 typeCount++;
@@ -374,17 +377,17 @@ int comFoam::deleteSurfaceData()
         
         for(int itype=0; itype<ntypes; itype++)
         {
-            if (patchFaceToFaceMap_localToLocal[ipatch][itype] != NULL)
+            if (ca_patchFaceToFaceMap_localToLocal[ipatch][itype] != NULL)
             {
-                delete [] patchFaceToFaceMap_localToLocal[ipatch][itype];
-                patchFaceToFaceMap_localToLocal[ipatch][itype] = NULL;
+                delete [] ca_patchFaceToFaceMap_localToLocal[ipatch][itype];
+                ca_patchFaceToFaceMap_localToLocal[ipatch][itype] = NULL;
             }
         }
 
-        if (patchFaceToFaceMap_localToLocal[ipatch] != NULL)
+        if (ca_patchFaceToFaceMap_localToLocal[ipatch] != NULL)
         {
-            delete [] patchFaceToFaceMap_localToLocal[ipatch];
-            patchFaceToFaceMap_localToLocal[ipatch] = NULL;
+            delete [] ca_patchFaceToFaceMap_localToLocal[ipatch];
+            ca_patchFaceToFaceMap_localToLocal[ipatch] = NULL;
         }
 
         if (patchFaceToFaceMap_map[ipatch] != NULL)
@@ -400,10 +403,10 @@ int comFoam::deleteSurfaceData()
         }
     }
 
-    if (patchFaceToFaceMap_localToLocal != NULL)
+    if (ca_patchFaceToFaceMap_localToLocal != NULL)
     {
-        delete [] patchFaceToFaceMap_localToLocal;
-        patchFaceToFaceMap_localToLocal = NULL;
+        delete [] ca_patchFaceToFaceMap_localToLocal;
+        ca_patchFaceToFaceMap_localToLocal = NULL;
     }
 
     if (patchFaceToFaceMap_map != NULL)
@@ -504,10 +507,6 @@ int comFoam::deleteSurfaceData()
         ca_patchFaceToPointConn_types = NULL;
     }
     //-------------------------------------------
-
-    vecPatchFaceToFaceMap_localToLocal.clear();
-    vecPatchPointToPointMap_localToGlobal.clear();
-    vecPatchFaceToPointConn_localToLocal.clear();
 
     return 0;
 }
@@ -615,7 +614,7 @@ int comFoam::updateSurfaceData()
             
             for(int iface=0; iface<nfaces; iface++)
             {
-                int localFaceID = patchFaceToFaceMap_localToLocal[ipatch][itype][iface];
+                int localFaceID = ca_patchFaceToFaceMap_localToLocal[ipatch][itype][iface];
                 
                 for(int jcomp=0; jcomp<nComponents; jcomp++)
                 {

@@ -254,5 +254,6 @@ int comFoam::registerFunctions(const char *name)
 
 //===================================================================
 
-#   include "volumeWindowMethods.H"
-#   include "surfaceWindowMethods.H"
+#   include "volumeMethods.H"
+#   include "faceMethods.H"
+#   include "surfaceMethods.H"

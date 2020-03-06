@@ -4,25 +4,20 @@ int comFoam::createVolumeConnectivities()
     const dynamicFvMesh& mesh(*meshPtr);
 
     // Mesh and conmnectivities ^^^^^^^^^^^^^^^^^
-    const faceList&   faces      = mesh.faces();
-    const labelList&  faceOwner  = mesh.faceOwner();
-    const labelList&  faceNeighb = mesh.faceNeighbour();    
-
     const labelListList& cellPoints = mesh.cellPoints();
     const cellShapeList& cellShapes = mesh.cellShapes();
     //-------------------------------------------
 
-    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector<int> vecTmpInt;
-    //-------------------------------------------
-
     ca_nPoints = mesh.nPoints();
-    ca_nFaces  = mesh.nFaces();
     ca_nCells  = mesh.nCells();
 
+    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
+    std::vector<int> vecTmpInt;
+
+    std::vector< std::vector<int> > vecCellToCellMap_localToGlobal;
+    //-------------------------------------------
+
     // cellToPoint connectivities ^^^^^^^^^^^^^^^
-    int cellToPointTypeSize=8;
-    
     vecCellToCellMap_localToGlobal.clear();
     vecCellToCellMap_localToGlobal.resize(cellToPointTypeSize);
     for (int i=0; i<cellToPointTypeSize; i++)
@@ -110,16 +105,6 @@ int comFoam::createVolumeConnectivities()
     
     //-------------------------------------------
 
-    // Save faceToCell and faceToPoint conn ^^^^^
-    vecOwners.clear();
-    vecNeighbs.clear();
-    forAll(faces, i)
-    {
-        vecOwners.push_back(faceOwner[i]);
-        vecNeighbs.push_back(faceNeighb[i]);
-    }
-    //-------------------------------------------
-
     return 0;
 }
 
@@ -193,10 +178,6 @@ int comFoam::deleteVolumeData()
         delete[] ca_Rho;
         ca_Rho = NULL;
     }
-
-    vecCellToCellMap_localToGlobal.clear();
-    vecOwners.clear();
-    vecNeighbs.clear();
 
     return 0;
 }
@@ -295,9 +276,11 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, 0, &(winRun));
 
     // points
+    int paneID = 1; // Use this ID for surface pane 
+                    // in volume window
     dataName = volName+string(".nc");
-    COM_set_size( dataName, 1, ca_nPoints);
-    COM_set_array(dataName, 1, ca_Points, nComponents);
+    COM_set_size( dataName, paneID, ca_nPoints);
+    COM_set_array(dataName, paneID, ca_Points, nComponents);
 
     // connectivity
     for(int itype=0; itype<ca_cellToPointConn_types; itype++)
@@ -333,8 +316,8 @@ int comFoam::registerVolumeData(const char *name)
             return -1;
         }
 
-        COM_set_size( dataName, 1, typeSize);
-        COM_set_array( dataName, 1,
+        COM_set_size( dataName, paneID, typeSize);
+        COM_set_array( dataName, paneID,
                        ca_celltoPointConn[itype],
                        typeID
                      );
@@ -343,19 +326,19 @@ int comFoam::registerVolumeData(const char *name)
     // Element data registered with window
     dataName = volName+string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
-    COM_set_array(    dataName, 1, ca_Vel, nComponents);    
+    COM_set_array(    dataName, paneID, ca_Vel, nComponents);    
 
     dataName = volName+string(".pres");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
-    COM_set_array(    dataName, 1, ca_P, 1);
+    COM_set_array(    dataName, paneID, ca_P, 1);
 
     dataName = volName+string(".temp");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
-    COM_set_array(    dataName, 1, ca_T, 1);
+    COM_set_array(    dataName, paneID, ca_T, 1);
 
     dataName = volName+string(".rho");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
-    COM_set_array(    dataName, 1, ca_Rho, 1);
+    COM_set_array(    dataName, paneID, ca_Rho, 1);
 
     COM_window_init_done(volName); 
 
