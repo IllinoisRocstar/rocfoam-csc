@@ -23,6 +23,7 @@ public:
     ~comFoam()
     {   
         deleteVolumeData();
+        deleteFaceData();
         deleteSurfaceData();
     }
 

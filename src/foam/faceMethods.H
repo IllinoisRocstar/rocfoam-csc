@@ -284,16 +284,19 @@ int comFoam::registerFaceData(const char *name)
                        ca_faceToPointConn[itype],
                        typeID
                      );
+        Foam::Info << dataName << " registered." << endl;
     }
 
     // Field variables
     dataName = volName+string(".owner");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_owner, 1);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".neighbor");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_neighb, 1);
+    Foam::Info << dataName << " registered." << endl;
 
     COM_window_init_done(volName); 
 

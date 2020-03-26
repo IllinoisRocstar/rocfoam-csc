@@ -259,21 +259,25 @@ int comFoam::registerVolumeData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, &(winNProc));
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".winTime");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, &(winTime));
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".winDeltaT");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, &(winDeltaT) );
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".winRun");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, &(winRun));
+    Foam::Info << dataName << " registered." << endl;
 
     // points
     int paneID = 1; // Use this ID for surface pane 
@@ -281,6 +285,7 @@ int comFoam::registerVolumeData(const char *name)
     dataName = volName+string(".nc");
     COM_set_size( dataName, paneID, ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
+    Foam::Info << dataName << " registered." << endl;
 
     // connectivity
     for(int itype=0; itype<ca_cellToPointConn_types; itype++)
@@ -321,24 +326,29 @@ int comFoam::registerVolumeData(const char *name)
                        ca_celltoPointConn[itype],
                        typeID
                      );
+         Foam::Info << dataName << " registered." << endl;
     }
         
     // Element data registered with window
     dataName = volName+string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
     COM_set_array(    dataName, paneID, ca_Vel, nComponents);    
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".pres");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
     COM_set_array(    dataName, paneID, ca_P, 1);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".temp");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
     COM_set_array(    dataName, paneID, ca_T, 1);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".rho");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
     COM_set_array(    dataName, paneID, ca_Rho, 1);
+    Foam::Info << dataName << " registered." << endl;
 
     COM_window_init_done(volName); 
 

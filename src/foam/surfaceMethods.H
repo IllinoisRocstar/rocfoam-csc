@@ -650,31 +650,37 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_STRING, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchName);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = surfName+string(".patchType");
     COM_new_dataitem( dataName, 'w', COM_STRING, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchType);
+    Foam::Info << dataName << " registered." << endl;
     
     dataName = surfName+string(".patchInGroup");
     COM_new_dataitem( dataName, 'w', COM_STRING, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchInGroup);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = surfName+string(".patchInGroup");
     COM_new_dataitem( dataName, 'w', COM_STRING, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchInGroup);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = surfName+string(".patchStart");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchStart);
+    Foam::Info << dataName << " registered." << endl;
 
     dataName = surfName+string(".patchSize");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, ca_nPatches);
     COM_set_array(    dataName, 0, ca_patchSize);
+    Foam::Info << dataName << " registered." << endl;
 
     // Element data registered with window
     dataName = surfName+string(".vel");
@@ -733,20 +739,36 @@ int comFoam::registerSurfaceData(const char *name)
                            ca_patchFaceToPointConn_localToLocal[ipatch][itype],
                            typeID
                          );
+            Foam::Info << "   Patch[" << ipatch << "] "
+                               << dataName << " registered."
+                               << endl;
         }
             
         // Field variables
         dataName = surfName+string(".vel");
         COM_set_array(    dataName, paneID, ca_patchVel[ipatch], nComponents);
+        Foam::Info << "   Patch[" << ipatch << "] "
+                           << dataName << " registered."
+                           << endl;
 
         dataName = surfName+string(".pres");
         COM_set_array(    dataName, paneID, ca_patchP[ipatch], 1);
+        Foam::Info << "   Patch[" << ipatch << "] "
+                           << dataName << " registered."
+                           << endl;
 
         dataName = surfName+string(".temp");
         COM_set_array(    dataName, paneID, ca_patchT[ipatch], 1);
+        Foam::Info << "   Patch[" << ipatch << "] "
+                           << dataName << " registered."
+                           << endl; 
 
         dataName = surfName+string(".rho");
         COM_set_array(    dataName, paneID, ca_patchRho[ipatch], 1);
+        Foam::Info << "   Patch[" << ipatch << "] "
+                           << dataName << " registered."
+                           << endl;
+
     }
 
     COM_window_init_done(surfName); 
