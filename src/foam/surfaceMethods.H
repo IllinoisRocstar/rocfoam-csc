@@ -682,6 +682,20 @@ int comFoam::registerSurfaceData(const char *name)
     COM_set_array(    dataName, 0, ca_patchSize);
     Foam::Info << dataName << " registered." << endl;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Element data registered with window
     dataName = surfName+string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");

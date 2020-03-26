@@ -70,10 +70,6 @@ protected:
     int** ca_cellToCellMap_localToGlobal = NULL;
     int** ca_celltoPointConn = NULL;
 
-    int* ca_faces = NULL;
-    int* ca_owner = NULL;
-    int* ca_neighb = NULL;
-
     // Field Data ^^^^^^^^^^^^^^^^^^^^^
     double* ca_Points = NULL;
     double* ca_Vel = NULL;
@@ -82,10 +78,6 @@ protected:
     double* ca_Rho = NULL;
     //-------------------------------------------
     
-
-
-
-
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Connectivity ^^^^^^^^^^^^^^^^^^^
     int       faceToFaceMap_types = 0;
@@ -97,28 +89,23 @@ protected:
     int*  ca_faceToPointConn_map = NULL;
     int*  ca_faceToPointConn_size = NULL;
     int** ca_faceToPointConn = NULL;
-    //
-
 
     int* ca_faceOwner = NULL;
     int* ca_faceNeighb = NULL;
 
-
-
-
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Connectivity ^^^^^^^^^^^^^^^^^^^
-    int* patchFaceToFaceMap_types = NULL;
-    int** patchFaceToFaceMap_map = NULL;
-    int** patchFaceToFaceMap_size = NULL;
+    int*   patchFaceToFaceMap_types = NULL;
+    int**  patchFaceToFaceMap_map = NULL;
+    int**  patchFaceToFaceMap_size = NULL;
     int*** ca_patchFaceToFaceMap_localToLocal = NULL;
 
-    int* patchPointToPointMap_size = NULL;
+    int*  patchPointToPointMap_size = NULL;
     int** patchPointToPointMap_localToGlobal = NULL;
 
-    int* ca_patchFaceToPointConn_types = NULL;
-    int** ca_patchFaceToPointConn_map = NULL;
-    int** ca_patchFaceToPointConn_size = NULL;
+    int*   ca_patchFaceToPointConn_types = NULL;
+    int**  ca_patchFaceToPointConn_map = NULL;
+    int**  ca_patchFaceToPointConn_size = NULL;
     int*** ca_patchFaceToPointConn_localToLocal = NULL;
 
     // General data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

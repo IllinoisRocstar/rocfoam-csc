@@ -279,9 +279,38 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, 0, &(winRun));
     Foam::Info << dataName << " registered." << endl;
 
+    dataName = volName+string(".nPoints");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, &(ca_nPoints));
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".nCells");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, &(ca_nCells));
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".cellToPointConn_types");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, &(ca_cellToPointConn_types));
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".cellToPointConn_map");
+    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
+    COM_set_size( dataName, 0, ca_cellToPointConn_types);
+    COM_set_array(dataName, 0, ca_cellToPointConn_map);
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".cellToPointConn_size");
+    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
+    COM_set_size( dataName, 0, ca_cellToPointConn_types);
+    COM_set_array(dataName, 0, ca_cellToPointConn_size);
+    Foam::Info << dataName << " registered." << endl;
+
+    int paneID = 1; // Use this paneID for volume connectivity
     // points
-    int paneID = 1; // Use this ID for surface pane 
-                    // in volume window
     dataName = volName+string(".nc");
     COM_set_size( dataName, paneID, ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
@@ -292,7 +321,13 @@ int comFoam::registerVolumeData(const char *name)
     {
         int typeID = ca_cellToPointConn_map[itype];
         int typeSize = ca_cellToPointConn_size[itype];
-        
+
+        dataName = volName+string(".cellToCellMap_")+std::to_string(itype);
+        COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
+        COM_set_size( dataName, paneID, typeSize);
+        COM_set_array(dataName, paneID, ca_cellToCellMap_localToGlobal[itype]);
+        Foam::Info << dataName << " registered." << endl;
+
         if (typeID == 4)
         { // Tet
             dataName = volName+string(".:T4");
@@ -326,7 +361,7 @@ int comFoam::registerVolumeData(const char *name)
                        ca_celltoPointConn[itype],
                        typeID
                      );
-         Foam::Info << dataName << " registered." << endl;
+        Foam::Info << dataName << " registered." << endl;
     }
         
     // Element data registered with window

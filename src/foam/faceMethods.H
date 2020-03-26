@@ -175,7 +175,7 @@ int comFoam::deleteFaceData()
     }
     //-------------------------------------------
 
-    //  Create faceToPoint connectivity arrays ^^    
+    //  faceToPoint connectivity arrays ^^^^^^^^^
     ntypes = ca_faceToPointConn_types;
     for(int itype=0; itype<ntypes; itype++)
     {
@@ -204,6 +204,18 @@ int comFoam::deleteFaceData()
         ca_faceToPointConn_size = NULL;
     }
     //-------------------------------------------
+
+    if (ca_faceOwner != NULL)
+    {
+        delete [] ca_faceOwner;
+        ca_faceOwner = NULL;
+    }
+
+    if (ca_faceNeighb != NULL)
+    {
+        delete [] ca_faceNeighb;
+        ca_faceNeighb = NULL;
+    }
 
     return 0;
 }
@@ -251,14 +263,43 @@ int comFoam::registerFaceData(const char *name)
     std::string volName = name+string("VOL");
     std::string dataName = string("");
 
-    int paneID = 1; // Use this ID for surface pane 
-                    // in volume window
 
+    dataName = volName+string(".nFaces");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, &(ca_nFaces));
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".faceToPointConn_types");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, &(ca_faceToPointConn_types));
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".faceToPointConn_map");
+    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
+    COM_set_size( dataName, 0, ca_faceToPointConn_types);
+    COM_set_array(dataName, 0, ca_faceToPointConn_map);
+    Foam::Info << dataName << " registered." << endl;
+
+    dataName = volName+string(".faceToPointConn_size");
+    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
+    COM_set_size( dataName, 0, ca_faceToPointConn_types);
+    COM_set_array(dataName, 0, ca_faceToPointConn_size);
+    Foam::Info << dataName << " registered." << endl;
+
+    int paneID = 2; // Use this paneID for face connectivity
     int ntypes = faceToFaceMap_types;
     for(int itype=0; itype<ntypes; itype++)
     {
         int typeID = faceToFaceMap_map[itype];
         int nfaces = faceToFaceMap_size[itype];
+
+        dataName = volName+string(".faceToFaceMap_")+std::to_string(itype);
+        COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
+        COM_set_size( dataName, paneID, nfaces);
+        COM_set_array(dataName, paneID, ca_faceToFaceMap[itype]);
+        Foam::Info << dataName << " registered." << endl;
 
         if (typeID == 3)
         { // Triangle
@@ -290,15 +331,15 @@ int comFoam::registerFaceData(const char *name)
     // Field variables
     dataName = volName+string(".owner");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
-    COM_set_array(dataName, paneID, ca_owner, 1);
+    COM_set_array(dataName, paneID, ca_faceOwner, 1);
     Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".neighbor");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
-    COM_set_array(dataName, paneID, ca_neighb, 1);
+    COM_set_array(dataName, paneID, ca_faceNeighb, 1);
     Foam::Info << dataName << " registered." << endl;
 
-    COM_window_init_done(volName); 
+    COM_window_init_done(volName);
 
     return 0;
 }

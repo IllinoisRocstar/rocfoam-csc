@@ -70,12 +70,10 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     comFoamPtr->updateVolumeData();
     comFoamPtr->registerVolumeData(name);
 
-    /*
     comFoamPtr->createFaceConnectivities();
     comFoamPtr->createFaceData();
     comFoamPtr->updateFaceData();
-    comFoamPtr->registerSurfaceData(name);
-    */
+    comFoamPtr->registerFaceData(name);
 
     comFoamPtr->createSurfaceConnectivities();
     comFoamPtr->createSurfaceData();
