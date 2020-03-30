@@ -14,95 +14,92 @@ int comFoam::createVolumeConnectivities()
     // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<int> vecTmpInt;
 
-    std::vector< std::vector<int> > vecCellToCellMap_localToGlobal;
+    std::vector< std::vector<int> > vecCellToCellMap;
     //-------------------------------------------
 
     // cellToPoint connectivities ^^^^^^^^^^^^^^^
-    vecCellToCellMap_localToGlobal.clear();
-    vecCellToCellMap_localToGlobal.resize(cellToPointTypeSize);
+    vecCellToCellMap.clear();
+    vecCellToCellMap.resize(cellToPointTypeSize);
     for (int i=0; i<cellToPointTypeSize; i++)
     {
-        vecCellToCellMap_localToGlobal[i].clear();
+        vecCellToCellMap[i].clear();
     }
 
     forAll(cellPoints, icell)
     {
         const labelList& pointsList = cellPoints[icell];
         int nPointsInCell = pointsList.size();
-        vecCellToCellMap_localToGlobal[nPointsInCell-1].push_back(icell);
+        vecCellToCellMap[nPointsInCell-1].push_back(icell);
     }
     //-------------------------------------------
 
-    // Create local-to-global cell map according to types
-    int totalnCellTypes = vecCellToCellMap_localToGlobal.size();
+    // Create cellToCell mapping ^^^^^^^^^^^^^^^^
+    ca_cellToCellMap = new int[ca_nCells];
 
+    int sortedCellIndex = 0;
+    int typeCount = 0;
+    int totalnCellTypes = vecCellToCellMap.size();
     for(int itype=0; itype<totalnCellTypes; itype++)
     {
-        if (vecCellToCellMap_localToGlobal[itype].size()>0)
+        int nCells = vecCellToCellMap[itype].size();
+        if (nCells > 0)
         {
-            ca_cellToPointConn_types++;
-        }
-    }
-
-    ca_cellToPointConn_map  = new int[ca_cellToPointConn_types];
-    ca_cellToPointConn_size = new int[ca_cellToPointConn_types];
-    ca_cellToCellMap_localToGlobal = new int*[ca_cellToPointConn_types];
-    
-    int checkSum = 0;
-    ca_cellToPointConn_types = 0;
-    for(int itype=0; itype<totalnCellTypes; itype++)
-    {
-        if (vecCellToCellMap_localToGlobal[itype].size()>0)
-        {
-            ca_cellToPointConn_map[ca_cellToPointConn_types] = itype+1;
-            
-            int typeSize = vecCellToCellMap_localToGlobal[itype].size();
-            ca_cellToPointConn_size[ca_cellToPointConn_types] = typeSize;
-
-            ca_cellToCellMap_localToGlobal[ca_cellToPointConn_types] = new int[typeSize];
-
-            for(int icell=0; icell<typeSize; icell++)
+            for(int icell=0; icell<nCells; icell++)
             {
-                ca_cellToCellMap_localToGlobal[ca_cellToPointConn_types][icell] =
-                    vecCellToCellMap_localToGlobal[itype][icell];
-            
-                checkSum++;
-            }
+                ca_cellToCellMap[sortedCellIndex] =
+                    vecCellToCellMap[itype][icell];
 
-            ca_cellToPointConn_types++;
+                sortedCellIndex++;
+            }
+            typeCount++;
         }
     }
-
-    if (checkSum != ca_nCells)
+    //-------------------------------------------
+    if (sortedCellIndex != ca_nCells)
     {
         Foam::Info << "========== WARNNING ===============" << endl
-                   << "     checkSum != ca_nCells " << endl
-                   << "    " << checkSum << "!=" << ca_nCells << endl;
+                   << "     sortedCellIndex != ca_nCells " << endl
+                   << "    " << sortedCellIndex << "!=" << ca_nCells << endl;
         return -1;
     }
 
-    ca_celltoPointConn = new int*[ca_cellToPointConn_types];
-    for(int itype=0; itype<ca_cellToPointConn_types; itype++)
+    // cetToPoint Connectivity ^^^^^^^^^^^^^^^^^^
+    ca_cellToPointConn_types = typeCount;
+    ca_cellToPointConn_map  = new int[typeCount];
+    ca_cellToPointConn_size = new int[typeCount];
+    ca_celltoPointConn = new int*[typeCount];
+
+    typeCount = 0;
+    sortedCellIndex = 0;
+    for(int itype=0; itype<totalnCellTypes; itype++)
     {
-        int nPoints_ = ca_cellToPointConn_map[itype];
-        int nCells_  = ca_cellToPointConn_size[itype];
-        
-        int nTypeConn = nCells_ * nPoints_;
-        ca_celltoPointConn[itype] = new int[nTypeConn];
-
-        for (int icell=0; icell<nCells_; icell++)
+        int nCells = vecCellToCellMap[itype].size();
+        if (nCells > 0)
         {
-            int cellID = ca_cellToCellMap_localToGlobal[itype][icell];
-            const cellShape& cellShape_ = cellShapes[cellID];
+            int nPoints = itype+1;
+            ca_cellToPointConn_map[typeCount] = nPoints;
+            ca_cellToPointConn_size[typeCount] = nCells;
 
-            for (int ipoint=0; ipoint<nPoints_; ipoint++)
+            int nTypeConn = nCells * nPoints;
+            ca_celltoPointConn[typeCount] = new int[nTypeConn];
+
+            for (int icell=0; icell<nCells; icell++)
             {
-                int index = icell*nPoints_ + ipoint;
-                ca_celltoPointConn[itype][index] = cellShape_[ipoint];
+                int cellID = ca_cellToCellMap[sortedCellIndex];
+                const cellShape& cellShape_ = cellShapes[cellID];
+
+                for (int ipoint=0; ipoint<nPoints; ipoint++)
+                {
+                    int index = icell*nPoints + ipoint;
+
+                    ca_celltoPointConn[typeCount][index] = cellShape_[ipoint];
+                }
+                sortedCellIndex++;
             }
+            typeCount++;
         }
+
     }
-    
     //-------------------------------------------
 
     return 0;
@@ -110,7 +107,6 @@ int comFoam::createVolumeConnectivities()
 
 int comFoam::deleteVolumeData()
 {
-
     if (ca_cellToPointConn_map != NULL)
     {
         delete [] ca_cellToPointConn_map;
@@ -123,19 +119,6 @@ int comFoam::deleteVolumeData()
         ca_cellToPointConn_size = NULL;
     }
    
-    if (ca_cellToCellMap_localToGlobal != NULL)
-    {
-        for (int itype=0; itype<ca_cellToPointConn_types; itype++)
-        {
-            if (ca_cellToCellMap_localToGlobal[itype] != NULL)
-            {
-                delete [] ca_cellToCellMap_localToGlobal[itype];
-            }
-        }
-        delete [] ca_cellToCellMap_localToGlobal;
-        ca_cellToCellMap_localToGlobal = NULL;
-    }
-
     if (ca_celltoPointConn != NULL)
     {
         for (int itype=0; itype<ca_cellToPointConn_types; itype++)
@@ -148,7 +131,6 @@ int comFoam::deleteVolumeData()
         ca_celltoPointConn = NULL;
     }
     
-
     if (ca_Points != NULL)
     {
         delete[] ca_Points;
@@ -188,13 +170,14 @@ int comFoam::createVolumeData()
     int nTotal = ca_nPoints * nComponents;
     ca_Points = new double[nTotal];
 
+    // Field-data
     nTotal = ca_nCells * nComponents;
     ca_Vel = new double[nTotal];
 
     ca_P = new double[ca_nCells];
     ca_T = new double[ca_nCells];
     ca_Rho = new double[ca_nCells];
-    
+
     return 0;
 }
 
@@ -225,7 +208,7 @@ int comFoam::updateVolumeData()
         int ncells = ca_cellToPointConn_size[itype];
         for(int icell=0; icell<ncells; icell++)
         {
-            int cellID = ca_cellToCellMap_localToGlobal[itype][icell];
+            int cellID = ca_cellToCellMap[cellIndex];
 
             for(int jcomp=0; jcomp<nComponents; jcomp++)
             {
@@ -234,9 +217,9 @@ int comFoam::updateVolumeData()
                 ca_Vel[localComp] = U[cellID][jcomp];
             }
 
-            ca_P[cellIndex] = p[cellIndex];
-            ca_T[cellIndex] = T[cellIndex];
-            ca_Rho[cellIndex] = rho[cellIndex];
+            ca_P[cellIndex] = p[cellID];
+            ca_T[cellIndex] = T[cellID];
+            ca_Rho[cellIndex] = rho[cellID];
             
             cellIndex++;
         }
@@ -316,17 +299,11 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Foam::Info << dataName << " registered." << endl;
 
-    // connectivity
+    // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for(int itype=0; itype<ca_cellToPointConn_types; itype++)
     {
         int typeID = ca_cellToPointConn_map[itype];
         int typeSize = ca_cellToPointConn_size[itype];
-
-        dataName = volName+string(".cellToCellMap_")+std::to_string(itype);
-        COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
-        COM_set_size( dataName, paneID, typeSize);
-        COM_set_array(dataName, paneID, ca_cellToCellMap_localToGlobal[itype]);
-        Foam::Info << dataName << " registered." << endl;
 
         if (typeID == 4)
         { // Tet
@@ -364,6 +341,13 @@ int comFoam::registerVolumeData(const char *name)
         Foam::Info << dataName << " registered." << endl;
     }
         
+    // Connectivity mapping stuff
+    dataName = volName+string(".cellToCellMap");
+    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
+    COM_set_array(    dataName, paneID, ca_cellToCellMap, 1);
+    Foam::Info << dataName << " registered." << endl;
+    // ------------------------------------------
+
     // Element data registered with window
     dataName = volName+string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");

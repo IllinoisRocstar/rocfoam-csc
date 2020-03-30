@@ -28,9 +28,9 @@ public:
     }
 
 private:
-    int cellToPointTypeSize=8;
-    int faceToPointTypeSize=4;
-
+    const int nComponents = 3;
+    const int cellToPointTypeSize=8;
+    const int faceToPointTypeSize=4;
 
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     int createVolumeConnectivities();
@@ -61,16 +61,16 @@ protected:
     //-------------------------------------------
 
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
-    // Connectivity ^^^^^^^^^^^^^^^^^^^
-    const int nComponents = 3;
+    // Connectivity
     int   ca_cellToPointConn_types = 0;
     int*  ca_cellToPointConn_map = NULL;
     int*  ca_cellToPointConn_size = NULL;
 
-    int** ca_cellToCellMap_localToGlobal = NULL;
-    int** ca_celltoPointConn = NULL;
+    // Mapping
+    int*  ca_cellToCellMap = NULL;
+    int**  ca_celltoPointConn = NULL;
 
-    // Field Data ^^^^^^^^^^^^^^^^^^^^^
+    // Field Data
     double* ca_Points = NULL;
     double* ca_Vel = NULL;
     double* ca_P = NULL;
@@ -78,44 +78,43 @@ protected:
     double* ca_Rho = NULL;
     //-------------------------------------------
     
-    // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
-    // Connectivity ^^^^^^^^^^^^^^^^^^^
-    int       faceToFaceMap_types = 0;
-    int*      faceToFaceMap_map = NULL;
-    int*      faceToFaceMap_size = NULL;
-    int**  ca_faceToFaceMap = NULL;
+    // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Mapping
+    int*  ca_faceToFaceMap = NULL;
 
+    // Connectivity
     int   ca_faceToPointConn_types = 0;
     int*  ca_faceToPointConn_map = NULL;
     int*  ca_faceToPointConn_size = NULL;
     int** ca_faceToPointConn = NULL;
 
+    // Field data
     int* ca_faceOwner = NULL;
     int* ca_faceNeighb = NULL;
+    //-------------------------------------------
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
-    // Connectivity ^^^^^^^^^^^^^^^^^^^
-    int*   patchFaceToFaceMap_types = NULL;
-    int**  patchFaceToFaceMap_map = NULL;
-    int**  patchFaceToFaceMap_size = NULL;
-    int*** ca_patchFaceToFaceMap_localToLocal = NULL;
+    // General data
+    std::string* ca_patchName = NULL;
+    std::string* ca_patchType = NULL;
+    wordList*    ca_patchInGroup = NULL;
+    int*         ca_patchStart = NULL;
+    int*         ca_patchSize = NULL;
 
-    int*  patchPointToPointMap_size = NULL;
-    int** patchPointToPointMap_localToGlobal = NULL;
+    // PointToPoint Mapping
+    int*  ca_patchPointToPointMap_size = NULL;
+    int** ca_patchPointToPointMap = NULL;
 
+    // FaceToFace Mapping
+    int** ca_patchFaceToFaceMap = NULL;
+
+    // FaceToPoint Mapping
     int*   ca_patchFaceToPointConn_types = NULL;
     int**  ca_patchFaceToPointConn_map = NULL;
     int**  ca_patchFaceToPointConn_size = NULL;
-    int*** ca_patchFaceToPointConn_localToLocal = NULL;
+    int*** ca_patchFaceToPointConn = NULL;
 
-    // General data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string* ca_patchName = NULL;
-    std::string* ca_patchType = NULL;
-    wordList* ca_patchInGroup = NULL;
-    int* ca_patchStart = NULL;
-    int* ca_patchSize = NULL;
-
-    // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Field data
     double** ca_patchPoints = NULL;
     double** ca_patchVel = NULL;
     double** ca_patchRho = NULL;
