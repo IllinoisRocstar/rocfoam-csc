@@ -45,7 +45,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.flowInit: Initializing flow solver."
+        std::cout << "rocFoam.flowInit: Initializing flow solver with name "
                   << std::endl;
     }
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
@@ -262,3 +262,5 @@ int comFoam::registerFunctions(const char *name)
 #   include "volumeMethods.H"
 #   include "faceMethods.H"
 #   include "surfaceMethods.H"
+#   include "reconstMethods.H"
+

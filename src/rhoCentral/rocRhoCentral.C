@@ -73,7 +73,7 @@ void rhoCentral::load(const char *name)
     std::string objectName = volName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(volName);
+    COM_window_init_done(volName.c_str());
     //-------------------------------------------
 
     // Register Surface Window ^^^^^^^^^^^^^^^^^^
@@ -222,7 +222,6 @@ int rhoCentral::loop()
         }
 
         // --- Directed interpolation of primitive fields onto faces
-
         surfaceScalarField rho_pos(interpolate(rho, pos));
         surfaceScalarField rho_neg(interpolate(rho, neg));
 

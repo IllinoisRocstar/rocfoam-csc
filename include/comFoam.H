@@ -61,13 +61,13 @@ protected:
     //-------------------------------------------
 
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Mapping
+    int*  ca_cellToCellMap = NULL;
+
     // Connectivity
     int   ca_cellToPointConn_types = 0;
     int*  ca_cellToPointConn_map = NULL;
     int*  ca_cellToPointConn_size = NULL;
-
-    // Mapping
-    int*  ca_cellToCellMap = NULL;
     int**  ca_celltoPointConn = NULL;
 
     // Field Data
@@ -144,6 +144,8 @@ protected:
     int flowLoop(const char *name);
     int flowStep(const char *name);
 
+public: 
+    static void copyWindow(const char *name1, const char *name2);
 };
 
 #endif

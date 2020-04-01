@@ -185,6 +185,15 @@ int comFoam::createFaceData()
 int comFoam::updateFaceData()
 {
     const dynamicFvMesh& mesh(*meshPtr);
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
+    int nPatches = patches.size();
+    int nNeighbFaces=ca_nFaces;
+    if (nPatches>0)
+    {
+        nNeighbFaces = patches[0].start()-1;
+    }
+
+
     const labelList&  faceOwner  = mesh.faceOwner();
     const labelList&  faceNeighb = mesh.faceNeighbour();    
 
@@ -197,7 +206,15 @@ int comFoam::updateFaceData()
             int faceID = ca_faceToFaceMap[faceIndex];
 
             ca_faceOwner[faceIndex] = faceOwner[faceID];
-            ca_faceNeighb[faceIndex] = faceNeighb[faceID];
+            
+            if (faceIndex>nNeighbFaces)
+            {
+                ca_faceNeighb[faceIndex] = -1;
+            }
+            else
+            {                
+                ca_faceNeighb[faceIndex] = faceNeighb[faceID];
+            }
 
             faceIndex++;
         }
