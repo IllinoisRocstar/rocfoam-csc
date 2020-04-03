@@ -22,12 +22,13 @@ int timeArrayLength;
 
 
 //  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int flowInitHandle;
-int flowStatHandle;
-int flowLoopHandle;
-int flowStepHandle;
-int flowFinHandle;
-int flowExtractDataHandle;
+std::vector<std::string> winNames;
+std::vector<int> flowInitHandle;
+std::vector<int> flowStatHandle;
+std::vector<int> flowLoopHandle;
+std::vector<int> flowStepHandle;
+std::vector<int> flowFinHandle;
+std::vector<int> flowReconstCaDataHandle;
 
 // Registered veriables with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
 int *fluidRun;
@@ -36,22 +37,22 @@ double *fluidDeltaT;
 
 // Declaration of functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comDrvInit(int argc, char *argv[]);
-int comGetFunctionHandles();
-int comExtractData();
+int comGetFunctionHandles(const char *name);
+int flowReconst(const char *name);
 int comGetVolDataItems(const char *name);
 int comGetSurfDataItems(const char *name);
-int comDrvStat();
-int comDrvLoop();
-int comDrvStep();
-int comDrvFin();
+int comDrvStat(const char *name);
+int comDrvLoop(const char *name);
+int comDrvStep(const char *name);
+int comDrvFin(const char *name);
 
 int main(int argc, char *argv[])
 {
     comDrvInit(argc, argv);
-    //comDrvStat();
-    //comDrvLoop();
-    comDrvStep();
-    comDrvFin();
+    //comDrvStat(const char *name);
+    //comDrvLoop(const char *name);
+    comDrvStep(winNames[0].c_str());
+    comDrvFin(winNames[0].c_str());
 
     return 0;
 }
@@ -155,10 +156,11 @@ int comDrvInit(int argc, char *argv[])
 
     //  Setting the defual communicator. Is it needed?
     COM_set_default_communicator(newComm);
-    
-    comfoam_load_module("ROCFOAM", solverType);
 
-    comGetFunctionHandles();
+    winNames.push_back("ROCFOAM");
+    
+    comfoam_load_module(winNames[0].c_str(), solverType);
+    comGetFunctionHandles(winNames[0].c_str());
 
     //  Make a dummy argc/argv for OpenFOAM. ^^^^
     //  No options passed from the command
@@ -179,33 +181,66 @@ int comDrvInit(int argc, char *argv[])
     //int verb=3;
 
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowInitHandle, &myArgc, &myArgv, "ROCFOAM");
+    COM_call_function(flowInitHandle[0], &myArgc, &myArgv, winNames[0].c_str());
 
 
-    //comGetVolDataItems("ROCFOAMVOL");
-    //comGetVolDataItems("ROCFOAMSURF");
+    std::string lookUpWindow1 = winNames[0]+string("VOL");
+    //comGetVolDataItems(lookUpWindow1.c_str());
+    //lookUpWindow1 = winNames[0]+string("SURF");
+    //comGetVolDataItems(lookUpWindow1.c_str());
 
-    comfoam_load_module("ROCFOAM1", solverType);
-    
-    comFoam::copyWindow("ROCFOAMVOL", "ROCFOAM1VOL");
-    comFoam::copyWindow("ROCFOAMSURF", "ROCFOAM1SURF");
+    std::string lookUpWindow2 = "ROCFOAM1";
+    winNames.push_back(lookUpWindow2);
+    comfoam_load_module(lookUpWindow2.c_str(), solverType);
+    comGetFunctionHandles(lookUpWindow2.c_str());
 
-    comGetVolDataItems("ROCFOAM1VOL");
-    comGetVolDataItems("ROCFOAM1SURF");
+    lookUpWindow1 = winNames[0]+string("VOL");
+    lookUpWindow2 = winNames[1]+string("VOL");
+    comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
+
+    lookUpWindow1 = winNames[0]+string("SURF");
+    lookUpWindow2 = winNames[1]+string("SURF");
+    comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
+
+
+for(int i=0; i<2; i++)
+{
+    std::cout << " winNames[" << i << "] = " << winNames[i] << std::endl;
+    std::cout << " flowInitHandle[" << i << "] = " << flowInitHandle[i] << std::endl;
+    std::cout << " flowLoopHandle[" << i << "] = " << flowLoopHandle[i] << std::endl;
+    std::cout << " flowStepHandle[" << i << "] = " << flowStepHandle[i] << std::endl;
+    std::cout << " flowReconstCaDataHandle[" << i << "] = " << flowReconstCaDataHandle[i] << std::endl;
+}
+
+
+//    lookUpWindow2 = winNames[1]+string("VOL");
+//    comGetVolDataItems(lookUpWindow2.c_str());
+//    lookUpWindow2 = winNames[1]+string("SURF");
+//    comGetVolDataItems(lookUpWindow2.c_str());
+
+
+    lookUpWindow2 = winNames[1];
+  
+    flowReconst(lookUpWindow2.c_str());
   
     return 0;
 }
 
-int comGetFunctionHandles()
+int comGetFunctionHandles(const char *name)
 {
     //  Get the handle for the initialize function ^^^^^^^^
-    std::string name = "ROCFOAM"+string("VOL");
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+    std::string volName = winNames[index]+string("VOL");
 
-    std::string functionName = name+string(".flowInit");
-    flowInitHandle = COM_get_function_handle(functionName.c_str());
-    if (flowInitHandle <= 0)
+    std::string functionName = volName+string(".flowInit");
+    int intTmp = COM_get_function_handle(functionName.c_str());
+    flowInitHandle.push_back(intTmp);
+    if (intTmp <= 0)
     { // fail
-        std::cout << "rocFoam.main: Could not get handle for initialize."
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
                   << std::endl;
         return -2;
     }
@@ -213,17 +248,20 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-            std::cout << "rocFoam.main: Acquired a handle for initialize."
-                      << std::endl;    
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
         }
     }
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    functionName = name+string(".flowLoop");
-    flowLoopHandle = COM_get_function_handle(functionName.c_str());
-    if (flowLoopHandle <= 0)
+    functionName = volName+string(".flowLoop");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    flowLoopHandle.push_back(intTmp);
+    if (intTmp <= 0)
     { // fail
-        std::cout << "rocFoam.main: Could not get handle for loop."
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
                   << std::endl;
         return -2;
     }
@@ -231,17 +269,20 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-            std::cout << "rocFoam.main: Acquired a handle for loop."
-                      << std::endl;
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
         }
     }
 
     //  Get the handle for the step function ^^^^^^^^^^^^^^
-    functionName = name+string(".flowStep");
-    flowStepHandle = COM_get_function_handle(functionName.c_str());
-    if (flowStepHandle <= 0)
+    functionName = volName+string(".flowStep");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    flowStepHandle.push_back(intTmp);
+    if (intTmp <= 0)
     { // fail
-        std::cout << "rocFoam.main: Could not get handle for step."
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
                   << std::endl;
         return -2;
     }
@@ -249,20 +290,22 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-            std::cout << "rocFoam.main: Acquired a handle for step."
-                      << std::endl;
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
         }
     }
 
 
     //  Get the handle for the step function ^^^^^^^^^^^^^^
-    functionName = name+string(".flowExtractData");
-    flowExtractDataHandle =
-        COM_get_function_handle(functionName.c_str());
+    functionName = volName+string(".flowReconstCaData");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    flowReconstCaDataHandle.push_back(intTmp);
 
-    if (flowExtractDataHandle <= 0)
+    if (intTmp <= 0)
     { // fail
-        std::cout << "rocFoam.main: Could not get handle for flowExtractData."
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
                   << std::endl;
         return -2;
     }
@@ -270,12 +313,11 @@ int comGetFunctionHandles()
     {
         if (masterRank==0)
         {
-            std::cout << "rocFoam.main: Acquired a handle for flowExtractData."
-                      << std::endl;
-            std::cout << std::endl;
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
         }
     }
-
 
     //  Get the handle for the finalize function ^^^^^^^^^^
     /*int flowFinHandle = COM_get_function_handle("ROCFOAM.flowFin");
@@ -296,6 +338,8 @@ int comGetFunctionHandles()
 
 int comGetVolDataItems(const char *name)
 {
+    std::string volName = name;
+
     int numDataItems=0;
     std::vector<std::string> dataItemNames;
     int numPanes;
@@ -320,19 +364,16 @@ int comGetVolDataItems(const char *name)
     int numFaces;
 
     std::vector<std::string> connNames;
-
-
-    std::string volName = name; //+string("VOL");
-    std::string output;
-    COM_get_dataitems(volName.c_str(), &numDataItems, output);
-    std::istringstream Istr(output);
-
     Info << endl
          << "rocFoam.main: Retreiving data form window "
          << volName << "."
          << endl;
+         
+    std::string output;
+    COM_get_dataitems(volName.c_str(), &numDataItems, output);
     Info << "  numDataItems = " << numDataItems << endl;
 
+    std::istringstream Istr(output);
     dataItemNames.clear();
     for (int i=0; i<numDataItems; ++i)
     {
@@ -354,6 +395,8 @@ int comGetVolDataItems(const char *name)
         int *nProcReg;
         COM_get_array(regName.c_str(), 0, &nProcReg);
         Info << "  " << dataName.c_str() << " = " << *nProcReg << endl;
+
+std::cout << " ADDRESS TWO ============" << nProcReg << std::endl;
     }
 
     dataName = string("winTime");
@@ -977,32 +1020,50 @@ int comGetVolDataItems(const char *name)
     return 0;
 }
 
-int comExtractData()
+int flowReconst(const char* name)
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowExtractDataHandle, "ROCFOAM");
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+    //std::string volName = winNames[index]+string("VOL");
+
+std::cout << "flowReconstCaDataHandle = " << flowReconstCaDataHandle[0]
+          << " " << flowReconstCaDataHandle[1] << std::endl;
+
+    COM_call_function(flowReconstCaDataHandle[index], name);
     
     return 0;
 }
 
 
-int comDrvLoop()
+int comDrvLoop(char* const name)
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowLoopHandle, "ROCFOAM");
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+    //std::string volName = winNames[index]+string("VOL");
+
+
+    COM_call_function(flowLoopHandle[index], name);
     
     return 0;
 }
 
-int comDrvStep()
+int comDrvStep(const char* name)
 {
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+    //std::string volName = winNames[index]+string("VOL");
+
     //  Call the flow stepper ^^^^^^^^^^^^^^^^^^
-
     Info << "\nStarting time loop\n" << endl;
 
     //while (*fluidRun)
     {
-        COM_call_function(flowStepHandle, "ROCFOAM");
+        COM_call_function(flowStepHandle[index], name);
     }
 
     Info << "End\n" << endl;
@@ -1022,12 +1083,11 @@ int comDrvStep()
     return 0;
 }
 
-int comDrvFin()
+int comDrvFin(const char* name)
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
     //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
-    std::string name = "ROCFOAM";
-    comfoam_unload_module(name.c_str(), solverType);
+    comfoam_unload_module(name, solverType);
 
     COM_set_default_communicator(masterComm);
     

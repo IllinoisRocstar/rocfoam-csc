@@ -2,11 +2,7 @@
 #include "cellShape.H"
 
 comFoam::comFoam()
-    : ca_nPoints(0),
-      ca_nFaces(0),
-      ca_nCells(0),
-      ca_nPatches(0),
-      winVolName(""),
+    : winVolName(""),
       winSurfName(""),
       solverType(""),
       winComm(NULL),
@@ -18,11 +14,7 @@ comFoam::comFoam()
 {};
 
 comFoam::comFoam(int *pargc, void **pargv, const char *name)
-    : ca_nPoints(0),
-      ca_nFaces(0),
-      ca_nCells(0),
-      ca_nPatches(0),
-      winVolName(""),
+    : winVolName(""),
       winSurfName(""),
       solverType(""),
       winComm(NULL),
@@ -39,19 +31,19 @@ comFoam::comFoam(int *pargc, void **pargv, const char *name)
 int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 {
     MPI_Comm tmpComm = COM_get_default_communicator();  
-
     int tmpRank;
     MPI_Comm_rank(tmpComm, &tmpRank);
     
     if (tmpRank == 0)
     {
         std::cout << "rocFoam.flowInit: Initializing flow solver with name "
-                  << std::endl;
+                  << name << std::endl;
     }
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
     std::string volName = name+string("VOL");
+    std::string surfName = name+string("SURF");
     std::string objectName = volName+string(".object");
 
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
@@ -65,6 +57,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     // extractData can be called here, or in
     // rocFoam driver with comExtractData
 
+    /*
     comFoamPtr->createVolumeConnectivities();
     comFoamPtr->createVolumeData();
     comFoamPtr->updateVolumeData();
@@ -79,10 +72,55 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     comFoamPtr->createSurfaceData();
     comFoamPtr->updateSurfaceData();
     comFoamPtr->registerSurfaceData(name);
+    */
+
+    createVolumeConnectivities();
+    createVolumeData();
+    updateVolumeData();
+    registerVolumeData(name);
+
+    createFaceConnectivities();
+    createFaceData();
+    updateFaceData();
+    registerFaceData(name);
+
+    createSurfaceConnectivities();
+    createSurfaceData();
+    updateSurfaceData();
+    registerSurfaceData(name);
 
     return 0;
 }
 
+
+
+int comFoam::flowReconstCaData(const char *name)
+{
+    MPI_Comm tmpComm = COM_get_default_communicator();
+    int tmpRank;
+    MPI_Comm_rank(tmpComm, &tmpRank);
+    
+    if (tmpRank == 0)
+    {
+        std::cout << "rocFoam.reconstCaData: Initializing CA "
+                  << " reconstructions for window "
+                  << name << std::endl;
+    }
+    //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
+    comFoam *comFoamPtr = NULL;
+    std::string volName = name+string("VOL");
+    std::string surfName = name+string("SURF");
+    std::string dataName = volName+string(".object");
+    COM_get_object(dataName.c_str(), 0, &comFoamPtr);
+
+    reconstCaVolumeData(name);
+    reconstCaFaceData(name);
+    reconstCaSurfaceData(name);
+
+std::cout << __LINE__ << std::endl;
+
+    return 0;
+}
 
 int comFoam::flowLoop(const char *name)
 {
@@ -159,11 +197,14 @@ int comFoam::registerFunctions(const char *name)
                   << std::endl;
     }
     
+    std::string volName = name+string("VOL");
+    std::string surfName = name+string("SURF");
+
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
     //std::string name="ROCFOAM";
-    std::string objectName = name+string(".object");
+    std::string objectName = volName+string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -172,7 +213,7 @@ int comFoam::registerFunctions(const char *name)
     types[0] = COM_RAWDATA;
     types[2] = COM_VOID;
 
-    std::string functionName = name+string(".flowInit");
+    std::string functionName = volName+string(".flowInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -182,7 +223,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-    functionName = name+string(".flowLoop");
+    functionName = volName+string(".flowLoop");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -192,7 +233,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-    functionName = name+string(".flowStep");
+    functionName = volName+string(".flowStep");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -202,15 +243,15 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-//    functionName = name+string(".flowExtractData");
-//    COM_set_member_function
-//    (
-//        functionName.c_str(),
-//        reinterpret_cast<Member_func_ptr>(&comFoam::flowExtractData),
-//        objectName.c_str(),
-//        "bi",
-//        &types[0]
-//    );
+    functionName = volName+string(".flowReconstCaData");
+    COM_set_member_function
+    (
+        functionName.c_str(),
+        reinterpret_cast<Member_func_ptr>(&comFoam::flowReconstCaData),
+        objectName.c_str(),
+        "bi",
+        &types[0]
+    );
 
 //    functionName = name+string(".flowRegisterDate");
 //    COM_set_member_function
@@ -251,7 +292,7 @@ int comFoam::registerFunctions(const char *name)
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
 
-    COM_window_init_done(name); 
+    COM_window_init_done(volName); 
 
     return 0;
 }

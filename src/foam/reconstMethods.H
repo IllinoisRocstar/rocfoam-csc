@@ -4,8 +4,8 @@ void comFoam::copyWindow(const char *name1, const char *name2)
     std::string winName2 = name2; //+string("VOL");
     Info << endl
          << "rocFoam.copyWindow: window names "
-         << winName1 << " & "
-         << winName2 << endl;
+         << winName1.c_str() << " & "
+         << winName2.c_str() << endl;
 
 
     // Get window information ^^^^^^^^^^^^^^^^^^^
@@ -35,7 +35,6 @@ void comFoam::copyWindow(const char *name1, const char *name2)
     }
     // ------------------------------------------
 
-
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::istringstream issDataNames(datNames);
     std::vector<std::string> vecDataNames;
@@ -57,11 +56,29 @@ void comFoam::copyWindow(const char *name1, const char *name2)
 
         Info << "rocFoam.copyWindow: dataName["
              << item << "] = " << dataName
-             << ", copied from " << winName1
-             << " to " << winName2 << endl;
+             << ", copied from " << winName1.c_str()
+             << " to " << winName2.c_str() << endl;
     }
     Info << endl;
     // ------------------------------------------
 
     COM_window_init_done(winName2); 
 }
+
+
+bool comFoam::nameExists(const std::vector<std::string>& dataItemNames,
+                          const std::string& dataName)
+{
+    bool status = (std::find(dataItemNames.begin(),
+                   dataItemNames.end(), dataName)
+                   != dataItemNames.end());
+
+    if (! status)
+    {
+        std::cout << std::endl << " Warning: dataItemName " << dataName
+                  << " does not exist." << std::endl << std::endl;
+    }
+
+    return status;
+}
+

@@ -38,26 +38,32 @@ private:
     int deleteVolumeData();
     int updateVolumeData();
     int registerVolumeData(const char *name);
+    int reconstCaVolumeData(const char *name);
 
     int createFaceConnectivities();
     int createFaceData();
     int deleteFaceData();
     int updateFaceData();
     int registerFaceData(const char *name);
+    int reconstCaFaceData(const char *name);
 
     int createSurfaceConnectivities();
     int createSurfaceData();
     int deleteSurfaceData();
     int updateSurfaceData();
-    int registerSurfaceData(const char *name);    
+    int registerSurfaceData(const char *name);
+    int reconstCaSurfaceData(const char *name);
+
+    bool nameExists(const std::vector<std::string>& dataItemNames,
+                          const std::string& dataName);
 
 protected:
 
     // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int ca_nPoints;
-    int ca_nFaces;
-    int ca_nCells;
-    int ca_nPatches;
+    int* ca_nPoints = NULL;  //single value
+    int* ca_nCells = NULL;   //single value
+    int* ca_nFaces = NULL;   //single value
+    int* ca_nPatches = NULL; //single value
     //-------------------------------------------
 
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,10 +71,10 @@ protected:
     int*  ca_cellToCellMap = NULL;
 
     // Connectivity
-    int   ca_cellToPointConn_types = 0;
+    int*  ca_cellToPointConn_types = NULL; //single value
     int*  ca_cellToPointConn_map = NULL;
     int*  ca_cellToPointConn_size = NULL;
-    int**  ca_celltoPointConn = NULL;
+    int** ca_cellToPointConn = NULL;
 
     // Field Data
     double* ca_Points = NULL;
@@ -83,7 +89,7 @@ protected:
     int*  ca_faceToFaceMap = NULL;
 
     // Connectivity
-    int   ca_faceToPointConn_types = 0;
+    int*  ca_faceToPointConn_types = NULL; //single value
     int*  ca_faceToPointConn_map = NULL;
     int*  ca_faceToPointConn_size = NULL;
     int** ca_faceToPointConn = NULL;
@@ -95,21 +101,21 @@ protected:
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
-    std::string* ca_patchName = NULL;
-    std::string* ca_patchType = NULL;
-    wordList*    ca_patchInGroup = NULL;
-    int*         ca_patchStart = NULL;
-    int*         ca_patchSize = NULL;
+    std::string** ca_patchName = NULL; //single value for the last
+    std::string** ca_patchType = NULL; //single value for the last
+    wordList**    ca_patchInGroup = NULL; //single value for the last
+    int**         ca_patchStart = NULL; //single value for the last
+    int**         ca_patchSize = NULL; //single value for the last
 
     // PointToPoint Mapping
-    int*  ca_patchPointToPointMap_size = NULL;
+    int** ca_patchPointToPointMap_size = NULL; //single value for the last
     int** ca_patchPointToPointMap = NULL;
 
     // FaceToFace Mapping
     int** ca_patchFaceToFaceMap = NULL;
 
     // FaceToPoint Mapping
-    int*   ca_patchFaceToPointConn_types = NULL;
+    int**  ca_patchFaceToPointConn_types = NULL; //single value for the last
     int**  ca_patchFaceToPointConn_map = NULL;
     int**  ca_patchFaceToPointConn_size = NULL;
     int*** ca_patchFaceToPointConn = NULL;
@@ -117,9 +123,9 @@ protected:
     // Field data
     double** ca_patchPoints = NULL;
     double** ca_patchVel = NULL;
-    double** ca_patchRho = NULL;
     double** ca_patchP = NULL;
     double** ca_patchT = NULL;
+    double** ca_patchRho = NULL;
     //-------------------------------------------
 
 protected:
@@ -143,6 +149,8 @@ protected:
     int flowInit(int *pargc, void **pargv, const char *name);
     int flowLoop(const char *name);
     int flowStep(const char *name);
+
+    int flowReconstCaData(const char *name);
 
 public: 
     static void copyWindow(const char *name1, const char *name2);

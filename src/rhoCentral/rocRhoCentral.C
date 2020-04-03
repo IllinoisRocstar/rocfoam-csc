@@ -87,7 +87,7 @@ void rhoCentral::load(const char *name)
     COM_window_init_done(surfName);
     //-------------------------------------------
 
-    comFoamPtr->registerFunctions(volName.c_str());
+    comFoamPtr->registerFunctions(name);
 
     return;
 }

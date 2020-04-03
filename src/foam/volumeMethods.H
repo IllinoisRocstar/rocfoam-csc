@@ -8,9 +8,8 @@ int comFoam::createVolumeConnectivities()
     const cellShapeList& cellShapes = mesh.cellShapes();
     //-------------------------------------------
 
-    ca_nPoints = mesh.nPoints();
-    ca_nCells  = mesh.nCells();
-
+    ca_nPoints = new int(mesh.nPoints());
+    ca_nCells  = new int(mesh.nCells());
     // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<int> vecTmpInt;
 
@@ -34,7 +33,7 @@ int comFoam::createVolumeConnectivities()
     //-------------------------------------------
 
     // Create cellToCell mapping ^^^^^^^^^^^^^^^^
-    ca_cellToCellMap = new int[ca_nCells];
+    ca_cellToCellMap = new int[*ca_nCells];
 
     int sortedCellIndex = 0;
     int typeCount = 0;
@@ -55,19 +54,19 @@ int comFoam::createVolumeConnectivities()
         }
     }
     //-------------------------------------------
-    if (sortedCellIndex != ca_nCells)
+    if (sortedCellIndex != *ca_nCells)
     {
         Foam::Info << "========== WARNNING ===============" << endl
                    << "     sortedCellIndex != ca_nCells " << endl
-                   << "    " << sortedCellIndex << "!=" << ca_nCells << endl;
+                   << "    " << sortedCellIndex << "!=" << *ca_nCells << endl;
         return -1;
     }
 
     // cetToPoint Connectivity ^^^^^^^^^^^^^^^^^^
-    ca_cellToPointConn_types = typeCount;
-    ca_cellToPointConn_map  = new int[typeCount];
-    ca_cellToPointConn_size = new int[typeCount];
-    ca_celltoPointConn = new int*[typeCount];
+    ca_cellToPointConn_types = new int(typeCount);
+    ca_cellToPointConn_map   = new int[typeCount];
+    ca_cellToPointConn_size  = new int[typeCount];
+    ca_cellToPointConn = new int*[typeCount];
 
     typeCount = 0;
     sortedCellIndex = 0;
@@ -81,7 +80,7 @@ int comFoam::createVolumeConnectivities()
             ca_cellToPointConn_size[typeCount] = nCells;
 
             int nTypeConn = nCells * nPoints;
-            ca_celltoPointConn[typeCount] = new int[nTypeConn];
+            ca_cellToPointConn[typeCount] = new int[nTypeConn];
 
             for (int icell=0; icell<nCells; icell++)
             {
@@ -92,7 +91,7 @@ int comFoam::createVolumeConnectivities()
                 {
                     int index = icell*nPoints + ipoint;
 
-                    ca_celltoPointConn[typeCount][index] = cellShape_[ipoint];
+                    ca_cellToPointConn[typeCount][index] = cellShape_[ipoint];
                 }
                 sortedCellIndex++;
             }
@@ -119,16 +118,16 @@ int comFoam::deleteVolumeData()
         ca_cellToPointConn_size = NULL;
     }
    
-    if (ca_celltoPointConn != NULL)
+    if (ca_cellToPointConn != NULL)
     {
-        for (int itype=0; itype<ca_cellToPointConn_types; itype++)
+        for (int itype=0; itype<*ca_cellToPointConn_types; itype++)
         {
-            if (ca_celltoPointConn[itype] != NULL)
+            if (ca_cellToPointConn[itype] != NULL)
             {
-                delete [] ca_celltoPointConn[itype];
+                delete [] ca_cellToPointConn[itype];
             }
         }
-        ca_celltoPointConn = NULL;
+        ca_cellToPointConn = NULL;
     }
     
     if (ca_Points != NULL)
@@ -161,22 +160,40 @@ int comFoam::deleteVolumeData()
         ca_Rho = NULL;
     }
 
+    if (ca_cellToPointConn_types != NULL)
+    {
+        delete[] ca_cellToPointConn_types;
+        ca_cellToPointConn_types = NULL;
+    }
+
+    if (ca_nPoints!= NULL)
+    {
+        delete[] ca_nPoints;
+        ca_nPoints = NULL;
+    }
+
+    if (ca_nCells != NULL)
+    {
+        delete[] ca_nCells;
+        ca_nCells = NULL;
+    }
+
     return 0;
 }
 
 
 int comFoam::createVolumeData()
 {
-    int nTotal = ca_nPoints * nComponents;
+    int nTotal = *ca_nPoints * nComponents;
     ca_Points = new double[nTotal];
 
     // Field-data
-    nTotal = ca_nCells * nComponents;
+    nTotal = *ca_nCells * nComponents;
     ca_Vel = new double[nTotal];
 
-    ca_P = new double[ca_nCells];
-    ca_T = new double[ca_nCells];
-    ca_Rho = new double[ca_nCells];
+    ca_P   = new double[*ca_nCells];
+    ca_T   = new double[*ca_nCells];
+    ca_Rho = new double[*ca_nCells];
 
     return 0;
 }
@@ -203,7 +220,7 @@ int comFoam::updateVolumeData()
     const volScalarField& rho(*rhoPtr);
 
     int cellIndex = 0;
-    for(int itype=0; itype<ca_cellToPointConn_types; itype++)
+    for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
     {
         int ncells = ca_cellToPointConn_size[itype];
         for(int icell=0; icell<ncells; icell++)
@@ -244,6 +261,10 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, 0, &(winNProc));
     Foam::Info << dataName << " registered." << endl;
 
+
+std::cout << " ADDRESS ONE ============" << &winNProc << std::endl;
+
+
     dataName = volName+string(".winTime");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
@@ -265,42 +286,43 @@ int comFoam::registerVolumeData(const char *name)
     dataName = volName+string(".nPoints");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(ca_nPoints));
+    COM_set_array(    dataName, 0, ca_nPoints);
     Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".nCells");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(ca_nCells));
+    COM_set_array(    dataName, 0, ca_nCells);
     Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".cellToPointConn_types");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(ca_cellToPointConn_types));
+    COM_set_array(    dataName, 0, ca_cellToPointConn_types);
     Foam::Info << dataName << " registered." << endl;
 
+    int ntypes = *ca_cellToPointConn_types;
     dataName = volName+string(".cellToPointConn_map");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
-    COM_set_size( dataName, 0, ca_cellToPointConn_types);
+    COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_cellToPointConn_map);
     Foam::Info << dataName << " registered." << endl;
 
     dataName = volName+string(".cellToPointConn_size");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
-    COM_set_size( dataName, 0, ca_cellToPointConn_types);
+    COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_cellToPointConn_size);
     Foam::Info << dataName << " registered." << endl;
 
     int paneID = 1; // Use this paneID for volume connectivity
     // points
     dataName = volName+string(".nc");
-    COM_set_size( dataName, paneID, ca_nPoints);
+    COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Foam::Info << dataName << " registered." << endl;
 
     // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    for(int itype=0; itype<ca_cellToPointConn_types; itype++)
+    for(int itype=0; itype<ntypes; itype++)
     {
         int typeID = ca_cellToPointConn_map[itype];
         int typeSize = ca_cellToPointConn_size[itype];
@@ -335,7 +357,7 @@ int comFoam::registerVolumeData(const char *name)
 
         COM_set_size( dataName, paneID, typeSize);
         COM_set_array( dataName, paneID,
-                       ca_celltoPointConn[itype],
+                       ca_cellToPointConn[itype],
                        typeID
                      );
         Foam::Info << dataName << " registered." << endl;
@@ -373,4 +395,241 @@ int comFoam::registerVolumeData(const char *name)
 
     return 0;
 }
+
+
+int comFoam::reconstCaVolumeData(const char *name)
+{
+
+    std::string volName = name+string("VOL");
+    Info << "rocFoam.main: Retreiving volume data form window "
+         << volName << "."
+         << endl;
+
+    std::string regNames;
+    int numDataItems=0;
+    
+    COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
+    Info << "  numDataItems = " << numDataItems << endl;
+
+    std::vector<std::string> dataItemNames;
+    dataItemNames.clear();
+    std::istringstream Istr(regNames);
+    for (int i=0; i<numDataItems; ++i)
+    {
+        std::string nameTmp;
+        Istr >> nameTmp;
+        dataItemNames.push_back(nameTmp);
+        Info << "  DataItem[" << i << "] = " << nameTmp << endl;
+    }
+    Info << endl;
+
+    
+    // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string dataName = string("nPoints");
+    nameExists(dataItemNames, dataName);
+    std::string regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), 0, &ca_nPoints);
+    Info << "  " << dataName.c_str() << " = " << *ca_nPoints << endl;
+    
+    dataName = string("nCells");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    
+    COM_get_array(regName.c_str(), 0, &ca_nCells);
+    Info << "  " << dataName.c_str() << " = " << *ca_nCells << endl;
+
+    dataName = string("cellToPointConn_types");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    
+    COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_types);
+    Info << "  " << dataName.c_str() << " = " << *ca_cellToPointConn_types << endl;
+
+    dataName = string("cellToPointConn_map");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    int nComp;
+    
+    COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_map);
+    COM_get_size(regName.c_str(), 0, &nComp);
+    for(int icomp=0; icomp<nComp; icomp++)
+    {
+        Info << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_cellToPointConn_map[icomp] << endl;
+    }
+
+    dataName = string("cellToPointConn_size");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_size);
+    COM_get_size(regName.c_str(), 0, &nComp);
+    for(int icomp=0; icomp<nComp; icomp++)
+    {
+        Info << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_cellToPointConn_size[icomp] << endl;
+    }
+    //-------------------------------------------
+
+    // Primary allocation ^^^^^^^^^^^^^^^^^^^^^^^
+    ca_cellToPointConn = new int*[*ca_cellToPointConn_types];
+    //-------------------------------------------
+
+    int paneID = 1;
+    int ipane = 0;
+
+    Info << "  Pane[" << ipane << "], paneID = " << paneID
+         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+
+    // Point and connectivity stuff ^^^^^^^^^
+    dataName = string("nc");
+    //nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    int nPoints;
+    
+    COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
+    COM_get_size(regName.c_str(), paneID, &nPoints);
+    Info << "    " << dataName.c_str() << " points = " << nPoints
+         << ", components = " << nComp << endl;
+/*    for(int ipoint=0; ipoint<nPoints; ipoint++)*/
+/*    {*/
+/*        Info << "Node " << ipoint << " ca_Points = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*          Info << *(ca_Points+ipoint*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+
+    int nConn;
+    int numElem;
+    std::string connNames;
+    COM_get_connectivities(volName.c_str(), paneID, &nConn, connNames);
+    std::istringstream connISS(connNames);
+    for (int icon=0; icon<nConn; ++icon)
+    {
+        std::string connName;
+        connISS >> connName;
+        //connNames.push_back(connName);
+
+        dataName = volName+string(".")+connName;
+        //nameExists(dataItemNames, dataName);
+        COM_get_array(dataName.c_str(), paneID, &ca_cellToPointConn[icon], &nComp);
+        COM_get_size(dataName.c_str(), paneID, &numElem);
+
+        Info << "    Connectivity[" << icon << "] = " << connName
+             << ", elements = " << numElem
+             << ", components =" << nComp << endl;
+/*        for(int icell=0; icell<numCells; icell++)*/
+/*        {*/
+/*            Info << "Cell " << icell << " velocity = ";*/
+/*            for(int icomp=0; icomp<nComp; icomp++)*/
+/*            {*/
+/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*            }*/
+/*            Info << endl;*/
+/*        }*/
+    }
+    //---------------------------------------
+
+    // Mapping data ^^^^^^^^^^^^^^^^^^^^^^^^^
+    dataName = string("cellToCellMap");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    
+    COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    Info << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << endl;
+/*    for(int icell=0; icell<numCells; icell++)*/
+/*    {*/
+/*        Info << "Cell " << icell << " velocity = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*            Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+
+    // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    dataName = string("vel");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), paneID, &ca_Vel, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    Info << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << endl;
+/*    for(int icell=0; icell<numCells; icell++)*/
+/*    {*/
+/*        Info << "Cell " << icell << " velocity = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*            Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+    
+    dataName = string("pres");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), paneID, &ca_P, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    Info << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << endl;
+/*    for(int icell=0; icell<numCells; icell++)*/
+/*    {*/
+/*        Info << "Cell " << icell << " pressure = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*            Info << *(cellPres+icell*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+
+    dataName = string("temp");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), paneID, &ca_T, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    Info << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << endl;
+/*    for(int icell=0; icell<numCells; icell++)*/
+/*    {*/
+/*        Info << "Cell " << icell << " temperature = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*            Info << *(cellTemp+icell*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+
+    dataName = string("rho");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+    COM_get_array(regName.c_str(), paneID, &ca_Rho, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    Info << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << endl;
+/*    for(int icell=0; icell<numCells; icell++)*/
+/*    {*/
+/*        Info << "Cell " << icell << " density = ";*/
+/*        for(int icomp=0; icomp<nComp; icomp++)*/
+/*        {*/
+/*            Info << *(cellRho+icell*nComp+icomp) << " ";*/
+/*        }*/
+/*        Info << endl;*/
+/*    }*/
+
+    Info << "  --------------------------------------------------"
+         << endl;
+
+    return 0;
+}
+
+
 
