@@ -56,9 +56,9 @@ int comFoam::createVolumeConnectivities()
     //-------------------------------------------
     if (sortedCellIndex != *ca_nCells)
     {
-        Foam::Info << "========== WARNNING ===============" << endl
-                   << "     sortedCellIndex != ca_nCells " << endl
-                   << "    " << sortedCellIndex << "!=" << *ca_nCells << endl;
+        Info << "========== WARNNING ===============" << endl
+             << "     sortedCellIndex != ca_nCells " << endl
+             << "    " << sortedCellIndex << "!=" << *ca_nCells << endl;
         return -1;
     }
 
@@ -103,84 +103,6 @@ int comFoam::createVolumeConnectivities()
 
     return 0;
 }
-
-int comFoam::deleteVolumeData()
-{
-    if (ca_cellToPointConn_map != NULL)
-    {
-        delete [] ca_cellToPointConn_map;
-        ca_cellToPointConn_map = NULL;
-    }
-    
-    if (ca_cellToPointConn_size != NULL)
-    {
-        delete [] ca_cellToPointConn_size;
-        ca_cellToPointConn_size = NULL;
-    }
-   
-    if (ca_cellToPointConn != NULL)
-    {
-        for (int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            if (ca_cellToPointConn[itype] != NULL)
-            {
-                delete [] ca_cellToPointConn[itype];
-            }
-        }
-        ca_cellToPointConn = NULL;
-    }
-    
-    if (ca_Points != NULL)
-    {
-        delete[] ca_Points;
-        ca_Points = NULL;
-    }
-
-    if (ca_Vel != NULL)
-    {
-        delete[] ca_Vel;
-        ca_Vel = NULL;
-    }
-
-    if (ca_P != NULL)
-    {
-        delete[] ca_P;
-        ca_P = NULL;
-    }
-
-    if (ca_T != NULL)
-    {
-        delete[] ca_T;
-        ca_T = NULL;
-    }
-
-    if (ca_Rho != NULL)
-    {
-        delete[] ca_Rho;
-        ca_Rho = NULL;
-    }
-
-    if (ca_cellToPointConn_types != NULL)
-    {
-        delete[] ca_cellToPointConn_types;
-        ca_cellToPointConn_types = NULL;
-    }
-
-    if (ca_nPoints!= NULL)
-    {
-        delete[] ca_nPoints;
-        ca_nPoints = NULL;
-    }
-
-    if (ca_nCells != NULL)
-    {
-        delete[] ca_nCells;
-        ca_nCells = NULL;
-    }
-
-    return 0;
-}
-
 
 int comFoam::createVolumeData()
 {
@@ -247,79 +169,71 @@ int comFoam::updateVolumeData()
 
 int comFoam::registerVolumeData(const char *name)
 {
-    Foam::Info << "rocFoam.registerVolumeData: "
-               << "Registering flow data with name "
-               << name
-               << endl;
+    Info << "rocFoam.registerVolumeData: "
+         << "Registering flow data with name "
+         << name
+         << endl;
 
     std::string volName = name+string("VOL");
 
     // Genral data registered with window
-    std::string dataName = volName+string(".winNProc");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(winNProc));
-    Foam::Info << dataName << " registered." << endl;
-
-
-std::cout << " ADDRESS ONE ============" << &winNProc << std::endl;
-
-
-    dataName = volName+string(".winTime");
+    // Solver data    
+    std::string dataName = volName+string(".time");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(winTime));
-    Foam::Info << dataName << " registered." << endl;
+    COM_set_array(    dataName, 0, ca_time);
+    Info << dataName << " registered." << endl;
 
-    dataName = volName+string(".winDeltaT");
+    dataName = volName+string(".deltaT");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(winDeltaT) );
-    Foam::Info << dataName << " registered." << endl;
+    COM_set_array(    dataName, 0, ca_deltaT );
+    Info << dataName << " registered." << endl;
 
-    dataName = volName+string(".winRun");
+    dataName = volName+string(".runStat");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, &(winRun));
-    Foam::Info << dataName << " registered." << endl;
+    COM_set_array(    dataName, 0, ca_runStat);
+    Info << dataName << " registered." << endl;
 
+    // grid and field data
     dataName = volName+string(".nPoints");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_nPoints);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".nCells");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_nCells);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".cellToPointConn_types");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_cellToPointConn_types);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     int ntypes = *ca_cellToPointConn_types;
     dataName = volName+string(".cellToPointConn_map");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_cellToPointConn_map);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".cellToPointConn_size");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_cellToPointConn_size);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     int paneID = 1; // Use this paneID for volume connectivity
     // points
     dataName = volName+string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for(int itype=0; itype<ntypes; itype++)
@@ -348,10 +262,10 @@ std::cout << " ADDRESS ONE ============" << &winNProc << std::endl;
         else
         { // Type not identified
 
-            Foam::Info << "=================== WARNING ==================="
-                       << " Cell typeID " << typeID << " with size = "
-                       << typeSize << " not identified!"
-                       << endl;
+            Info << "=================== WARNING ==================="
+                 << " Cell typeID " << typeID << " with size = "
+                 << typeSize << " not identified!"
+                 << endl;
             return -1;
         }
 
@@ -360,36 +274,36 @@ std::cout << " ADDRESS ONE ============" << &winNProc << std::endl;
                        ca_cellToPointConn[itype],
                        typeID
                      );
-        Foam::Info << dataName << " registered." << endl;
+        Info << dataName << " registered." << endl;
     }
         
     // Connectivity mapping stuff
     dataName = volName+string(".cellToCellMap");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(    dataName, paneID, ca_cellToCellMap, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
     // ------------------------------------------
 
     // Element data registered with window
     dataName = volName+string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
     COM_set_array(    dataName, paneID, ca_Vel, nComponents);    
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".pres");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
     COM_set_array(    dataName, paneID, ca_P, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".temp");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
     COM_set_array(    dataName, paneID, ca_T, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     dataName = volName+string(".rho");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
     COM_set_array(    dataName, paneID, ca_Rho, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << dataName << " registered." << endl;
 
     COM_window_init_done(volName); 
 
@@ -407,7 +321,6 @@ int comFoam::reconstCaVolumeData(const char *name)
 
     std::string regNames;
     int numDataItems=0;
-    
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
     Info << "  numDataItems = " << numDataItems << endl;
 
@@ -423,26 +336,54 @@ int comFoam::reconstCaVolumeData(const char *name)
     }
     Info << endl;
 
-    
-    // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string dataName = string("nPoints");
+    // Flos stat data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string dataName = string("time");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+string(".")+dataName;
+    COM_get_array(regName.c_str(), 0, &ca_time);
+    Info << "  " << dataName.c_str() << " = " << *ca_time << endl;
 
+double *fluidDeltaT;
+
+    dataName = string("deltaT");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+
+std::cout << __LINE__ << std::endl;
+
+    //COM_get_array(regName.c_str(), 0, &fluidDeltaT);
+
+std::cout << __LINE__ << std::endl;
+
+std::cout << "  " << dataName.c_str() << " = " << fluidDeltaT << std::endl;
+
+    std::cout << "  " << dataName.c_str() << " = " << ca_deltaT << std::endl;
+
+std::cout << __LINE__ << std::endl;
+
+    dataName = string("runStat");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
+    COM_get_array(regName.c_str(), 0, &ca_runStat);
+    Info << "  " << dataName.c_str() << " = " << *ca_runStat << endl;
+    //-------------------------------------------
+    
+    // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    dataName = string("nPoints");
+    nameExists(dataItemNames, dataName);
+    regName = volName+string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_nPoints);
     Info << "  " << dataName.c_str() << " = " << *ca_nPoints << endl;
     
     dataName = string("nCells");
     nameExists(dataItemNames, dataName);
     regName = volName+string(".")+dataName;
-    
     COM_get_array(regName.c_str(), 0, &ca_nCells);
     Info << "  " << dataName.c_str() << " = " << *ca_nCells << endl;
 
     dataName = string("cellToPointConn_types");
     nameExists(dataItemNames, dataName);
     regName = volName+string(".")+dataName;
-    
     COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_types);
     Info << "  " << dataName.c_str() << " = " << *ca_cellToPointConn_types << endl;
 
@@ -450,7 +391,6 @@ int comFoam::reconstCaVolumeData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+string(".")+dataName;
     int nComp;
-    
     COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_map);
     COM_get_size(regName.c_str(), 0, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
@@ -462,7 +402,6 @@ int comFoam::reconstCaVolumeData(const char *name)
     dataName = string("cellToPointConn_size");
     nameExists(dataItemNames, dataName);
     regName = volName+string(".")+dataName;
-
     COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_size);
     COM_get_size(regName.c_str(), 0, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
@@ -631,5 +570,87 @@ int comFoam::reconstCaVolumeData(const char *name)
     return 0;
 }
 
+int comFoam::deleteVolumeData()
+{
+    if (ca_cellToPointConn_map != NULL)
+    {
+        delete [] ca_cellToPointConn_map;
+        ca_cellToPointConn_map = NULL;
+    }
+    
+    if (ca_cellToPointConn_size != NULL)
+    {
+        delete [] ca_cellToPointConn_size;
+        ca_cellToPointConn_size = NULL;
+    }
+
+    if (ca_cellToCellMap != NULL)
+    {
+        delete [] ca_cellToCellMap;
+        ca_cellToCellMap = NULL;
+    }
+   
+    if (ca_cellToPointConn != NULL)
+    {
+        for (int itype=0; itype<*ca_cellToPointConn_types; itype++)
+        {
+            if (ca_cellToPointConn[itype] != NULL)
+            {
+                delete [] ca_cellToPointConn[itype];
+            }
+        }
+        ca_cellToPointConn = NULL;
+    }
+    
+    if (ca_Points != NULL)
+    {
+        delete[] ca_Points;
+        ca_Points = NULL;
+    }
+
+    if (ca_Vel != NULL)
+    {
+        delete[] ca_Vel;
+        ca_Vel = NULL;
+    }
+
+    if (ca_P != NULL)
+    {
+        delete[] ca_P;
+        ca_P = NULL;
+    }
+
+    if (ca_T != NULL)
+    {
+        delete[] ca_T;
+        ca_T = NULL;
+    }
+
+    if (ca_Rho != NULL)
+    {
+        delete[] ca_Rho;
+        ca_Rho = NULL;
+    }
+
+    if (ca_cellToPointConn_types != NULL)
+    {
+        delete[] ca_cellToPointConn_types;
+        ca_cellToPointConn_types = NULL;
+    }
+
+    if (ca_nPoints!= NULL)
+    {
+        delete[] ca_nPoints;
+        ca_nPoints = NULL;
+    }
+
+    if (ca_nCells != NULL)
+    {
+        delete[] ca_nCells;
+        ca_nCells = NULL;
+    }
+
+    return 0;
+}
 
 

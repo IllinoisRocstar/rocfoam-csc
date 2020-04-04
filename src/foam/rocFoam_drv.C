@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     comDrvInit(argc, argv);
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);
-    comDrvStep(winNames[0].c_str());
+    //comDrvStep(winNames[0].c_str());
     comDrvFin(winNames[0].c_str());
 
     return 0;
@@ -185,10 +185,11 @@ int comDrvInit(int argc, char *argv[])
 
 
     std::string lookUpWindow1 = winNames[0]+string("VOL");
-    //comGetVolDataItems(lookUpWindow1.c_str());
+    comGetVolDataItems(lookUpWindow1.c_str());
     //lookUpWindow1 = winNames[0]+string("SURF");
     //comGetVolDataItems(lookUpWindow1.c_str());
 
+    lookUpWindow1 = winNames[0]+string("VOL");
     std::string lookUpWindow2 = "ROCFOAM1";
     winNames.push_back(lookUpWindow2);
     comfoam_load_module(lookUpWindow2.c_str(), solverType);
@@ -202,7 +203,6 @@ int comDrvInit(int argc, char *argv[])
     lookUpWindow2 = winNames[1]+string("SURF");
     comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
 
-
 for(int i=0; i<2; i++)
 {
     std::cout << " winNames[" << i << "] = " << winNames[i] << std::endl;
@@ -213,14 +213,13 @@ for(int i=0; i<2; i++)
 }
 
 
-//    lookUpWindow2 = winNames[1]+string("VOL");
-//    comGetVolDataItems(lookUpWindow2.c_str());
+    lookUpWindow2 = winNames[1]+string("VOL");
+    comGetVolDataItems(lookUpWindow2.c_str());
 //    lookUpWindow2 = winNames[1]+string("SURF");
 //    comGetVolDataItems(lookUpWindow2.c_str());
 
 
     lookUpWindow2 = winNames[1];
-  
     flowReconst(lookUpWindow2.c_str());
   
     return 0;
@@ -385,7 +384,7 @@ int comGetVolDataItems(const char *name)
     Info << endl;
 
     // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string dataName = string("winNProc");
+    std::string dataName = string("nProc");
     std::string regName = volName+string(".")+dataName;
     bool ifCorrect = (std::find(dataItemNames.begin(),
                                 dataItemNames.end(), dataName)
@@ -395,11 +394,9 @@ int comGetVolDataItems(const char *name)
         int *nProcReg;
         COM_get_array(regName.c_str(), 0, &nProcReg);
         Info << "  " << dataName.c_str() << " = " << *nProcReg << endl;
-
-std::cout << " ADDRESS TWO ============" << nProcReg << std::endl;
     }
 
-    dataName = string("winTime");
+    dataName = string("time");
     regName = volName+string(".")+dataName;
     ifCorrect = (std::find(dataItemNames.begin(),
                                 dataItemNames.end(), dataName)
@@ -410,7 +407,7 @@ std::cout << " ADDRESS TWO ============" << nProcReg << std::endl;
         Info << "  " << dataName.c_str() << " = " << *fluidTime << endl;
     }
 
-    dataName = string("winDeltaT");
+    dataName = string("deltaT");
     regName = volName+string(".")+dataName;
     ifCorrect = (std::find(dataItemNames.begin(),
                                 dataItemNames.end(), dataName)
@@ -419,6 +416,9 @@ std::cout << " ADDRESS TWO ============" << nProcReg << std::endl;
     {
         COM_get_array(regName.c_str(), 0, &fluidDeltaT);
         Info << "  " << dataName.c_str() << " = " << *fluidDeltaT << endl;
+
+std::cout << "  " << dataName.c_str() << " = " << fluidDeltaT << std::endl;
+
     }
 
     dataName = string("winRun");

@@ -2,27 +2,13 @@
 #include "cellShape.H"
 
 comFoam::comFoam()
-    : winVolName(""),
-      winSurfName(""),
-      solverType(""),
-      winComm(NULL),
-      winNProc(0),
-      winRank(0),
-      winTime(0.0),
-      winDeltaT(0.0),
-      winRun(1)
+    : solverType(""),
+      winComm(NULL)
 {};
 
 comFoam::comFoam(int *pargc, void **pargv, const char *name)
-    : winVolName(""),
-      winSurfName(""),
-      solverType(""),
-      winComm(NULL),
-      winNProc(0),
-      winRank(0),
-      winTime(0.0),
-      winDeltaT(0.0),
-      winRun(1)
+    : solverType(""),
+      winComm(NULL)
 {
     flowInit(pargc, pargv, name);
 }
@@ -116,8 +102,6 @@ int comFoam::flowReconstCaData(const char *name)
     reconstCaVolumeData(name);
     reconstCaFaceData(name);
     reconstCaSurfaceData(name);
-
-std::cout << __LINE__ << std::endl;
 
     return 0;
 }
@@ -304,4 +288,26 @@ int comFoam::registerFunctions(const char *name)
 #   include "faceMethods.H"
 #   include "surfaceMethods.H"
 #   include "reconstMethods.H"
+
+comFoam::~comFoam()
+{   
+    deleteVolumeData();
+    deleteFaceData();
+    deleteSurfaceData();
+
+    if (ca_runStat != NULL){
+        delete [] ca_runStat;
+        ca_runStat = NULL;
+    }
+    
+    if (ca_time != NULL){
+        delete [] ca_time;
+        ca_time = NULL;
+    }
+    
+    if (ca_deltaT != NULL){
+        delete [] ca_deltaT;
+        ca_deltaT = NULL;
+    }
+}
 

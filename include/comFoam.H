@@ -20,12 +20,7 @@ public:
     comFoam();
     comFoam(int *pargc, void **pargv, const char *name);
 
-    ~comFoam()
-    {   
-        deleteVolumeData();
-        deleteFaceData();
-        deleteSurfaceData();
-    }
+    ~comFoam();
 
 private:
     const int nComponents = 3;
@@ -101,8 +96,8 @@ protected:
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
-    std::string** ca_patchName = NULL; //single value for the last
-    std::string** ca_patchType = NULL; //single value for the last
+    char** ca_patchName = NULL; //single value for the last
+    char** ca_patchType = NULL; //single value for the last
     wordList**    ca_patchInGroup = NULL; //single value for the last
     int**         ca_patchStart = NULL; //single value for the last
     int**         ca_patchSize = NULL; //single value for the last
@@ -130,18 +125,20 @@ protected:
 
 protected:
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string winVolName; /// Tracks *this* volume window name.
-    std::string winSurfName; /// Tracks *this* volume window name.
+    //std::string winVolName; /// Tracks *this* volume window name.
+    //std::string winSurfName; /// Tracks *this* volume window name.
 
     std::string solverType;
     MPI_Comm winComm; /// Tracks *this* window communicator.
     
-    int winNProc;
-    int winRank;
+    int ca_nProc;
+    int ca_myRank;
 
-    scalar winTime;
-    scalar winDeltaT;
-    int winRun;
+    // registered data set during the simulation
+    int* ca_runStat = NULL;
+    double* ca_time = NULL;
+    double* ca_deltaT = NULL;
+    
     
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     int registerFunctions(const char *name);

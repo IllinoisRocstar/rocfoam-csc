@@ -10,8 +10,8 @@ int comFoam::createSurfaceConnectivities()
     //  Create patch general data  arrays ^^^^^^^
     ca_nPatches = new int(patches.size());
     
-    ca_patchName    = new std::string*[*ca_nPatches];
-    ca_patchType    = new std::string*[*ca_nPatches];
+    ca_patchName    = new char*[*ca_nPatches];
+    ca_patchType    = new char*[*ca_nPatches];
     //ca_patchInGroup = new wordList*[*ca_nPatches];
     ca_patchStart   = new int*[*ca_nPatches];
     ca_patchSize    = new int*[*ca_nPatches];
@@ -27,8 +27,8 @@ int comFoam::createSurfaceConnectivities()
         const int& patchStart = patch.start();
         const int& patchSize = patch.size();
 
-        ca_patchName[ipatch] = new std::string(patchName);
-        ca_patchType[ipatch] = new std::string(patchType);
+        ca_patchName[ipatch] = const_cast<char*>(patchName.c_str());
+        ca_patchType[ipatch] = const_cast<char*>(patchType.c_str());
         //ca_patchInGroup[ipatch] = new std::string(patchInGroup);
         ca_patchStart[ipatch] = new int(patchStart);
         ca_patchSize[ipatch]  = new int(patchSize);
@@ -263,243 +263,6 @@ int comFoam::createSurfaceConnectivities()
     return 0;
 }
 
-int comFoam::deleteSurfaceData()
-{
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
-    {
-        if (ca_patchName[ipatch] != NULL)
-        {
-            delete [] ca_patchName[ipatch];
-            ca_patchName[ipatch] = NULL;
-        }
-        
-        if (ca_patchType[ipatch] != NULL)
-        {
-            delete [] ca_patchType[ipatch];
-            ca_patchType[ipatch] = NULL;
-        }
-
-        if (ca_patchInGroup[ipatch] != NULL)
-        {
-            delete [] ca_patchInGroup[ipatch];
-            ca_patchInGroup[ipatch] = NULL;
-        }
-
-        if (ca_patchStart[ipatch] != NULL)
-        {
-            delete [] ca_patchStart[ipatch];
-            ca_patchStart[ipatch] = NULL;
-        }    
-
-        if (ca_patchSize[ipatch] != NULL)
-        {
-            delete [] ca_patchSize[ipatch];
-            ca_patchSize[ipatch] = NULL;
-        }    
-    }
-
-    if (ca_patchName != NULL)
-    {
-        delete [] ca_patchName;
-        ca_patchName = NULL;
-    }
-    
-    if (ca_patchType != NULL)
-    {
-        delete [] ca_patchType;
-        ca_patchType = NULL;
-    }
-
-    if (ca_patchInGroup != NULL)
-    {
-        delete [] ca_patchInGroup;
-        ca_patchInGroup = NULL;
-    }
-
-    if (ca_patchStart != NULL)
-    {
-        delete [] ca_patchStart;
-        ca_patchStart = NULL;
-    }    
-
-    if (ca_patchSize != NULL)
-    {
-        delete [] ca_patchSize;
-        ca_patchSize = NULL;
-    }
-
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
-    {
-        if (ca_patchFaceToFaceMap != NULL)
-        {
-            delete [] ca_patchFaceToFaceMap[ipatch];
-            ca_patchFaceToFaceMap[ipatch] = NULL;
-        }
-
-        if (ca_patchPoints != NULL)
-        {
-            delete [] ca_patchPoints[ipatch];
-            ca_patchPoints[ipatch] = NULL;
-        }
-
-        if (ca_patchVel != NULL)
-        {
-            delete [] ca_patchVel[ipatch];
-            ca_patchVel[ipatch] = NULL;
-        }
-
-        if (ca_patchRho != NULL)
-        {
-            delete [] ca_patchRho[ipatch];
-            ca_patchRho[ipatch] = NULL;
-        }
-
-        if (ca_patchP != NULL)
-        {
-            delete [] ca_patchP[ipatch];
-            ca_patchP[ipatch] = NULL;
-        }
-
-        if (ca_patchT != NULL)
-        {
-            delete [] ca_patchT[ipatch];
-            ca_patchT[ipatch] = NULL;
-        }
-    }
-
-    if (ca_patchFaceToFaceMap != NULL)
-    {
-        delete [] ca_patchFaceToFaceMap;
-        ca_patchFaceToFaceMap = NULL;
-    }
-
-    if (ca_patchPoints != NULL)
-    {
-        delete [] ca_patchPoints;
-        ca_patchPoints = NULL;
-    }
-
-    if (ca_patchVel != NULL)
-    {
-        delete [] ca_patchVel;
-        ca_patchVel = NULL;
-    }
-
-    if (ca_patchRho != NULL)
-    {
-        delete [] ca_patchRho;
-        ca_patchRho = NULL;
-    }
-
-    if (ca_patchP != NULL)
-    {
-        delete [] ca_patchP;
-        ca_patchP = NULL;
-    }
-
-    if (ca_patchT != NULL)
-    {
-        delete [] ca_patchT;
-        ca_patchT = NULL;
-    }
-
-    //  Delete faceToPoint connectivity arrays ^^    
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
-    {
-        int ntypes = *ca_patchFaceToPointConn_types[ipatch];
-        
-        for(int itype=0; itype<ntypes; itype++)
-        {
-            if (ca_patchFaceToPointConn[ipatch][itype] != NULL)
-            {
-                delete [] ca_patchFaceToPointConn[ipatch][itype];
-                ca_patchFaceToPointConn[ipatch][itype] = NULL;
-            }
-        }
-
-        if (ca_patchFaceToPointConn_map[ipatch] != NULL)
-        {
-            delete [] ca_patchFaceToPointConn_map[ipatch];
-            ca_patchFaceToPointConn_map[ipatch] = NULL;
-        }
-
-        if (ca_patchFaceToPointConn_size[ipatch] != NULL)
-        {
-            delete [] ca_patchFaceToPointConn_size[ipatch];
-            ca_patchFaceToPointConn_size[ipatch] = NULL;
-        }
-
-        if (ca_patchFaceToPointConn_types[ipatch] != NULL)
-        {
-            delete [] ca_patchFaceToPointConn_types[ipatch];
-            ca_patchFaceToPointConn_types[ipatch] = NULL;
-        }
-    }
-
-    if (ca_patchFaceToPointConn != NULL)
-    {
-        delete [] ca_patchFaceToPointConn;
-        ca_patchFaceToPointConn = NULL;
-    }
-
-    if (ca_patchFaceToPointConn_map != NULL)
-    {
-        delete [] ca_patchFaceToPointConn_map;
-        ca_patchFaceToPointConn_map = NULL;
-    }
-
-    if (ca_patchFaceToPointConn_size != NULL)
-    {
-        delete [] ca_patchFaceToPointConn_size;
-        ca_patchFaceToPointConn_size = NULL;
-    }
-
-    if (ca_patchFaceToPointConn_types != NULL)
-    {
-        delete [] ca_patchFaceToPointConn_types;
-        ca_patchFaceToPointConn_types = NULL;
-    }
-    //-------------------------------------------
-
-    // Delete pointToPoint mapping arrays ^^^^^^^
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
-    {
-        if (ca_patchPointToPointMap[ipatch] != NULL)
-        {
-            delete [] ca_patchPointToPointMap[ipatch];
-            ca_patchPointToPointMap[ipatch] = NULL;
-        }
-
-        if (ca_patchPointToPointMap_size[ipatch] != NULL)
-        {
-            delete [] ca_patchPointToPointMap_size[ipatch];
-            ca_patchPointToPointMap_size[ipatch] = NULL;
-        }
-    }
-
-    if (ca_patchPointToPointMap != NULL)
-    {
-        delete [] ca_patchPointToPointMap;
-        ca_patchPointToPointMap = NULL;
-    }
-
-    if (ca_patchPointToPointMap_size != NULL)
-    {
-        delete [] ca_patchPointToPointMap_size;
-        ca_patchPointToPointMap_size = NULL;
-    }
-    //-------------------------------------------
-
-    if (ca_nPatches != NULL)
-    {
-        delete [] ca_nPatches;
-        ca_nPatches = NULL;
-    }
-
-    return 0;
-}
-
-
 int comFoam::createSurfaceData()
 {
     const dynamicFvMesh& mesh(*meshPtr);
@@ -575,7 +338,7 @@ int comFoam::updateSurfaceData()
             {
                 int localFaceID = ca_patchFaceToFaceMap[ipatch][faceIndex];
                 
-                if (*ca_patchType[ipatch] == string("empty"))
+                if (string(ca_patchType[ipatch]) == "empty")
                 {
                     for(int jcomp=0; jcomp<nComponents; jcomp++)
                     {
@@ -687,18 +450,18 @@ int comFoam::registerSurfaceData(const char *name)
              <<"]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
         // Genral patch data ^^^^^^^^^^^^^^^^^^^^z
-        char* charPtr = const_cast<char*>(ca_patchName[ipatch]->c_str());
-        int charSize = ca_patchName[ipatch]->size();
+        std::string charToStr = string(ca_patchName[ipatch]);
+        int charSize = charToStr.size();
         dataName = surfName+string(".patchName");
         COM_set_size( dataName, paneID, charSize);
-        COM_set_array(dataName, paneID, charPtr);
+        COM_set_array(dataName, paneID, ca_patchName[ipatch]);
         Foam::Info << "   patchName registered." << endl;
 
-        charPtr = const_cast<char*>(ca_patchType[ipatch]->c_str());
-        charSize = ca_patchType[ipatch]->size();
+        charToStr = string(ca_patchType[ipatch]);
+        charSize = charToStr.size();
         dataName = surfName+string(".patchType");
         COM_set_size( dataName, paneID, charSize);
-        COM_set_array(dataName, paneID, charPtr);
+        COM_set_array(dataName, paneID, ca_patchType[ipatch]);
         Foam::Info << "   patchType registered." << endl;
         
         /*
@@ -834,14 +597,14 @@ int comFoam::reconstCaSurfaceData(const char *name)
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
     Info << "  numDataItems = " << numDataItems << endl;
 
-    //std::vector<std::string> dataItemNames;
-    //dataItemNames.clear();
+    std::vector<std::string> dataItemNames;
+    dataItemNames.clear();
     std::istringstream Istr(regNames);
     for (int i=0; i<numDataItems; ++i)
     {
         std::string nameTmp;
         Istr >> nameTmp;
-        //dataItemNames.push_back(nameTmp);
+        dataItemNames.push_back(nameTmp);
         Info << "  DataItem[" << i << "] = " << nameTmp << endl;
     }
     Info << endl;
@@ -849,14 +612,14 @@ int comFoam::reconstCaSurfaceData(const char *name)
     
     // Surface data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("nPatches");
-    //nameExists(dataItemNames, dataName);
+    nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_nPatches);
     Info << "  " << dataName.c_str() << " = " << *ca_nPatches << endl;
 
     // Primary allocation ^^^^^^^^^^^^^^^^^^^^^^^
-    ca_patchName    = new std::string*[*ca_nPatches];
-    ca_patchType    = new std::string*[*ca_nPatches];
+    ca_patchName    = new char*[*ca_nPatches];
+    ca_patchType    = new char*[*ca_nPatches];
     //ca_patchInGroup = new wordList*[*ca_nPatches];
     ca_patchStart   = new int*[*ca_nPatches];
     ca_patchSize    = new int*[*ca_nPatches];
@@ -891,98 +654,57 @@ int comFoam::reconstCaSurfaceData(const char *name)
              << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
         dataName = std::string("patchName");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-        char* patchName;
-        
         int nComp;
 
-        COM_get_array(regName.c_str(), paneID, &patchName);
+        COM_get_array(regName.c_str(), paneID, &ca_patchName[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
 
-        ca_patchName[ipane] = &patchName;
-        //ca_patchName[ipane][0].resize(nComp);
-
-        /*
-        std::istringstream iss(patchName);
-        std::string strPatchName;
-        iss >> strPatchName;
+        std::string strPatchName=ca_patchName[ipane];
         strPatchName.resize(nComp);
-        ca_patchName[ipane] = strPatchName;
-        */
-        Info << "    " << dataName.c_str() << " = " << (*ca_patchName[ipane]).c_str() << endl;
+        Info << "    " << dataName.c_str() << " = " << strPatchName.c_str() << endl;
 
         dataName = std::string("patchType");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-        char* patchType;
-        COM_get_array(regName.c_str(), paneID, &patchType);
+        COM_get_array(regName.c_str(), paneID, &ca_patchType[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
 
-        ca_patchType[ipane] = reinterpret_cast<std::string*>(&patchType);
-        //ca_patchType[ipane][0].resize(nComp);
-        /*
-        std::istringstream iss(patchType);
-        std::string strPatchType;
-        iss >> strPatchType;
+        std::string strPatchType=ca_patchType[ipane];
         strPatchType.resize(nComp);
-        ca_patchType[ipane] = strPatchType;
-        */
-
-        std::string strPatchType=*ca_patchType[ipane];
-
-        Info << "    " << dataName.c_str() << " = " << (*ca_patchType[ipane]).c_str() << endl;
+        Info << "    " << dataName.c_str() << " = " << strPatchType.c_str() << endl;
 
         dataName = std::string("patchStart");
-
-std::cout << __LINE__ << std::endl;
-std::cout << __LINE__ << " volName = " << volName << std::endl;
-std::cout << __LINE__ << " dataName = " << dataName << std::endl;
-
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-
-std::cout << __LINE__ << " regName = " << regName << std::endl;
-
-std::cout << __LINE__ << std::endl;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchStart[ipane]);
-
-std::cout << __LINE__ << std::endl;
-
         Info << "    " << dataName.c_str() << " = " << *ca_patchStart[ipane] << endl;
 
-std::cout << __LINE__ << std::endl;
-
         dataName = std::string("patchSize");
-        //nameExists(dataItemNames, dataName);
-
-std::cout << __LINE__ << std::endl;
-
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
-std::cout << __LINE__ << std::endl;
-
         COM_get_array(regName.c_str(), paneID, &ca_patchSize[ipane]);
-
-std::cout << __LINE__ << std::endl;
-
         Info << "    " << dataName.c_str() << " = " << *ca_patchSize[ipane] << endl;
 
         dataName = std::string("patchPointToPointMap_size");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap_size[ipane]);
-        Info << "    " << dataName.c_str() << " = " << *ca_patchPointToPointMap_size[ipane] << endl;
+        Info << "    " << dataName.c_str() << " = "
+             << *ca_patchPointToPointMap_size[ipane] << endl;
 
         dataName = std::string("patchFaceToPointConn_types");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_types[ipane]);
-        Info << "    " << dataName.c_str() << " = " << *ca_patchFaceToPointConn_types[ipane] << endl;
+        Info << "    " << dataName.c_str() << " = "
+             << *ca_patchFaceToPointConn_types[ipane] << endl;
 
         dataName = std::string("patchFaceToPointConn_map");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_map[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
@@ -994,7 +716,7 @@ std::cout << __LINE__ << std::endl;
         }
 
         dataName = std::string("patchFaceToPointConn_size");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_size[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
@@ -1064,7 +786,7 @@ std::cout << __LINE__ << std::endl;
 
         // Mapping data ^^^^^^^^^^^^^^^^^^^^^^^^^
         dataName = std::string("patchPointToPointMap");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap[ipane], &nComp);
@@ -1082,7 +804,7 @@ std::cout << __LINE__ << std::endl;
 /*        }*/
 
         dataName = std::string("patchFaceToFaceMap");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
             
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToFaceMap[ipane], &nComp);
@@ -1103,7 +825,7 @@ std::cout << __LINE__ << std::endl;
 
         // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
         dataName = std::string("vel");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchVel[ipane], &nComp);
@@ -1122,7 +844,7 @@ std::cout << __LINE__ << std::endl;
             
     
         dataName = std::string("pres");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchP[ipane], &nComp);
@@ -1140,7 +862,7 @@ std::cout << __LINE__ << std::endl;
 /*        }*/
 
         dataName = std::string("temp");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchT[ipane], &nComp);
@@ -1158,7 +880,7 @@ std::cout << __LINE__ << std::endl;
 /*        }*/
 
         dataName = std::string("rho");
-        //nameExists(dataItemNames, dataName);
+        nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchRho[ipane], &nComp);
@@ -1177,26 +899,247 @@ std::cout << __LINE__ << std::endl;
 
         Info << "  --------------------------------------------------"
              << endl;
-    
     }
 
     Info << "----------------------------------------------------"
          << endl;
 
-//dataItemNames.clear();
-
-std::cout << __LINE__ << std::endl;
-
-
     COM_free_buffer(&paneList);
-
-std::cout << __LINE__ << std::endl;
-
     return 0;
 }
 
+int comFoam::deleteSurfaceData()
+{
+    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    {
+        if (ca_patchInGroup != NULL)
+        {
+            delete [] ca_patchInGroup[ipatch];
+            ca_patchInGroup[ipatch] = NULL;
+        }
 
+        if (ca_patchStart != NULL)
+        {
+            delete [] ca_patchStart[ipatch];
+            ca_patchStart[ipatch] = NULL;
+        }    
 
+        if (ca_patchSize != NULL)
+        {
+            delete [] ca_patchSize[ipatch];
+            ca_patchSize[ipatch] = NULL;
+        }    
+    }
 
+    if (ca_patchName != NULL)
+    {
+        delete [] ca_patchName;
+        ca_patchName = NULL;
+    }
+    
+    if (ca_patchType != NULL)
+    {
+        delete [] ca_patchType;
+        ca_patchType = NULL;
+    }
 
+    if (ca_patchInGroup != NULL)
+    {
+        delete [] ca_patchInGroup;
+        ca_patchInGroup = NULL;
+    }
 
+    if (ca_patchStart != NULL)
+    {
+        delete [] ca_patchStart;
+        ca_patchStart = NULL;
+    }    
+
+    if (ca_patchSize != NULL)
+    {
+        delete [] ca_patchSize;
+        ca_patchSize = NULL;
+    }
+
+    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    {
+        if (ca_patchFaceToFaceMap != NULL)
+        {
+            delete [] ca_patchFaceToFaceMap[ipatch];
+            ca_patchFaceToFaceMap[ipatch] = NULL;
+        }
+
+        if (ca_patchPoints != NULL)
+        {
+            delete [] ca_patchPoints[ipatch];
+            ca_patchPoints[ipatch] = NULL;
+        }
+
+        if (ca_patchVel != NULL)
+        {
+            delete [] ca_patchVel[ipatch];
+            ca_patchVel[ipatch] = NULL;
+        }
+
+        if (ca_patchRho != NULL)
+        {
+            delete [] ca_patchRho[ipatch];
+            ca_patchRho[ipatch] = NULL;
+        }
+
+        if (ca_patchP != NULL)
+        {
+            delete [] ca_patchP[ipatch];
+            ca_patchP[ipatch] = NULL;
+        }
+
+        if (ca_patchT != NULL)
+        {
+            delete [] ca_patchT[ipatch];
+            ca_patchT[ipatch] = NULL;
+        }
+    }
+
+    if (ca_patchFaceToFaceMap != NULL)
+    {
+        delete [] ca_patchFaceToFaceMap;
+        ca_patchFaceToFaceMap = NULL;
+    }
+
+    if (ca_patchPoints != NULL)
+    {
+        delete [] ca_patchPoints;
+        ca_patchPoints = NULL;
+    }
+
+    if (ca_patchVel != NULL)
+    {
+        delete [] ca_patchVel;
+        ca_patchVel = NULL;
+    }
+
+    if (ca_patchRho != NULL)
+    {
+        delete [] ca_patchRho;
+        ca_patchRho = NULL;
+    }
+
+    if (ca_patchP != NULL)
+    {
+        delete [] ca_patchP;
+        ca_patchP = NULL;
+    }
+
+    if (ca_patchT != NULL)
+    {
+        delete [] ca_patchT;
+        ca_patchT = NULL;
+    }
+
+    //  Delete faceToPoint connectivity arrays ^^    
+    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    {
+        int ntypes = *ca_patchFaceToPointConn_types[ipatch];
+        
+        for(int itype=0; itype<ntypes; itype++)
+        {
+            if (ca_patchFaceToPointConn[ipatch][itype] != NULL)
+            {
+                delete [] ca_patchFaceToPointConn[ipatch][itype];
+                ca_patchFaceToPointConn[ipatch][itype] = NULL;
+            }
+        }
+
+        if (ca_patchFaceToPointConn[ipatch] != NULL)
+        {
+            delete [] ca_patchFaceToPointConn[ipatch];
+            ca_patchFaceToPointConn[ipatch] = NULL;
+        }
+
+        if (ca_patchFaceToPointConn_map[ipatch] != NULL)
+        {
+            delete [] ca_patchFaceToPointConn_map[ipatch];
+            ca_patchFaceToPointConn_map[ipatch] = NULL;
+        }
+
+        if (ca_patchFaceToPointConn_size[ipatch] != NULL)
+        {
+            delete [] ca_patchFaceToPointConn_size[ipatch];
+            ca_patchFaceToPointConn_size[ipatch] = NULL;
+        }
+
+        if (ca_patchFaceToPointConn_types[ipatch] != NULL)
+        {
+            delete [] ca_patchFaceToPointConn_types[ipatch];
+            ca_patchFaceToPointConn_types[ipatch] = NULL;
+        }
+    }
+
+    if (ca_patchFaceToPointConn != NULL)
+    {
+        delete [] ca_patchFaceToPointConn;
+        ca_patchFaceToPointConn = NULL;
+    }
+
+    if (ca_patchFaceToPointConn != NULL)
+    {
+        delete [] ca_patchFaceToPointConn;
+        ca_patchFaceToPointConn = NULL;
+    }
+
+    if (ca_patchFaceToPointConn_map != NULL)
+    {
+        delete [] ca_patchFaceToPointConn_map;
+        ca_patchFaceToPointConn_map = NULL;
+    }
+
+    if (ca_patchFaceToPointConn_size != NULL)
+    {
+        delete [] ca_patchFaceToPointConn_size;
+        ca_patchFaceToPointConn_size = NULL;
+    }
+
+    if (ca_patchFaceToPointConn_types != NULL)
+    {
+        delete [] ca_patchFaceToPointConn_types;
+        ca_patchFaceToPointConn_types = NULL;
+    }
+    //-------------------------------------------
+
+    // Delete pointToPoint mapping arrays ^^^^^^^
+    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    {
+        if (ca_patchPointToPointMap != NULL)
+        {
+            delete [] ca_patchPointToPointMap[ipatch];
+            ca_patchPointToPointMap[ipatch] = NULL;
+        }
+
+        if (ca_patchPointToPointMap_size != NULL)
+        {
+            delete [] ca_patchPointToPointMap_size[ipatch];
+            ca_patchPointToPointMap_size[ipatch] = NULL;
+        }
+    }
+
+    if (ca_patchPointToPointMap != NULL)
+    {
+        delete [] ca_patchPointToPointMap;
+        ca_patchPointToPointMap = NULL;
+    }
+
+    if (ca_patchPointToPointMap_size != NULL)
+    {
+        delete [] ca_patchPointToPointMap_size;
+        ca_patchPointToPointMap_size = NULL;
+    }
+    //-------------------------------------------
+
+    if (ca_nPatches != NULL)
+    {
+        delete [] ca_nPatches;
+        ca_nPatches = NULL;
+    }
+
+    return 0;
+}

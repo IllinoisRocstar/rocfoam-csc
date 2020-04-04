@@ -51,25 +51,22 @@ void rhoCentral::load(const char *name)
     }
 
     // Register Volume Window ^^^^^^^^^^^^^^^^^^^
-    std::string volName = name+string("VOL");
+    
 
     //  Register module with COM
     rhoCentral *comFoamPtr = new rhoCentral();
-
-    //COM_new_window(name, MPI_COMM_NULL);
-    COM_new_window(volName, tmpComm);
-
-    comFoamPtr->winVolName = volName;
-
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;
     
     //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
     Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
     
-    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->winRank));
-    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->winNProc));
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
 
+    //COM_new_window(name, MPI_COMM_NULL);
+    std::string volName = name+string("VOL");
+    COM_new_window(volName, tmpComm);
     std::string objectName = volName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
@@ -79,8 +76,6 @@ void rhoCentral::load(const char *name)
     // Register Surface Window ^^^^^^^^^^^^^^^^^^
     std::string surfName = name+string("SURF");
     COM_new_window(surfName, tmpComm);
-    comFoamPtr->winSurfName = surfName;
-
     objectName = surfName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
@@ -165,12 +160,23 @@ int rhoCentral::initialize(int argc, char *argv[])
     Foam::Info << "End of initialization of rhoCentral." << Foam::endl;
 
     // Setting comFoam variables that will be registered ^^
-    //   with COM. This are needed for flow control when
+    //   with COM. These are needed for flow control when
     //   solver runs step-by-step.
     Foam::Time &runTime(*runTimePtr);
-    winTime = runTime.value();
-    winDeltaT = runTime.deltaTValue();
-    winRun = static_cast<int>(runTime.run());
+    
+    if (ca_runStat == NULL)
+        ca_runStat = new int(static_cast<int>(runTime.run()));
+    if (ca_time == NULL)
+        ca_time = new double(runTime.value());
+    if (ca_deltaT == NULL)
+        ca_deltaT = new double(runTime.deltaTValue());
+    
+    //*ca_deltaT = (runTime.deltaTValue());
+
+std::cout << "ca_runStat = " << *ca_runStat << std::endl;
+std::cout << "ca_time = " << *ca_time << std::endl;
+std::cout << "ca_deltaT = " << ca_deltaT << std::endl;
+
     //-----------------------------------------------------
 
     initializeStat = 0;
@@ -683,9 +689,10 @@ int rhoCentral::step()
     // Setting comFoam variables that will be registered ^^
     //   with COM. This are needed for flow control when
     //   solver runs step-by-step.
-    winTime = runTime.value();
-    winDeltaT = runTime.deltaTValue();
-    winRun = static_cast<int>(runTime.run());
+    *ca_runStat = static_cast<int>(runTime.run());
+    *ca_time = runTime.value();
+    *ca_deltaT = runTime.deltaTValue();
+
     //-----------------------------------------------------
 
     stepStat = 0;
