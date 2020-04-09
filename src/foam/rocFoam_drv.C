@@ -38,7 +38,7 @@ double *fluidDeltaT;
 // Declaration of functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comDrvInit(int argc, char *argv[]);
 int comGetFunctionHandles(const char *name);
-int flowReconst(const char *name);
+//int flowReconst(const char *name);
 int comGetVolDataItems(const char *name);
 int comGetSurfDataItems(const char *name);
 int comDrvStat(const char *name);
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);
     //comDrvStep(winNames[0].c_str());
-    comDrvFin(winNames[0].c_str());
+    //comDrvFin(winNames[0].c_str());
 
     return 0;
 }
@@ -170,7 +170,6 @@ int comDrvInit(int argc, char *argv[])
     char *myArgv[2];
     myArgv[0] = argv[0];
     myArgv[1] = NULL;
-    myArgv[1] = NULL;
 
     if (runParallel)
     {
@@ -181,11 +180,13 @@ int comDrvInit(int argc, char *argv[])
     //int verb=3;
 
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    COM_call_function(flowInitHandle[0], &myArgc, &myArgv, winNames[0].c_str());
+    COM_call_function(flowInitHandle[0],
+                      &myArgc, &myArgv,
+                      winNames[0].c_str());
 
 
     std::string lookUpWindow1 = winNames[0]+string("VOL");
-    comGetVolDataItems(lookUpWindow1.c_str());
+    //comGetVolDataItems(lookUpWindow1.c_str());
     //lookUpWindow1 = winNames[0]+string("SURF");
     //comGetVolDataItems(lookUpWindow1.c_str());
 
@@ -203,25 +204,26 @@ int comDrvInit(int argc, char *argv[])
     lookUpWindow2 = winNames[1]+string("SURF");
     comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
 
-for(int i=0; i<2; i++)
-{
-    std::cout << " winNames[" << i << "] = " << winNames[i] << std::endl;
-    std::cout << " flowInitHandle[" << i << "] = " << flowInitHandle[i] << std::endl;
-    std::cout << " flowLoopHandle[" << i << "] = " << flowLoopHandle[i] << std::endl;
-    std::cout << " flowStepHandle[" << i << "] = " << flowStepHandle[i] << std::endl;
-    std::cout << " flowReconstCaDataHandle[" << i << "] = " << flowReconstCaDataHandle[i] << std::endl;
-}
-
-
     lookUpWindow2 = winNames[1]+string("VOL");
-    comGetVolDataItems(lookUpWindow2.c_str());
+    //comGetVolDataItems(lookUpWindow2.c_str());
 //    lookUpWindow2 = winNames[1]+string("SURF");
 //    comGetVolDataItems(lookUpWindow2.c_str());
 
 
-    lookUpWindow2 = winNames[1];
-    flowReconst(lookUpWindow2.c_str());
-  
+    comfoam_unload_module(winNames[0].c_str(), solverType);
+
+
+
+    //lookUpWindow2 = winNames[1];
+    //flowReconst(lookUpWindow2.c_str());
+
+
+    COM_call_function(flowReconstCaDataHandle[1],
+                      &myArgc, &myArgv,
+                      winNames[1].c_str());
+
+
+
     return 0;
 }
 
@@ -1020,6 +1022,7 @@ std::cout << "  " << dataName.c_str() << " = " << fluidDeltaT << std::endl;
     return 0;
 }
 
+/*
 int flowReconst(const char* name)
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
@@ -1028,14 +1031,11 @@ int flowReconst(const char* name)
     int index = std::distance(winNames.begin(), location);
     //std::string volName = winNames[index]+string("VOL");
 
-std::cout << "flowReconstCaDataHandle = " << flowReconstCaDataHandle[0]
-          << " " << flowReconstCaDataHandle[1] << std::endl;
-
     COM_call_function(flowReconstCaDataHandle[index], name);
     
     return 0;
 }
-
+*/
 
 int comDrvLoop(char* const name)
 {

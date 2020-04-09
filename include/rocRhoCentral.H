@@ -54,6 +54,8 @@ public:
     double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
 
+    int createFields_COM();
+
 private:
 
 protected:

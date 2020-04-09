@@ -3,7 +3,7 @@ OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior
 Also you need to install IMPACT library on your machine and set the variable IMPACT_INSTALL_PATH to the installation folder path.
 
 >> To compile rocFoam code:
-1) Replace the file "UPstream.C" in folder "replaceable" with that of "$FOAM/src/Pstream/mpi/UPstream.C"
+1) Transfer the file "UPstream.C" in folder "replaceable" to the folder "$FOAM/src/Pstream/mpi/"
 2) Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
 3) Go to the source folder of rocFoam
 4) Type "mkdir build" followed by "cd build"

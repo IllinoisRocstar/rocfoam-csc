@@ -336,30 +336,18 @@ int comFoam::reconstCaVolumeData(const char *name)
     }
     Info << endl;
 
-    // Flos stat data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Flow stat data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = string("time");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_time);
     Info << "  " << dataName.c_str() << " = " << *ca_time << endl;
 
-double *fluidDeltaT;
-
     dataName = string("deltaT");
     nameExists(dataItemNames, dataName);
     regName = volName+string(".")+dataName;
-
-std::cout << __LINE__ << std::endl;
-
-    //COM_get_array(regName.c_str(), 0, &fluidDeltaT);
-
-std::cout << __LINE__ << std::endl;
-
-std::cout << "  " << dataName.c_str() << " = " << fluidDeltaT << std::endl;
-
-    std::cout << "  " << dataName.c_str() << " = " << ca_deltaT << std::endl;
-
-std::cout << __LINE__ << std::endl;
+    COM_get_array(regName.c_str(), 0, &ca_deltaT);
+    std::cout << "  " << dataName.c_str() << " = " << *ca_deltaT << std::endl;
 
     dataName = string("runStat");
     nameExists(dataItemNames, dataName);
@@ -429,9 +417,9 @@ std::cout << __LINE__ << std::endl;
     
     COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
     COM_get_size(regName.c_str(), paneID, &nPoints);
-    Info << "    " << dataName.c_str() << " points = " << nPoints
-         << ", components = " << nComp << endl;
-/*    for(int ipoint=0; ipoint<nPoints; ipoint++)*/
+/*    Info << "    " << dataName.c_str() << " points = " << *ca_nPoints*/
+/*         << ", components = " << nComp << endl;*/
+/*    for(int ipoint=0; ipoint<*ca_nPoints; ipoint++)*/
 /*    {*/
 /*        Info << "Node " << ipoint << " ca_Points = ";*/
 /*        for(int icomp=0; icomp<nComp; icomp++)*/
@@ -569,6 +557,8 @@ std::cout << __LINE__ << std::endl;
 
     return 0;
 }
+
+
 
 int comFoam::deleteVolumeData()
 {

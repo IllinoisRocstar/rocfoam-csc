@@ -620,6 +620,10 @@ int comFoam::reconstCaSurfaceData(const char *name)
     // Primary allocation ^^^^^^^^^^^^^^^^^^^^^^^
     ca_patchName    = new char*[*ca_nPatches];
     ca_patchType    = new char*[*ca_nPatches];
+
+    patchNameStr    = new string[*ca_nPatches];
+    patchTypeStr    = new string[*ca_nPatches];
+
     //ca_patchInGroup = new wordList*[*ca_nPatches];
     ca_patchStart   = new int*[*ca_nPatches];
     ca_patchSize    = new int*[*ca_nPatches];
@@ -661,9 +665,9 @@ int comFoam::reconstCaSurfaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_patchName[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
 
-        std::string strPatchName=ca_patchName[ipane];
-        strPatchName.resize(nComp);
-        Info << "    " << dataName.c_str() << " = " << strPatchName.c_str() << endl;
+        patchNameStr[ipane] = ca_patchName[ipane];
+        patchNameStr[ipane].resize(nComp);
+        Info << "    " << dataName.c_str() << " = " << patchNameStr[ipane].c_str() << endl;
 
         dataName = std::string("patchType");
         nameExists(dataItemNames, dataName);
@@ -671,9 +675,9 @@ int comFoam::reconstCaSurfaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_patchType[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
 
-        std::string strPatchType=ca_patchType[ipane];
-        strPatchType.resize(nComp);
-        Info << "    " << dataName.c_str() << " = " << strPatchType.c_str() << endl;
+        patchTypeStr[ipane] = ca_patchType[ipane];
+        patchTypeStr[ipane].resize(nComp);
+        Info << "    " << dataName.c_str() << " = " << patchTypeStr[ipane].c_str() << endl;
 
         dataName = std::string("patchStart");
         nameExists(dataItemNames, dataName);
@@ -943,6 +947,21 @@ int comFoam::deleteSurfaceData()
         ca_patchType = NULL;
     }
 
+
+    if (patchNameStr != NULL)
+    {
+        delete [] patchNameStr;
+        patchNameStr = NULL;
+    }
+    
+    if (patchTypeStr != NULL)
+    {
+        delete [] patchTypeStr;
+        patchTypeStr = NULL;
+    }
+
+
+
     if (ca_patchInGroup != NULL)
     {
         delete [] ca_patchInGroup;
@@ -1143,3 +1162,4 @@ int comFoam::deleteSurfaceData()
 
     return 0;
 }
+

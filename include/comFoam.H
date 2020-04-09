@@ -22,8 +22,9 @@ public:
 
     ~comFoam();
 
-private:
+protected:
     const int nComponents = 3;
+private:
     const int cellToPointTypeSize=8;
     const int faceToPointTypeSize=4;
 
@@ -51,6 +52,9 @@ private:
 
     bool nameExists(const std::vector<std::string>& dataItemNames,
                           const std::string& dataName);
+
+
+    int reconstMesh();
 
 protected:
 
@@ -96,6 +100,10 @@ protected:
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
+
+    std::string* patchNameStr = NULL; //single value for the last
+    std::string* patchTypeStr = NULL; //single value for the last
+
     char** ca_patchName = NULL; //single value for the last
     char** ca_patchType = NULL; //single value for the last
     wordList**    ca_patchInGroup = NULL; //single value for the last
@@ -147,7 +155,10 @@ protected:
     int flowLoop(const char *name);
     int flowStep(const char *name);
 
-    int flowReconstCaData(const char *name);
+    int flowReconstCaData(int *pargc, void **pargv, const char *name);
+    int reconstMesh(int argc, char **argv, const char* name);
+
+    virtual int createFields_COM() { return 0;}
 
 public: 
     static void copyWindow(const char *name1, const char *name2);

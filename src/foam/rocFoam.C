@@ -600,7 +600,16 @@ int rocFoam::createRDeltaT()
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
 
+Foam::Info << __FILE__ << " " << __LINE__ << Foam::endl;
+std::cout << "@meshPtr = " << &meshPtr << std::endl;
+
+const pointField&    points = mesh.points();
+Foam::Info << "points[0] = " << points[0] << Foam::endl;
+
     LTS = fv::localEulerDdt::enabled(mesh);
+
+Foam::Info << __FILE__ << " " << __LINE__ << Foam::endl;
+std::cout << "@meshPtr = " << " " << &meshPtr << std::endl;
 
     if (LTS)
     {
@@ -624,6 +633,8 @@ int rocFoam::createRDeltaT()
             )
         );
     }
+
+Info << __FILE__ << " " << __LINE__ << endl;
 
     return 0;
 }

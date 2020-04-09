@@ -80,7 +80,8 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 
 
 
-int comFoam::flowReconstCaData(const char *name)
+int comFoam::flowReconstCaData(int *pargc, void **pargv, const char *name)
+
 {
     MPI_Comm tmpComm = COM_get_default_communicator();
     int tmpRank;
@@ -92,6 +93,7 @@ int comFoam::flowReconstCaData(const char *name)
                   << " reconstructions for window "
                   << name << std::endl;
     }
+
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
     std::string volName = name+string("VOL");
@@ -102,6 +104,14 @@ int comFoam::flowReconstCaData(const char *name)
     reconstCaVolumeData(name);
     reconstCaFaceData(name);
     reconstCaSurfaceData(name);
+
+    int argc = *pargc;
+    char** argv = reinterpret_cast<char**>(pargv);
+
+//comFoamPtr->initialize(argc, argv);
+
+    comFoamPtr->reconstMesh(argc, argv, name);
+    comFoamPtr->createFields_COM();
 
     return 0;
 }
@@ -192,10 +202,15 @@ int comFoam::registerFunctions(const char *name)
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    /*
     std::vector<COM_Type> types(13,COM_INT);
-
     types[0] = COM_RAWDATA;
     types[2] = COM_VOID;
+    */
+
+    std::vector<COM_Type> types(13,COM_VOID);
+    types[0] = COM_RAWDATA;
+    types[1] = COM_INT;
 
     std::string functionName = volName+string(".flowInit");
     COM_set_member_function
@@ -233,7 +248,7 @@ int comFoam::registerFunctions(const char *name)
         functionName.c_str(),
         reinterpret_cast<Member_func_ptr>(&comFoam::flowReconstCaData),
         objectName.c_str(),
-        "bi",
+        "biii",
         &types[0]
     );
 

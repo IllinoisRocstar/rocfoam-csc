@@ -170,13 +170,6 @@ int rhoCentral::initialize(int argc, char *argv[])
         ca_time = new double(runTime.value());
     if (ca_deltaT == NULL)
         ca_deltaT = new double(runTime.deltaTValue());
-    
-    //*ca_deltaT = (runTime.deltaTValue());
-
-std::cout << "ca_runStat = " << *ca_runStat << std::endl;
-std::cout << "ca_time = " << *ca_time << std::endl;
-std::cout << "ca_deltaT = " << ca_deltaT << std::endl;
-
     //-----------------------------------------------------
 
     initializeStat = 0;
@@ -820,6 +813,177 @@ int rhoCentral::createFields()
     return 0;
 }
 
+
+
+int rhoCentral::createFields_COM()
+{
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+
+    //  createRDeltaT.H  ^^^^^^^^^^^^^
+Info << " HELLOOOOOOOOOOOO. Remember this." << endl;
+//    createRDeltaT();
+    // -------------------------------
+
+    Info << "Reading thermophysical properties\n" << endl;
+
+    pThermoPtr = autoPtr<psiThermo>(psiThermo::New(mesh));
+    Foam::psiThermo& thermo(*pThermoPtr);
+
+    // Updating P & T with COM data ^^^^^^^^^^^^^
+    //volScalarField pTmp(thermo.p());
+    //volScalarField TTmp(thermo.T());
+    int cellIndex = 0;
+    for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
+    {
+        int ncells = ca_cellToPointConn_size[itype];
+        for(int icell=0; icell<ncells; icell++)
+        {
+            int cellID = ca_cellToCellMap[cellIndex];
+
+            thermo.p()[cellID] = ca_P[cellIndex];
+            thermo.T()[cellID] = ca_T[cellIndex];
+            cellIndex++;
+        }
+    }
+    //thermo.updateP(pTmp);
+    //thermo.updateT(TTmp);
+    //-------------------------------------------
+
+    ePtr = &thermo.he();
+    volScalarField &e(*ePtr);
+
+    Info << "Creating field U\n" << endl;
+
+    UPtr = new volVectorField
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    volVectorField &U(*UPtr);
+
+    rhoPtr = new volScalarField
+    (
+        IOobject
+        (
+            "rho",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        thermo.rho()
+    );
+    volScalarField &rho(*rhoPtr);
+
+    // Updating U with COM data ^^^^^^^^^^^^^^^^^
+    cellIndex = 0;
+    for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
+    {
+        int ncells = ca_cellToPointConn_size[itype];
+        for(int icell=0; icell<ncells; icell++)
+        {
+            int cellID = ca_cellToCellMap[cellIndex];
+
+            for(int jcomp=0; jcomp<nComponents; jcomp++)
+            {
+                int localComp = jcomp + cellIndex*nComponents;
+            
+                U[cellID][jcomp] = ca_Vel[localComp];
+            }
+
+            rho[cellID] = ca_Rho[cellIndex];
+
+            //ca_P[cellIndex] = p[cellID];
+            //ca_T[cellIndex] = T[cellID];
+            
+            cellIndex++;
+        }
+    }
+    //-------------------------------------------
+    rhoUPtr = new volVectorField
+    (
+        IOobject
+        (
+            "rhoU",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        rho * U
+    );
+    volVectorField &rhoU(*rhoUPtr);
+
+    rhoEPtr = new volScalarField
+    (
+        IOobject
+        (
+            "rhoE",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        rho * (e + 0.5 * magSqr(U))
+    );
+
+    posPtr = new surfaceScalarField
+    (
+        IOobject
+        (
+            "pos",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar(dimless, 1.0)
+    );
+
+    negPtr = new surfaceScalarField
+    (
+        IOobject
+        (
+            "neg",
+            runTime.timeName(),
+            mesh
+        ),
+        mesh,
+        dimensionedScalar(dimless, -1.0)
+    );
+
+    phiPtr = new surfaceScalarField
+    (
+        "phi",
+        fvc::flux(rhoU)
+    );
+    surfaceScalarField &phi(*phiPtr);
+
+    Info << "Creating turbulence model\n" << endl;
+
+    turbulencePtr = autoPtr<compressible::turbulenceModel>
+    (
+        compressible::turbulenceModel::New
+        (
+            rho,
+            U,
+            phi,
+            thermo
+        )
+    );
+
+    return 0;
+}
+
+
+
 int rhoCentral::createFieldRefs()
 {
     Foam::psiThermo &thermo(*pThermoPtr);
@@ -1011,7 +1175,7 @@ double rhoCentral::errorEvaluate(int argc, char *argv[])
     Info << "Field vectors created. " << endl;
 
     rhoVec[0]  = mag(rhoVec[2]  - rhoVec[1]);
-    UMagVec[0] = mag(UMagVec[2]-UMagVec[1]);
+    UMagVec[0] = mag(UMagVec[2] - UMagVec[1]);
     rhoEVec[0] = mag(rhoEVec[2] - rhoEVec[1]);
     
     Info << "Infinity norm = " << max(rhoVec[0]) << endl;
