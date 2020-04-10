@@ -2,36 +2,43 @@
 #include <vector>
 
 rocFoam::rocFoam()
-    : solverType(NULL),
-      argsPtr(NULL),
-      runTimePtr(NULL),
-      listOptions(false),
-      LTS(false),
-      adjustTimeStep(false),
-      overrideTimeStep(false),
-      maxCo(0.0),
-      maxDeltaT(0.0),
-      overrideDeltaT(small),
-      CoNum(0.0),
-      meanCoNum(0.0),
-      pPtr(NULL),
-      TPtr(NULL),
-      psiPtr(NULL),
-      ePtr(NULL),
-      rhoPtr(NULL),
-      UPtr(NULL),
-      rhoUPtr(NULL),
-      rhoEPtr(NULL),
-      phiPtr(NULL),
-      meshPtr(NULL),
-      turbulencePtr(NULL),
-      trDeltaT(NULL),
-      initializeStat(-1),
-      loopStat(-1),
-      stepStat(-1),
-      finalizeStat(-1),
-      testStat(-1.0)
-{}
+{ initSet(); }
+
+int rocFoam::initSet()
+{
+    solverType = NULL;
+    argsPtr = NULL;
+    runTimePtr = NULL;
+    listOptions = false;
+    LTS = false;
+    adjustTimeStep = false;
+    overrideTimeStep = false;
+    maxCo = 0.0;
+    maxDeltaT = 0.0;
+    overrideDeltaT = small;
+    CoNum = 0.0;
+    meanCoNum = 0.0;
+    pPtr = NULL;
+    TPtr = NULL;
+    psiPtr = NULL;
+    ePtr = NULL;
+    rhoPtr = NULL;
+    UPtr = NULL;
+    rhoUPtr = NULL;
+    rhoEPtr = NULL;
+    phiPtr = NULL;
+    meshPtr = NULL;
+    turbulencePtr = NULL;
+    trDeltaT = NULL;
+    initializeStat = -1;
+    loopStat = -1;
+    stepStat = -1;
+    finalizeStat = -1;
+    testStat = -1.0;
+    
+    return 0;
+}
+
 
 rocFoam::~rocFoam()
 {
@@ -63,30 +70,30 @@ int rocFoam::finalize()
 
 int rocFoam::PostProcess(int argc, char *argv[])
 {
-    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef CREATE_TIME
 #define CREATE_TIME createTime();
 #endif
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef CREATE_MESH
 //#define CREATE_MESH createMesh();
 #define CREATE_MESH createDynamicFvMesh();
 #endif
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef CREATE_FIELDS
 #define CREATE_FIELDS createFields();
 #endif
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef CREATE_CONTROL
 #define CREATE_CONTROL createControl();
 #endif
-    // ---------------------------------------------------
+    // ------------------------------------------
 
 #define INCLUDE_FILE(X) INCLUDE_FILE2(X)
 #define INCLUDE_FILE2(X) X
@@ -101,19 +108,19 @@ int rocFoam::PostProcess(int argc, char *argv[])
     {
         Foam::timeSelector::addOptions();
 
-        //  addRegionOption.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //  addRegionOption.H  ^^^^^^^^^^^^^^^^^^
         addRegionOption();
-        // ---------------------------------------------------
+        // --------------------------------------
 
-        //  addFunctionObjectOptions.H  ^^^^^^^^^^^^^^^^^^^^^^
+        //  addFunctionObjectOptions.H  ^^^^^^^^^
         addFunctionObjectOptions();
-        // ---------------------------------------------------
+        // --------------------------------------
 
         // Set functionObject post-processing mode
         functionObject::postProcess = true;
-        //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^
         setRootCase();
-        // --------------------------------------------------
+        // --------------------------------------
 
         if (args.optionFound("list"))
         {
@@ -226,9 +233,9 @@ int rocFoam::addDictOption()
 
 int rocFoam::addFunctionObjectOptions()
 {
-    //  addDictOption.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  addDictOption.H  ^^^^^^^^^^^^^^^^^^^^^^^^
     addDictOption();
-    // --------------------------------------------------
+    // ------------------------------------------
 
     Foam::argList::addOption
     (
@@ -289,17 +296,17 @@ int rocFoam::setRootCase()
 int rocFoam::setRootCaseLists()
 {
 
-    //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
     listOptionsFunc();
-    // --------------------------------------------------
+    // ------------------------------------------
 
-    //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
     setRootCase();
-    // --------------------------------------------------
+    // ------------------------------------------
 
-    //  listOutput.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  listOutput.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     listOutput();
-    // --------------------------------------------------
+    // ------------------------------------------
 
     return 0;
 }
@@ -483,7 +490,7 @@ int rocFoam::createTime()
     return 0;
 }
 
-// ^^^ The two folloing functions are the same ^^^^^^^^^^^^^^^^^^^^^^
+// ^^^ The two folloing functions are the same ^^^
 int rocFoam::createTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
@@ -513,7 +520,7 @@ int rocFoam::readTimeControls()
 
     return 0;
 }
-//-------------------------------------------------------------------
+//-----------------------------------------------
 
 int rocFoam::setDeltaT()
 {
@@ -535,7 +542,8 @@ int rocFoam::setDeltaT()
     /* else if (overrideTimeStep && !adjustTimeStep)
     {
         FatalErrorInFunction
-            << "AdjustTimeStep should be set in control dictionary" << Foam::endl;    
+            << "AdjustTimeStep should be set in control dictionary"
+            << Foam::endl;    
     } */
     else if (overrideTimeStep)
     {
@@ -569,7 +577,8 @@ int rocFoam::setDeltaT(scalar &overrideDeltaT)
     if (!adjustTimeStep)
     {
         FatalErrorInFunction
-            << "AdjustTimeStep should be set in control dictionary" << Foam::endl;
+            << "AdjustTimeStep should be set in control dictionary"
+            << Foam::endl;
     }
     else
     {
@@ -600,17 +609,7 @@ int rocFoam::createRDeltaT()
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
 
-Foam::Info << __FILE__ << " " << __LINE__ << Foam::endl;
-std::cout << "@meshPtr = " << &meshPtr << std::endl;
-
-const pointField&    points = mesh.points();
-Foam::Info << "points[0] = " << points[0] << Foam::endl;
-
     LTS = fv::localEulerDdt::enabled(mesh);
-
-Foam::Info << __FILE__ << " " << __LINE__ << Foam::endl;
-std::cout << "@meshPtr = " << " " << &meshPtr << std::endl;
-
     if (LTS)
     {
         Info << "Using LTS" << endl;
@@ -633,8 +632,6 @@ std::cout << "@meshPtr = " << " " << &meshPtr << std::endl;
             )
         );
     }
-
-Info << __FILE__ << " " << __LINE__ << endl;
 
     return 0;
 }

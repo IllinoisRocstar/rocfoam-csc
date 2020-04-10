@@ -2,16 +2,110 @@
 #include "cellShape.H"
 
 comFoam::comFoam()
-    : solverType(""),
-      winComm(NULL)
-{};
+{
+    initSet();
+};
 
 comFoam::comFoam(int *pargc, void **pargv, const char *name)
-    : solverType(""),
-      winComm(NULL)
 {
+    initSet();
     flowInit(pargc, pargv, name);
 }
+
+int comFoam::initSet()
+{
+    // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ca_nPoints = NULL;  //single value
+    ca_nCells = NULL;   //single value
+    ca_nFaces = NULL;   //single value
+    ca_nPatches = NULL; //single value
+    //-------------------------------------------
+
+    // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Mapping
+    ca_cellToCellMap = NULL;
+
+    // Connectivity
+    ca_cellToPointConn_types = NULL; //single value
+    ca_cellToPointConn_map = NULL;
+    ca_cellToPointConn_size = NULL;
+    ca_cellToPointConn = NULL;
+
+    // Field Data
+    ca_Points = NULL;
+    ca_Vel = NULL;
+    ca_P = NULL;
+    ca_T = NULL;
+    ca_Rho = NULL;
+    //-------------------------------------------
+    
+    // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // Mapping
+    ca_faceToFaceMap = NULL;
+
+    // Connectivity
+    ca_faceToPointConn_types = NULL; //single value
+    ca_faceToPointConn_map = NULL;
+    ca_faceToPointConn_size = NULL;
+    ca_faceToPointConn = NULL;
+
+    // Field data
+    ca_faceOwner = NULL;
+    ca_faceNeighb = NULL;
+    //-------------------------------------------
+
+    // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // General data
+
+    patchNameStr = NULL; //single value for the last
+    patchTypeStr = NULL; //single value for the last
+
+    ca_patchName = NULL; //single value for the last
+    ca_patchType = NULL; //single value for the last
+    ca_patchInGroup = NULL; //single value for the last
+    ca_patchStart = NULL; //single value for the last
+    ca_patchSize = NULL; //single value for the last
+
+    // PointToPoint Mapping
+    ca_patchPointToPointMap_size = NULL; //single value for the last
+    ca_patchPointToPointMap = NULL;
+
+    // FaceToFace Mapping
+    ca_patchFaceToFaceMap = NULL;
+
+    // FaceToPoint Mapping
+    ca_patchFaceToPointConn_types = NULL; //single value for the last
+    ca_patchFaceToPointConn_map = NULL;
+    ca_patchFaceToPointConn_size = NULL;
+    ca_patchFaceToPointConn = NULL;
+
+    // Field data
+    ca_patchPoints = NULL;
+    ca_patchVel = NULL;
+    ca_patchP = NULL;
+    ca_patchT = NULL;
+    ca_patchRho = NULL;
+    //-------------------------------------------
+
+    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //std::string winVolName; /// Tracks *this* volume window name.
+    //std::string winSurfName; /// Tracks *this* volume window name.
+
+    solverType = "";
+    winComm = NULL;
+    
+    ca_nProc = 1;
+    ca_myRank = 0;
+
+    // registered data set during the simulation
+    ca_runStat = NULL;
+    ca_time = NULL;
+    ca_deltaT = NULL;
+
+    return 0;
+}
+
+
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::flowInit(int *pargc, void **pargv, const char *name)
@@ -28,16 +122,26 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
+std::cout << " here 01 " << std::endl;
+
     std::string volName = name+string("VOL");
     std::string surfName = name+string("SURF");
     std::string objectName = volName+string(".object");
 
+std::cout << " here 02 " << std::endl;
+
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+
+std::cout << " here 03 " << std::endl;
 
     int argc = *pargc;
     char** argv = reinterpret_cast<char**>(pargv);
 
+std::cout << " here 04 " << std::endl;
+
     comFoamPtr->initialize(argc, argv);
+
+std::cout << " here 05 " << std::endl;
 
     //  Other initializations ^^^^^^^^^^^^^^^^^^^
     // extractData can be called here, or in
@@ -80,7 +184,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 
 
 
-int comFoam::flowReconstCaData(int *pargc, void **pargv, const char *name)
+int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
 
 {
     MPI_Comm tmpComm = COM_get_default_communicator();
@@ -108,10 +212,10 @@ int comFoam::flowReconstCaData(int *pargc, void **pargv, const char *name)
     int argc = *pargc;
     char** argv = reinterpret_cast<char**>(pargv);
 
-//comFoamPtr->initialize(argc, argv);
+comFoamPtr->initialize(argc, argv, true);
 
-    comFoamPtr->reconstMesh(argc, argv, name);
-    comFoamPtr->createFields_COM();
+//    comFoamPtr->reconstDynamicFvMesh();
+//    comFoamPtr->createFields_COM();
 
     return 0;
 }
@@ -246,7 +350,7 @@ int comFoam::registerFunctions(const char *name)
     COM_set_member_function
     (
         functionName.c_str(),
-        reinterpret_cast<Member_func_ptr>(&comFoam::flowReconstCaData),
+        reinterpret_cast<Member_func_ptr>(&comFoam::reconstCaData),
         objectName.c_str(),
         "biii",
         &types[0]

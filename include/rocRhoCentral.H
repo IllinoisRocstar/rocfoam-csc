@@ -10,6 +10,22 @@
 class rhoCentral : public comFoam
 {
 public:
+    //  Constructor, Deconstructor ^^^^^^^^^
+    rhoCentral();
+    rhoCentral(int argc, char *argv[]);
+    //rhoCentral(int *pargc, void **pargv, int *verbIn);
+
+    ~rhoCentral();
+    //--------------------------------------
+
+    //  COM-specific methods ^^^^^^^^^^^^^^^
+    static void load(const char *name);
+    static void unload(const char *name);
+    //--------------------------------------
+
+private:
+    int initSet();
+
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
     surfaceScalarField *posPtr;
     surfaceScalarField *negPtr;
@@ -23,28 +39,9 @@ public:
     bool inviscid;
     //--------------------------------------
 
-    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    static void load(const char *name);
-    static void unload(const char *name);
-
-
-    //  Constructor, Deconstructor ^^^^^^^^^
-    rhoCentral();
-    rhoCentral(int argc, char *argv[]);
-    //rhoCentral(int *pargc, void **pargv, int *verbIn);
-
-    ~rhoCentral();
-    //--------------------------------------
-
-    //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[]);
-    int loop();
-    int step();
-    int finalize();
-    //--------------------------------------
-    
-    //  Execution functions ^^^^^^^^^^^^^^^^
-    int createFields();
+   
+    // Solver methods ^^^^^^^^^^^^^^^^^^^^^^
+    int createFields(const bool restart = false);
     int createFieldRefs();
 
     int readFluxScheme();
@@ -54,16 +51,13 @@ public:
     double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
 
-    int createFields_COM();
-
-private:
-
-protected:
-    //int flowInit(int *pargc, void **pargv, int *verbIn);
-    //int flowLoop();
-
-    //int flowStat();
-    //int flowFin();
+public:
+    //  Main methods ^^^^^^^^^^^^^^^^^^^^^^^
+    int initialize(int argc, char *argv[], const bool restart = false);
+    int loop();
+    int step();
+    int finalize();
+    //--------------------------------------
 };
 
 #endif

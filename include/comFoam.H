@@ -8,19 +8,12 @@ class comFoam : public COM_Object, public rocFoam
 {
 
 public:
-
-    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    //static void Load(const char *name);
-    //static void Unload(const std::string &name);
-
-    //void Load(const char *name);
-    //void Unload(const char *name);
-
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam();
     comFoam(int *pargc, void **pargv, const char *name);
-
     ~comFoam();
+private:
+    int initSet();
 
 protected:
     const int nComponents = 3;
@@ -57,78 +50,77 @@ private:
     int reconstMesh();
 
 protected:
-
     // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int* ca_nPoints = NULL;  //single value
-    int* ca_nCells = NULL;   //single value
-    int* ca_nFaces = NULL;   //single value
-    int* ca_nPatches = NULL; //single value
+    int* ca_nPoints;  //single value
+    int* ca_nCells;   //single value
+    int* ca_nFaces;   //single value
+    int* ca_nPatches; //single value
     //-------------------------------------------
 
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
-    int*  ca_cellToCellMap = NULL;
+    int*  ca_cellToCellMap;
 
     // Connectivity
-    int*  ca_cellToPointConn_types = NULL; //single value
-    int*  ca_cellToPointConn_map = NULL;
-    int*  ca_cellToPointConn_size = NULL;
-    int** ca_cellToPointConn = NULL;
+    int*  ca_cellToPointConn_types; //single value
+    int*  ca_cellToPointConn_map;
+    int*  ca_cellToPointConn_size;
+    int** ca_cellToPointConn;
 
     // Field Data
-    double* ca_Points = NULL;
-    double* ca_Vel = NULL;
-    double* ca_P = NULL;
-    double* ca_T = NULL;
-    double* ca_Rho = NULL;
+    double* ca_Points;
+    double* ca_Vel;
+    double* ca_P;
+    double* ca_T;
+    double* ca_Rho;
     //-------------------------------------------
     
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
-    int*  ca_faceToFaceMap = NULL;
+    int*  ca_faceToFaceMap;
 
     // Connectivity
-    int*  ca_faceToPointConn_types = NULL; //single value
-    int*  ca_faceToPointConn_map = NULL;
-    int*  ca_faceToPointConn_size = NULL;
-    int** ca_faceToPointConn = NULL;
+    int*  ca_faceToPointConn_types; //single value
+    int*  ca_faceToPointConn_map;
+    int*  ca_faceToPointConn_size;
+    int** ca_faceToPointConn;
 
     // Field data
-    int* ca_faceOwner = NULL;
-    int* ca_faceNeighb = NULL;
+    int* ca_faceOwner;
+    int* ca_faceNeighb;
     //-------------------------------------------
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
 
-    std::string* patchNameStr = NULL; //single value for the last
-    std::string* patchTypeStr = NULL; //single value for the last
+    std::string* patchNameStr; //single value for the last
+    std::string* patchTypeStr; //single value for the last
 
-    char** ca_patchName = NULL; //single value for the last
-    char** ca_patchType = NULL; //single value for the last
-    wordList**    ca_patchInGroup = NULL; //single value for the last
-    int**         ca_patchStart = NULL; //single value for the last
-    int**         ca_patchSize = NULL; //single value for the last
+    char** ca_patchName; //single value for the last
+    char** ca_patchType; //single value for the last
+    wordList**    ca_patchInGroup; //single value for the last
+    int**         ca_patchStart; //single value for the last
+    int**         ca_patchSize; //single value for the last
 
     // PointToPoint Mapping
-    int** ca_patchPointToPointMap_size = NULL; //single value for the last
-    int** ca_patchPointToPointMap = NULL;
+    int** ca_patchPointToPointMap_size; //single value for the last
+    int** ca_patchPointToPointMap;
 
     // FaceToFace Mapping
-    int** ca_patchFaceToFaceMap = NULL;
+    int** ca_patchFaceToFaceMap;
 
     // FaceToPoint Mapping
-    int**  ca_patchFaceToPointConn_types = NULL; //single value for the last
-    int**  ca_patchFaceToPointConn_map = NULL;
-    int**  ca_patchFaceToPointConn_size = NULL;
-    int*** ca_patchFaceToPointConn = NULL;
+    int**  ca_patchFaceToPointConn_types; //single value for the last
+    int**  ca_patchFaceToPointConn_map;
+    int**  ca_patchFaceToPointConn_size;
+    int*** ca_patchFaceToPointConn;
 
     // Field data
-    double** ca_patchPoints = NULL;
-    double** ca_patchVel = NULL;
-    double** ca_patchP = NULL;
-    double** ca_patchT = NULL;
-    double** ca_patchRho = NULL;
+    double** ca_patchPoints;
+    double** ca_patchVel;
+    double** ca_patchP;
+    double** ca_patchT;
+    double** ca_patchRho;
     //-------------------------------------------
 
 protected:
@@ -143,22 +135,22 @@ protected:
     int ca_myRank;
 
     // registered data set during the simulation
-    int* ca_runStat = NULL;
-    double* ca_time = NULL;
-    double* ca_deltaT = NULL;
+    int* ca_runStat;
+    double* ca_time;
+    double* ca_deltaT;
     
     
-    // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int registerFunctions(const char *name);
-
+    // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    
+    // Solver
     int flowInit(int *pargc, void **pargv, const char *name);
     int flowLoop(const char *name);
     int flowStep(const char *name);
 
-    int flowReconstCaData(int *pargc, void **pargv, const char *name);
-    int reconstMesh(int argc, char **argv, const char* name);
-
-    virtual int createFields_COM() { return 0;}
+    // COM-specific
+    int registerFunctions(const char *name);
+    int reconstCaData(int* pargc, void** pargv, const char* name);
+    int reconstDynamicFvMesh();
 
 public: 
     static void copyWindow(const char *name1, const char *name2);

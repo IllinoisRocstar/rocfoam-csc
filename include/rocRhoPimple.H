@@ -12,7 +12,22 @@
 class rhoPimple : public comFoam
 {
 public:
-    //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
+    //  Constructor, Deconstructor ^^^^^^^^^
+    rhoPimple();
+    rhoPimple(int argc, char *argv[]);
+
+    ~rhoPimple();
+    //--------------------------------------
+
+    //  COM-specific methods ^^^^^^^^^^^^^^^
+    static void load(const char *name);
+    static void unload(const char *name);
+    //--------------------------------------
+
+private:
+    int initSet();
+
+    //  Solver pointers ^^^^^^^^^^^^^^^^^^^^
     pimpleControl *pimplePtr;
     pressureControl *pressureControlPtr;
     volScalarField *dpdtPtr;
@@ -35,32 +50,12 @@ public:
     scalar cumulativeContErr;
     //--------------------------------------
 
-
-    //  Object Functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    static void load(const char *name);
-    static void unload(const char *name);
-
-
-    //  Constructor, Deconstructor ^^^^^^^^^
-    rhoPimple();
-    rhoPimple(int argc, char *argv[]);
-
-    ~rhoPimple();
-    //--------------------------------------
-
-    //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[]);
-    int loop();
-    int step();
-    int finalize();
-    //--------------------------------------
-
-    //  Execution functions ^^^^^^^^^^^^^^^^
+    //  Solver methods  ^^^^^^^^^^^^^^^^^^^^
     int createControl();
     int createDyMControls();
     int initContinuityErrs();
 
-    int createFields();
+    int createFields(const bool restart = false);
     int createMRF();
     int compressibleCreatePhi();
     int createFvOptions();
@@ -84,15 +79,14 @@ public:
 
     double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
-
-private:
-
-protected:
-    //int flowInit(int *pargc, void **pargv, int *verbIn);
-    //int flowLoop();
-
-    //int flowStat();
-    //int flowFin();
+    
+public:
+    //  Main functions ^^^^^^^^^^^^^^^^^^^^^
+    int initialize(int argc, char *argv[], const bool restart = false);
+    int loop();
+    int step();
+    int finalize();
+    //--------------------------------------
 };
 
 #endif

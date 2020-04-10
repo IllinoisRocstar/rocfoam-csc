@@ -40,7 +40,7 @@ int comDrvInit(int argc, char *argv[]);
 int comGetFunctionHandles(const char *name);
 //int flowReconst(const char *name);
 int comGetVolDataItems(const char *name);
-int comGetSurfDataItems(const char *name);
+int comGetRunStatItems(const char *name);
 int comDrvStat(const char *name);
 int comDrvLoop(const char *name);
 int comDrvStep(const char *name);
@@ -51,7 +51,11 @@ int main(int argc, char *argv[])
     comDrvInit(argc, argv);
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);
-    //comDrvStep(winNames[0].c_str());
+    
+    std::string lookUpWindow1 = winNames[1]+string("VOL");
+    comGetRunStatItems(lookUpWindow1.c_str());
+
+    comDrvStep(winNames[1].c_str());
     //comDrvFin(winNames[0].c_str());
 
     return 0;
@@ -337,6 +341,66 @@ int comGetFunctionHandles(const char *name)
     return 0;
 }
 
+int comGetRunStatItems(const char *name)
+{
+    std::string volName = name;
+
+    int numDataItems=0;
+    std::vector<std::string> dataItemNames;
+
+         
+    std::string output;
+    COM_get_dataitems(volName.c_str(), &numDataItems, output);
+    Info << "  numDataItems = " << numDataItems << endl;
+
+    std::istringstream Istr(output);
+    dataItemNames.clear();
+    for (int i=0; i<numDataItems; ++i)
+    {
+        std::string nameTmp;
+        Istr >> nameTmp;
+        dataItemNames.push_back(nameTmp);
+        //Info << "  DataItem[" << i << "] = " << nameTmp << endl;
+    }
+    //Info << endl;
+
+
+    std::string dataName = string("time");
+    std::string regName = volName+string(".")+dataName;
+    bool ifCorrect = (std::find(dataItemNames.begin(),
+                                dataItemNames.end(), dataName)
+                                != dataItemNames.end());
+    if (ifCorrect)
+    {
+        COM_get_array(regName.c_str(), 0, &fluidTime);
+        Info << "  " << dataName.c_str() << " = " << *fluidTime << endl;
+    }
+
+    dataName = string("deltaT");
+    regName = volName+string(".")+dataName;
+    ifCorrect = (std::find(dataItemNames.begin(),
+                                dataItemNames.end(), dataName)
+                                != dataItemNames.end());
+    if (ifCorrect)
+    {
+        COM_get_array(regName.c_str(), 0, &fluidDeltaT);
+        Info << "  " << dataName.c_str() << " = " << *fluidDeltaT << endl;
+    }
+
+    dataName = string("runStat");
+    regName = volName+string(".")+dataName;
+    ifCorrect = (std::find(dataItemNames.begin(),
+                                dataItemNames.end(), dataName)
+                                != dataItemNames.end());
+    if (ifCorrect)
+    {
+        COM_get_array(regName.c_str(), 0, &fluidRun);
+        Info << "  " << dataName.c_str() << " = " << *fluidRun << endl;
+    }
+    
+    return 0;
+}
+
 int comGetVolDataItems(const char *name)
 {
     std::string volName = name;
@@ -418,12 +482,9 @@ int comGetVolDataItems(const char *name)
     {
         COM_get_array(regName.c_str(), 0, &fluidDeltaT);
         Info << "  " << dataName.c_str() << " = " << *fluidDeltaT << endl;
-
-std::cout << "  " << dataName.c_str() << " = " << fluidDeltaT << std::endl;
-
     }
 
-    dataName = string("winRun");
+    dataName = string("runStat");
     regName = volName+string(".")+dataName;
     ifCorrect = (std::find(dataItemNames.begin(),
                                 dataItemNames.end(), dataName)
@@ -1061,7 +1122,7 @@ int comDrvStep(const char* name)
     //  Call the flow stepper ^^^^^^^^^^^^^^^^^^
     Info << "\nStarting time loop\n" << endl;
 
-    //while (*fluidRun)
+    while (*fluidRun)
     {
         COM_call_function(flowStepHandle[index], name);
     }

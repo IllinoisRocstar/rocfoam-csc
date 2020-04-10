@@ -94,7 +94,7 @@ bool comFoam::nameExists(const std::vector<std::string>& dataItemNames,
 }
 
 
-int comFoam::reconstMesh(int argc, char **argv, const char* name)
+int comFoam::reconstDynamicFvMesh()
 {
     // Form point data container ^^^^^^^^^^^^^^^^
     Foam::pointField of_Points(*ca_nPoints);
@@ -112,10 +112,8 @@ int comFoam::reconstMesh(int argc, char **argv, const char* name)
     }
     //-------------------------------------------
 
-
     // Form face data container ^^^^^^^^^^^^^^^^^
     Foam::faceList of_Faces(*ca_nFaces);
-    
     Foam::labelList of_Owner(*ca_nFaces);
     Foam::labelList of_Neighb(*ca_nFaces);
     
@@ -144,68 +142,30 @@ int comFoam::reconstMesh(int argc, char **argv, const char* name)
         }
     }
     //-------------------------------------------
-/*for(int iface=0; iface<*ca_nFaces; iface++)*/
-/*{*/
-/*    Info << of_Owner[iface] << " " << of_Neighb[iface] << endl;*/
-/*}*/
 
-Info << " HELLO 0" << endl;
-
-
-    createArgs(argc, argv);
-
-Info << " HELLO 1" << endl;
-
-    PostProcess(argc, argv);
-
-Info << " HELLO 10" << endl;
-
-    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    setRootCaseLists();
-    // ---------------------------------------------------
-
-Info << " HELLO 2" << endl;
-
-    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    createTime();
-    // ---------------------------------------------------
-
-Info << " HELLO 3" << endl;
-
-    setRootCase();
-
+    // Creating mesh objectt ^^^^^^^^^^^^^^^^^^^^
     Foam::Time &runTime(*runTimePtr);
     Info << "Create mesh for time = " << runTime.timeName() << nl << endl;
 
-    const bool syncPar = true;
-
-Info << " HELLO 4" << endl;
-    
-    Foam::polyMesh meshTmp = Foam::polyMesh
+    meshPtr = dynamicFvMesh::New
     (
         IOobject
         (
-            dynamicFvMesh::defaultRegion,
+            fvMesh::defaultRegion,
             runTime.timeName(),
             runTime,
-            IOobject::NO_READ
+            IOobject::READ_IF_PRESENT
         ),
         Foam::move(of_Points),
         Foam::move(of_Faces),
         Foam::move(of_Owner),
-        Foam::move(of_Neighb),
-        syncPar
+        Foam::move(of_Neighb)
     );
+    dynamicFvMesh& mesh(*meshPtr);
+    //-------------------------------------------
 
-
-    meshPtr = dynamicFvMesh::New(meshTmp);
-    dynamicFvMesh &mesh(*meshPtr);
-
-Info << " HELLO 5" << endl;
-
+    // Creating patches ^^^^^^^^^^^^^^^^^^^^^^^^^
     int nPatches = *ca_nPatches;
-
-
     Foam::polyBoundaryMesh of_polyBoundaryMesh
     (
         IOobject
@@ -219,15 +179,6 @@ Info << " HELLO 5" << endl;
         mesh,
         nPatches
     );
-
-
-Info << " HELLO 6" << endl;
-
-    std::vector<polyPatch> of_vecPatches;
-    
-    List<polyPatch*> of_Patches(nPatches);
-    List<polyPatch*> of_Patches_(nPatches);
-
     for(int ipatch=0; ipatch<nPatches; ipatch++)
     {
         word patchName = patchNameStr[ipatch].c_str();
@@ -236,7 +187,6 @@ Info << " HELLO 6" << endl;
         label patchSize = *ca_patchSize[ipatch];
         label patchStart = *ca_patchStart[ipatch];
         label patchIndex = ipatch;
-        
         
         Foam::polyPatch of_Patch
         (
@@ -247,17 +197,20 @@ Info << " HELLO 6" << endl;
             of_polyBoundaryMesh,
             patchType
         );
-        
+    }
 
-        //of_vecPatches.push_back(of_Patch);
+    List<polyPatch*> of_Patches(*ca_nPatches);
+    std::vector<polyPatch> of_vecPatches;
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
+    {
+        word patchName = patchNameStr[ipatch].c_str();
+        word patchType = patchTypeStr[ipatch].c_str();
+                
+        label patchSize = *ca_patchSize[ipatch];
+        label patchStart = *ca_patchStart[ipatch];
+        label patchIndex = ipatch;
 
-
-        //const polyPatch& tmpPatch=of_vecPatches[ipatch];
-
-        //of_Patches[ipatch] = tmpPatch.ptr();
-
-        
-        /*of_Patches[ipatch] = new polyPatch
+        of_Patches[ipatch] = new polyPatch
         (
             patchName,
             patchSize,
@@ -266,11 +219,11 @@ Info << " HELLO 6" << endl;
             of_polyBoundaryMesh,
             patchType
         );
-        
-        //of_Patches_[ipatch] = of_Patches[ipatch];
-        */
     }
+    mesh.addPatches(of_Patches);
+    //-------------------------------------------
 
+/*
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
     for(int ipatch=0; ipatch<nPatches; ipatch++)
     {
@@ -279,7 +232,7 @@ Info << " HELLO 6" << endl;
         Info << " patchStrat =  " << patches[ipatch].start() << endl;
         Info << " patchSize =  " << patches[ipatch].size() << endl;
     }
-
+*/
 
     return 0;
 }

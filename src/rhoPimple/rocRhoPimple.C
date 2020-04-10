@@ -2,55 +2,49 @@
 
 using namespace COM;
 
-//^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoPimple::rhoPimple()
-    : pimplePtr(NULL),
-      pressureControlPtr(NULL),
-      dpdtPtr(NULL),
-      KPtr(NULL),
-      fvOptionsPtr(NULL),
-      MRFPtr(NULL),
-      UEqnPtr(NULL),
-      pThermoPtr(NULL),
-      rhoUfPtr(NULL),
-      divrhoUPtr(NULL),
-      tUEqnPtr(NULL),
-      correctPhi(false),
-      checkMeshCourantNo(false),
-      moveMeshOuterCorrectors(false),
-      cumulativeContErr(0.0)
 {
+    initSet();
     solverType = const_cast<char *>("rocRhoPimple");
 }
 
 rhoPimple::rhoPimple(int argc, char *argv[])
-    : pimplePtr(NULL),
-      pressureControlPtr(NULL),
-      dpdtPtr(NULL),
-      KPtr(NULL),
-      fvOptionsPtr(NULL),
-      MRFPtr(NULL),
-      UEqnPtr(NULL),
-      pThermoPtr(NULL),
-      rhoUfPtr(NULL),
-      divrhoUPtr(NULL),
-      tUEqnPtr(NULL),
-      correctPhi(false),
-      checkMeshCourantNo(false),
-      moveMeshOuterCorrectors(false),
-      cumulativeContErr(0.0)
 {
+    initSet();
     solverType = const_cast<char *>("rocRhoPimple");
     initialize(argc, argv);
 }
-//===================================================================
+
+int rhoPimple::initSet()
+{
+    pimplePtr = NULL;
+    pressureControlPtr = NULL;
+    dpdtPtr = NULL;
+    KPtr = NULL;
+    fvOptionsPtr = NULL;
+    MRFPtr = NULL;
+    UEqnPtr = NULL;
+    pThermoPtr = NULL;
+    rhoUfPtr = NULL;
+    divrhoUPtr = NULL;
+    tUEqnPtr = NULL;
+    correctPhi = false;
+    checkMeshCourantNo = false;
+    moveMeshOuterCorrectors = false;
+    cumulativeContErr = 0.0;
+
+    return 0;
+}
+
+//=========================================================
 
 
-//^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^
+//^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 void rhoPimple::load(const char *name)
 {
-    //  Anouncing default communicator  ^^^^^^^^^^^^^^^^^^^
+    //  Anouncing default communicator  ^^^^^^^^^
     MPI_Comm tmpComm;
     tmpComm = COM_get_default_communicator();  
 
@@ -71,9 +65,6 @@ void rhoPimple::load(const char *name)
     }
 
     // Register Volume Window ^^^^^^^^^^^^^^^^^^^
-    
-
-    //  Register module with COM
     rhoPimple *comFoamPtr = new rhoPimple();
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;
@@ -106,10 +97,9 @@ void rhoPimple::load(const char *name)
 
     return;
 }
-//---------------------------------------------------------
+//-----------------------------------------------
 
-
-//^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^
 void rhoPimple::unload(const char *name)
 {
     Foam::Info << "rocFoam.unload: Unloading rocRhoPimple with name "
@@ -128,51 +118,57 @@ void rhoPimple::unload(const char *name)
     std::string surfName = name+string("SURF");
     COM_delete_window(std::string(surfName));
 }
-//---------------------------------------------------------
-//===================================================================
+//-----------------------------------------------
+//=========================================================
 
-
-//^^^ DEFINITION OF OPENFOAM-RELATED METHODS ^^^^^^^^^^^^^^^^^^^^^^^^
-int rhoPimple::initialize(int argc, char *argv[])
+//^^^ Solver-specific methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+int rhoPimple::initialize(int argc, char *argv[], const bool restart)
 {
     // Not quite sure where this line should be
     createArgs(argc, argv);
 
-    //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
     PostProcess(argc, argv);
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^
     setRootCaseLists();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     createTime();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    createDynamicFvMesh();
-    // ---------------------------------------------------
+    //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^
+    if (!restart)
+    {
+        createDynamicFvMesh();
+    }
+    else
+    {
+        reconstDynamicFvMesh();
+    }
+    // ------------------------------------------
 
-    //  createDyMControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createDyMControls.H  ^^^^^^^^^^^^^^^^^^^^
     createDyMControls();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  initContinuityErrs.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  initContinuityErrs.H  ^^^^^^^^^^^^^^^^^^^
     initContinuityErrs();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    createFields();
-    // ---------------------------------------------------
+    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    createFields(restart);
+    // ------------------------------------------
 
-    //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^
     createFieldRefs();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
-    //  createRhoUfIfPresent.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createRhoUfIfPresent.H  ^^^^^^^^^^^^^^^^^
     createRhoUfIfPresent();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
     compressible::turbulenceModel &turbulence(*turbulencePtr);
 
@@ -180,13 +176,13 @@ int rhoPimple::initialize(int argc, char *argv[])
 
     if (!LTS)
     {
-        //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
+        //  compressibleCourantNo.H  ^^^^^^^^^^^^
         compressibleCourantNo();
-        // ---------------------------------------------------
+        // --------------------------------------
 
-        //  setInitialDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //  setInitialDeltaT.H  ^^^^^^^^^^^^^^^^^
         setInitialDeltaT();
-        // ---------------------------------------------------
+        // --------------------------------------
     }
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
@@ -202,7 +198,7 @@ int rhoPimple::initialize(int argc, char *argv[])
         ca_time = new double(runTime.value());
     if (ca_deltaT == NULL)
         ca_deltaT = new double(runTime.deltaTValue());
-    //-----------------------------------------------------
+    //-------------------------------------------
     
     initializeStat = 0;
     return initializeStat;
@@ -212,10 +208,10 @@ int rhoPimple::createControl()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
-    //  createPimpleControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createPimpleControl.H  ^^^^^^^^^^^^^^^^^^
     // pimpleControl pimple(mesh);
     pimplePtr = new pimpleControl(mesh);
-    // ---------------------------------------------------
+    // ------------------------------------------
 
     return 0;
 }
@@ -224,14 +220,14 @@ int rhoPimple::createDyMControls()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
-    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^
     createControl();
-    // ---------------------------------------------------
+    // ------------------------------------------
     pimpleControl &pimple(*pimplePtr);
 
-    //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^
     createTimeControls();
-    // ---------------------------------------------------
+    // ------------------------------------------
 
     correctPhi = pimple.dict().lookupOrDefault
     (
@@ -267,7 +263,7 @@ int rhoPimple::initContinuityErrs()
     return 0;
 }
 
-int rhoPimple::createFields()
+int rhoPimple::createFields(const bool restart)
 {
     Foam::Time &runTime(*runTimePtr);
     Foam::argList &args(*argsPtr);
@@ -280,13 +276,29 @@ int rhoPimple::createFields()
 
     Info << "Reading thermophysical properties\n" << endl;
 
-    pThermoPtr = autoPtr<fluidThermo>
-    (
-        fluidThermo::New(mesh)
-    );
+    pThermoPtr = autoPtr<fluidThermo>(fluidThermo::New(mesh));
     fluidThermo &thermo(*pThermoPtr);
 
     thermo.validate(args.executable(), "h", "e");
+
+    if (restart)
+    {
+        // Updating P & T with COM data ^^^^^^^^^
+        int cellIndex = 0;
+        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
+        {
+            int ncells = ca_cellToPointConn_size[itype];
+            for(int icell=0; icell<ncells; icell++)
+            {
+                int cellID = ca_cellToCellMap[cellIndex];
+
+                thermo.p()[cellID] = ca_P[cellIndex];
+                thermo.T()[cellID] = ca_T[cellIndex];
+                cellIndex++;
+            }
+        }
+        //---------------------------------------
+    }
 
     pPtr = &thermo.p();
     volScalarField &p(*pPtr);
@@ -307,18 +319,58 @@ int rhoPimple::createFields()
 
     Info << "Reading field U\n" << endl;
 
-    UPtr = new volVectorField
-    (
-        IOobject
+    if (!restart)
+    {
+        UPtr = new volVectorField
         (
-            "U",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
+            IOobject
+            (
+                "U",
+                runTime.timeName(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            mesh
+        );
+    }
+    else
+    {
+        UPtr = new volVectorField
+        (
+            IOobject
+            (
+                "U",
+                runTime.timeName(),
+                mesh,
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE
+            ),
+            mesh
+        );
+        volVectorField &U(*UPtr);
+
+        // Updating U with COM data ^^^^^^^^^^^^^
+        int cellIndex = 0;
+        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
+        {
+            int ncells = ca_cellToPointConn_size[itype];
+            for(int icell=0; icell<ncells; icell++)
+            {
+                int cellID = ca_cellToCellMap[cellIndex];
+
+                for(int jcomp=0; jcomp<nComponents; jcomp++)
+                {
+                    int localComp = jcomp + cellIndex*nComponents;
+                
+                    U[cellID][jcomp] = ca_Vel[localComp];
+                }
+                rho[cellID] = ca_Rho[cellIndex];
+                cellIndex++;
+            }
+        }
+        //---------------------------------------
+    }
     volVectorField &U(*UPtr);
 
     //  compressibleCreatePhi.H  ^^^^^
@@ -343,7 +395,8 @@ int rhoPimple::createFields()
         (
             rho,
             U,
-            phi,thermo
+            phi,
+            thermo
         )
     );
 
@@ -394,7 +447,9 @@ int rhoPimple::compressibleCreatePhi()
 
     phiPtr = new surfaceScalarField
     (
-        IOobject("phi", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT,
+        IOobject("phi", runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
         IOobject::AUTO_WRITE),
         linearInterpolate(rho * U) & mesh.Sf()
     );
@@ -1513,9 +1568,5 @@ double rhoPimple::errorEvaluate(int argc, char *argv[])
     
     return testStat;
 }
-
-
-
-
-//===================================================================
+//=========================================================
 

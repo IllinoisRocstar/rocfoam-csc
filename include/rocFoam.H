@@ -10,15 +10,33 @@
 
 class rocFoam
 {
-private:
-    char *solverType;
-protected:
 public:
     //  Initializations ^^^^^^^^^^^^^^
     Foam::argList *argsPtr;
     Foam::Time *runTimePtr;
     //--------------------------------
 
+    //  Constructor/deconstructor ^^^^
+    rocFoam();
+    virtual ~rocFoam();
+    //--------------------------------
+
+    //  Methods status ^^^^^^^^^^^^^^^^^^^^^
+    int initializeStat;
+    int loopStat;
+    int stepStat;
+    int finalizeStat;
+    
+    double testStat;
+    virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
+    //--------------------------------------
+
+
+private:
+    int initSet();
+
+    char *solverType;
+protected:
     //  Control variables ^^^^^^^^^^^^
     // static scalar constexpr small=1.0e-10;
     // static scalar constexpr great=1.0e+10;
@@ -52,35 +70,26 @@ public:
     tmp<volScalarField> trDeltaT;
     //--------------------------------
 
-    //  Constructor/deconstructor ^^^^
-    rocFoam();
-    virtual ~rocFoam();
-    //--------------------------------
-
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int initialize() { return 0; };
-    virtual int initialize(int argc, char *argv[]) { return 0; };
+    virtual int initialize
+    (
+        int argc,
+        char *argv[],
+        const bool restart = false
+    ) { return 0; };
     virtual int loop() { return 0; };
     virtual int step() { return 0; };
     virtual int finalize();
     //--------------------------------------
     
-    //  Methods status ^^^^^^^^^^^^^^^^^^^^^
-    int initializeStat;
-    int loopStat;
-    int stepStat;
-    int finalizeStat;
-    
-    double testStat;
-    //--------------------------------------
-
-
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    virtual int createFields() { return 0; };
+    virtual int createFields
+    (
+        const bool restart = false
+    ) { return 0; };
     virtual int setRDeltaT() { return 0; };
     virtual int createControl() { return 0; };
-
-    virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
     //--------------------------------------
 
     //  Execution functions ^^^^^^^^^^^^^^^^

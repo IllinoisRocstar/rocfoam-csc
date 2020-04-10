@@ -2,27 +2,43 @@ Ensure you have the latest version of GCC on your machine.
 OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior to copiling rocFoam.
 Also you need to install IMPACT library on your machine and set the variable IMPACT_INSTALL_PATH to the installation folder path.
 
->> To compile rocFoam code:
-1) Transfer the file "UPstream.C" in folder "replaceable" to the folder "$FOAM/src/Pstream/mpi/"
-2) Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
-3) Go to the source folder of rocFoam
-4) Type "mkdir build" followed by "cd build"
-5) Set the installation path for by assigning it to the variable "ROCFOAM_INSTALL"
-6) Execute the following command line for cmake:
+>> Defenition varibales:
+[1] $ROCFOAM_SOURCE = source directory of rocFoam
+[2] $FOAM = source directory of OpenFOAM
+[3] $ROCFOAM_INSTALL = instalation directory of rocFoam
+[4] $IMPACT_INSTALL_PATH = IMPACT installation directory
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so -DMPI_C_COMPILER=/usr/bin/mpicc -DMPI_CXX_COMPILER=/usr/bin/mpicxx -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 ..
 
-7) Execute "make" followed by make install
+>> Compilation of rocFoam: 
+[1] Transfer the files in the folder "$ROCFOAM_SOURCE/src/Pstream/mpi/" to the folder "$FOAM/src/Pstream/mpi/"
+[2] Transfer the files in the folder "$ROCFOAM_SOURCE/src/dynamicFvMesh/dynamicFvMesh/" to the folder "$FOAM/src/dynamicFvMesh/dynamicFvMesh/"
+[3] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
+[4] Go to the source folder of rocFoam
+[5] Type "mkdir build" followed by "cd build"
+[6] Set the installation path for by assigning it to the variable "ROCFOAM_INSTALL"
+[7] Execute the following command line for cmake:
+
+cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so ..
+
+7) Execute "make install" for serial compilation, or "make install -jX" (X being number of processors) for paralle compilation.
 
 
 >> To run
-1) There are two standalone dirvers for rhoCentralFoan and rhoPimpleFoam, respectively called rocRhoCentral and rocRhoPimple. They can be used in serial and parallel modes exactly as openFoam solvers. 
-2) rocFoam is a driver which includes both rocRhoCentral and rocRhoPimple solvers. To initiate any of these solvers, the following commands need to be executed in a terminal:
+1) There are two standalone dirvers for rhoCentralFoan and rhoPimpleFoam, respectively called rocRhoCentral and rocRhoPimple. They can be used in serial and parallel modes exactly as openFoam solvers, i.e.
+    a) Serial:
+          <application>
 
-a) Serial:
-      rocFoam -<application>
+    b) Parallel:
+          mpirun -np <nproc> <application> -parallel
 
-b) Parallel:
-      mpirun -np <nproc> rocFoam -parallel -<pplication>
+    <application> needs to be replaced with rocRhoCentral or rocRhoPimple.
 
-<application> need to be replace with rocRhoCentral or rocRhoPimple.
+
+2) rocFoam is a driver for both rocRhoCentral and rocRhoPimple solvers. To initiate any of these solvers, the following commands need to be executed in a terminal:
+    a) Serial:
+          rocFoam -<application>
+
+    b) Parallel:
+          mpirun -np <nproc> rocFoam -parallel -<pplication>
+
+
