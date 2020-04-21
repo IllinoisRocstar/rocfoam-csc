@@ -1,7 +1,7 @@
 void comFoam::copyWindow(const char *name1, const char *name2)
 {
-    std::string winName1 = name1; //+string("VOL");
-    std::string winName2 = name2; //+string("VOL");
+    std::string winName1 = name1; //+std::string("VOL");
+    std::string winName2 = name2; //+std::string("VOL");
     Info << endl
          << "rocFoam.copyWindow: window names "
          << winName1.c_str() << " & "
@@ -38,18 +38,19 @@ void comFoam::copyWindow(const char *name1, const char *name2)
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::istringstream issDataNames(datNames);
     std::vector<std::string> vecDataNames;
+    int fileCount = 0;
     for (int item=0; item<nItemps; ++item)
     {
         std::string dataName="";
 
         issDataNames >> dataName;
 
-        if (dataName != string("object"))
+        if (dataName != std::string("object"))
         {
             vecDataNames.push_back(dataName);
 
-            std::string dataName1 = winName1+string(".")+dataName;
-            std::string dataName2 = winName2+string(".")+dataName;
+            std::string dataName1 = winName1+std::string(".")+dataName;
+            std::string dataName2 = winName2+std::string(".")+dataName;
 
             COM_clone_dataitem(dataName2.c_str(),
                                dataName1.c_str());
@@ -57,19 +58,37 @@ void comFoam::copyWindow(const char *name1, const char *name2)
             //COM_clone_dataitem(winName2.c_str(), winName1.c_str(), 0, dataName.c_str(), 0);
             //COM_clone_dataitem(winName2, winName1, 0, dataName);
 
-            Info << "rocFoam.copyWindow: dataName["
-                 << item << "] = " << dataName
-                 << ", copied from " << winName1.c_str()
-                 << " to " << winName2.c_str() << endl;
+
+            std::string subName = dataName.substr(0,4);
+            if (subName != "file")
+            {
+                Info << "rocFoam.copyWindow: dataName["
+                     << item << "] = " << dataName
+                     << " copied from " << winName1.c_str()
+                     << " to " << winName2.c_str() << endl;
+            }
+            else
+            {
+                fileCount++;
+            }
          }
          else
          {
                 Info << "rocFoam.copyWindow: dataName["
-                 << item << "] = " << dataName
-                 << ", skipped " << endl;
+                     << item << "] = " << dataName
+                     << ", skipped " << endl;
          }
          
     }
+    
+    if (fileCount>0)
+    {
+        Info << "rocFoam.copyWindow: Total number of "
+        << fileCount << " files copied from "
+        << winName1.c_str()
+        << " to " << winName2.c_str() << endl;
+    }
+    
     Info << endl;
     // ------------------------------------------
 
@@ -173,7 +192,7 @@ int comFoam::reconstDynamicFvMesh()
             "polyBoundaryMesh",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ,
+            IOobject::MUST_READ,
             IOobject::NO_WRITE
         ),
         mesh,

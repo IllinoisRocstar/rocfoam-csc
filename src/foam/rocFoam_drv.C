@@ -188,14 +188,17 @@ int comDrvInit(int argc, char *argv[])
                       &myArgc, &myArgv,
                       winNames[0].c_str());
 
+    std::string lookUpWindow1 = "";
+    std::string lookUpWindow2 = "";
 
-    std::string lookUpWindow1 = winNames[0]+string("VOL");
+
+    //lookUpWindow1 = winNames[0]+string("VOL");
     //comGetVolDataItems(lookUpWindow1.c_str());
     //lookUpWindow1 = winNames[0]+string("SURF");
     //comGetVolDataItems(lookUpWindow1.c_str());
 
     lookUpWindow1 = winNames[0]+string("VOL");
-    std::string lookUpWindow2 = "ROCFOAM1";
+    lookUpWindow2 = "ROCFOAM1";
     winNames.push_back(lookUpWindow2);
     comfoam_load_module(lookUpWindow2.c_str(), solverType);
     comGetFunctionHandles(lookUpWindow2.c_str());
@@ -210,23 +213,16 @@ int comDrvInit(int argc, char *argv[])
 
     lookUpWindow2 = winNames[1]+string("VOL");
     //comGetVolDataItems(lookUpWindow2.c_str());
-//    lookUpWindow2 = winNames[1]+string("SURF");
-//    comGetVolDataItems(lookUpWindow2.c_str());
+    lookUpWindow2 = winNames[1]+string("SURF");
+    comGetVolDataItems(lookUpWindow2.c_str());
 
 
     comfoam_unload_module(winNames[0].c_str(), solverType);
 
 
-
-    //lookUpWindow2 = winNames[1];
-    //flowReconst(lookUpWindow2.c_str());
-
-
     COM_call_function(flowReconstCaDataHandle[1],
                       &myArgc, &myArgv,
                       winNames[1].c_str());
-
-
 
     return 0;
 }

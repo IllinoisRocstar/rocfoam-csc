@@ -1,24 +1,28 @@
 Ensure you have the latest version of GCC on your machine.
-OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior to copiling rocFoam.
-Also you need to install IMPACT library on your machine and set the variable IMPACT_INSTALL_PATH to the installation folder path.
+* OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior to copiling rocFoam.
+* IMPACT is needed for this application. Download and compile it on your machine.
+* Boost library is needed. Make sure you have this library on you machine.
 
 >> Defenition varibales:
-[1] $ROCFOAM_SOURCE = source directory of rocFoam
-[2] $FOAM = source directory of OpenFOAM
-[3] $ROCFOAM_INSTALL = instalation directory of rocFoam
+[1] $ROCFOAM_SOURCE_PATH = source directory of rocFoam
+[2] $FOAM_PATH = source directory of OpenFOAM
+[3] $ROCFOAM_INSTALL_PATH = instalation directory of rocFoam
 [4] $IMPACT_INSTALL_PATH = IMPACT installation directory
+[5] $BOOST_INC_PATH = address to the boost header files directory   #/usr/include/boost
+[6] $BOOST_LIB_PATH = address to the boost library files directory  #/usr/lib/x86_64-linux-gnu/
+
 
 
 >> Compilation of rocFoam: 
-[1] Transfer the files in the folder "$ROCFOAM_SOURCE/src/Pstream/mpi/" to the folder "$FOAM/src/Pstream/mpi/"
-[2] Transfer the files in the folder "$ROCFOAM_SOURCE/src/dynamicFvMesh/dynamicFvMesh/" to the folder "$FOAM/src/dynamicFvMesh/dynamicFvMesh/"
+[1] Transfer the files in the folder "$ROCFOAM_SOURCE_PATH/src/Pstream/mpi/" to the folder "$FOAM_PATH/src/Pstream/mpi/"
+[2] Transfer the files in the folder "$ROCFOAM_SOURCE_PATH/src/dynamicFvMesh/dynamicFvMesh/" to the folder "$FOAM_PATH/src/dynamicFvMesh/dynamicFvMesh/"
 [3] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
 [4] Go to the source folder of rocFoam
 [5] Type "mkdir build" followed by "cd build"
 [6] Set the installation path for by assigning it to the variable "ROCFOAM_INSTALL"
 [7] Execute the following command line for cmake:
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so ..
+cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DBOOST_INC=$BOOST_INC_PATH -DBOOST_FILESYSTEM_LIB=$BOOST_LIB_PATH/libboost_filesystem.so -DBOOST_SYSTEM_LIB=$BOOST_LIB_PATH/libboost_system.so -DBOOST_REGEX_LIB=$BOOST_LIB_PATH/libboost_regex.so ..
 
 7) Execute "make install" for serial compilation, or "make install -jX" (X being number of processors) for paralle compilation.
 

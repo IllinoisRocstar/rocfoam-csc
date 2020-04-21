@@ -27,9 +27,9 @@ int rocFoam::initSet()
     rhoUPtr = NULL;
     rhoEPtr = NULL;
     phiPtr = NULL;
-    meshPtr = NULL;
-    turbulencePtr = NULL;
-    trDeltaT = NULL;
+    //meshPtr = NULL;
+    //turbulencePtr = NULL;
+    //trDeltaT = NULL;
     initializeStat = -1;
     loopStat = -1;
     stepStat = -1;

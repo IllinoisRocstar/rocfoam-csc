@@ -177,30 +177,30 @@ int comFoam::registerFaceData(const char *name)
                << name
                << endl;
 
-    std::string volName = name+string("VOL");
-    std::string dataName = string("");
+    std::string volName = name+std::string("VOL");
+    std::string dataName = std::string("");
 
 
-    dataName = volName+string(".nFaces");
+    dataName = volName+std::string(".nFaces");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_nFaces);
     Foam::Info << dataName << " registered." << endl;
 
-    dataName = volName+string(".faceToPointConn_types");
+    dataName = volName+std::string(".faceToPointConn_types");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_faceToPointConn_types);
     Foam::Info << dataName << " registered." << endl;
 
     int ntypes = *ca_faceToPointConn_types;
-    dataName = volName+string(".faceToPointConn_map");
+    dataName = volName+std::string(".faceToPointConn_map");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_faceToPointConn_map);
     Foam::Info << dataName << " registered." << endl;
 
-    dataName = volName+string(".faceToPointConn_size");
+    dataName = volName+std::string(".faceToPointConn_size");
     COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ntypes);
     COM_set_array(dataName, 0, ca_faceToPointConn_size);
@@ -216,11 +216,11 @@ int comFoam::registerFaceData(const char *name)
 
         if (typeID == 3)
         { // Triangle
-            dataName = volName+string(".:t3");
+            dataName = volName+std::string(".:t3");
         }
         else if (typeID == 4)
         { // Quad
-            dataName = volName+string(".:q4");
+            dataName = volName+std::string(".:q4");
         }
         else
         { // Type not identified
@@ -241,19 +241,19 @@ int comFoam::registerFaceData(const char *name)
         Foam::Info << dataName << " registered." << endl;
     }
     
-    dataName = volName+string(".faceToFaceMap");
+    dataName = volName+std::string(".faceToFaceMap");
     COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceToFaceMap, 1);
     Foam::Info << dataName << " registered." << endl;
     // ------------------------------------------    
 
     // Field variables
-    dataName = volName+string(".owner");
+    dataName = volName+std::string(".owner");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceOwner, 1);
     Foam::Info << dataName << " registered." << endl;
 
-    dataName = volName+string(".neighbor");
+    dataName = volName+std::string(".neighbor");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceNeighb, 1);
     Foam::Info << dataName << " registered." << endl;
@@ -266,7 +266,7 @@ int comFoam::registerFaceData(const char *name)
 int comFoam::reconstCaFaceData(const char *name)
 {
 
-    std::string volName = name+string("VOL");
+    std::string volName = name+std::string("VOL");
 /*    Info << "rocFoam.main: Retreiving face data form window "*/
 /*         << volName << "."*/
 /*         << endl;*/
@@ -291,23 +291,21 @@ int comFoam::reconstCaFaceData(const char *name)
 
     
     // Face data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string dataName = string("nFaces");
+    std::string dataName = std::string("nFaces");
     nameExists(dataItemNames, dataName);
-    std::string regName = volName+string(".")+dataName;
-
+    std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_nFaces);
     Info << "  " << dataName.c_str() << " = " << *ca_nFaces << endl;
 
-    dataName = string("faceToPointConn_types");
+    dataName = std::string("faceToPointConn_types");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
-
+    regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_types);
     Info << "  " << dataName.c_str() << " = " << *ca_faceToPointConn_types << endl;
 
-    dataName = string("faceToPointConn_map");
+    dataName = std::string("faceToPointConn_map");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
+    regName = volName+std::string(".")+dataName;
     int nComp;
 
     COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_map);
@@ -318,9 +316,9 @@ int comFoam::reconstCaFaceData(const char *name)
              << ca_faceToPointConn_map[icomp] << endl;
     }
 
-    dataName = string("faceToPointConn_size");
+    dataName = std::string("faceToPointConn_size");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
+    regName = volName+std::string(".")+dataName;
 
     COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_size);
     COM_get_size(regName.c_str(), 0, &nComp);
@@ -354,7 +352,7 @@ int comFoam::reconstCaFaceData(const char *name)
         connISS >> connName;
         //connNames.push_back(connName);
 
-        dataName = volName+string(".")+connName;
+        dataName = volName+std::string(".")+connName;
         //nameExists(dataItemNames, dataName);
         COM_get_array(dataName.c_str(), paneID, &ca_faceToPointConn[icon], &nComp);
         COM_get_size(dataName.c_str(), paneID, &numElem);
@@ -375,9 +373,9 @@ int comFoam::reconstCaFaceData(const char *name)
     //---------------------------------------
 
     // Mapping data ^^^^^^^^^^^^^^^^^^^^^^^^^
-    dataName = string("faceToFaceMap");
+    dataName = std::string("faceToFaceMap");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
+    regName = volName+std::string(".")+dataName;
     
     COM_get_array(regName.c_str(), paneID, &ca_faceToFaceMap, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
@@ -393,9 +391,9 @@ int comFoam::reconstCaFaceData(const char *name)
 /*        Info << endl;*/
 /*    }*/
 
-    dataName = string("owner");
+    dataName = std::string("owner");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
+    regName = volName+std::string(".")+dataName;
 
     COM_get_array(regName.c_str(), paneID, &ca_faceOwner, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
@@ -411,9 +409,9 @@ int comFoam::reconstCaFaceData(const char *name)
 /*        Info << endl;*/
 /*    }*/
 
-    dataName = string("neighbor");
+    dataName = std::string("neighbor");
     nameExists(dataItemNames, dataName);
-    regName = volName+string(".")+dataName;
+    regName = volName+std::string(".")+dataName;
 
     COM_get_array(regName.c_str(), paneID, &ca_faceNeighb, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
@@ -442,17 +440,17 @@ int comFoam::deleteFaceData()
 {
     //  faceToPoint connectivity arrays ^^^^^^^^^
     int ntypes = *ca_faceToPointConn_types;
-    for(int itype=0; itype<ntypes; itype++)
-    {
-        if (ca_faceToPointConn[itype] != NULL)
-        {
-            delete [] ca_faceToPointConn[itype];
-            ca_faceToPointConn[itype] = NULL;
-        }
-    }
 
     if (ca_faceToPointConn != NULL)
     {
+        for(int itype=0; itype<ntypes; itype++)
+        {
+            if (ca_faceToPointConn[itype] != NULL)
+            {
+                delete [] ca_faceToPointConn[itype];
+                ca_faceToPointConn[itype] = NULL;
+            }
+        }
         delete [] ca_faceToPointConn;
         ca_faceToPointConn = NULL;
     }

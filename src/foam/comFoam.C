@@ -85,6 +85,14 @@ int comFoam::initSet()
     ca_patchP = NULL;
     ca_patchT = NULL;
     ca_patchRho = NULL;
+
+    // File data
+    ca_nFiles = NULL;
+    ca_fileSize = NULL;
+    ca_fileName = NULL;
+    ca_filePath = NULL;
+    ca_fileContent = NULL;
+
     //-------------------------------------------
 
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,6 +118,7 @@ int comFoam::initSet()
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 {
+
     MPI_Comm tmpComm = COM_get_default_communicator();  
     int tmpRank;
     MPI_Comm_rank(tmpComm, &tmpRank);
@@ -122,26 +131,31 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
-std::cout << " here 01 " << std::endl;
-
-    std::string volName = name+string("VOL");
-    std::string surfName = name+string("SURF");
-    std::string objectName = volName+string(".object");
-
-std::cout << " here 02 " << std::endl;
-
+    std::string volName = name+std::string("VOL");
+    std::string surfName = name+std::string("SURF");
+    std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
-std::cout << " here 03 " << std::endl;
+    //char** argv = reinterpret_cast<char**>(pargv);
+    int argc = *pargc+2;
+    char** argv;
+    argv = new char*[*pargc+2];
+    for (int i=0; i<*pargc; i++)
+    {
+        std::string strTmp = reinterpret_cast<char*>(pargv[i]);
+        argv[i] = new char[strTmp.length()+1];
+        std::strcpy(argv[i], strTmp.c_str());
+    }
 
-    int argc = *pargc;
-    char** argv = reinterpret_cast<char**>(pargv);
+    std::string strTmp = "-case";
+    argv[*pargc] = new char[strTmp.length()+1];
+    std::strcpy(argv[*pargc], strTmp.c_str());
 
-std::cout << " here 04 " << std::endl;
-
+    strTmp = "./";
+    argv[*pargc+1] = new char[strTmp.length()+1];
+    std::strcpy(argv[*pargc+1], strTmp.c_str());
+    
     comFoamPtr->initialize(argc, argv);
-
-std::cout << " here 05 " << std::endl;
 
     //  Other initializations ^^^^^^^^^^^^^^^^^^^
     // extractData can be called here, or in
@@ -179,6 +193,9 @@ std::cout << " here 05 " << std::endl;
     updateSurfaceData();
     registerSurfaceData(name);
 
+    readInitFiles(strTmp);
+    registerInitFiles(name);
+
     return 0;
 }
 
@@ -200,22 +217,38 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-    std::string volName = name+string("VOL");
-    std::string surfName = name+string("SURF");
-    std::string dataName = volName+string(".object");
+    std::string volName = name+std::string("VOL");
+    std::string surfName = name+std::string("SURF");
+    std::string dataName = volName+std::string(".object");
     COM_get_object(dataName.c_str(), 0, &comFoamPtr);
 
     reconstCaVolumeData(name);
     reconstCaFaceData(name);
     reconstCaSurfaceData(name);
+    std::string tmpDir = "./fluidTmp";
+    deleteInitFiles(tmpDir);
+    reconstCaInitFiles(name, tmpDir);
 
-    int argc = *pargc;
-    char** argv = reinterpret_cast<char**>(pargv);
+    //int argc = *pargc;
+    //char** argv = reinterpret_cast<char**>(pargv);
+    int argc = *pargc+2;
+    char** argv;
+    argv = new char*[*pargc+2];
+        
+    std::string strTmp = "-case";
+    argv[*pargc] = new char[strTmp.length()+1];
+    std::strcpy(argv[*pargc], strTmp.c_str());
 
-comFoamPtr->initialize(argc, argv, true);
+    strTmp = tmpDir;
+    argv[*pargc+1] = new char[strTmp.length()+1];
+    std::strcpy(argv[*pargc+1], strTmp.c_str());
+
+    comFoamPtr->initialize(argc, argv, true);
 
 //    comFoamPtr->reconstDynamicFvMesh();
 //    comFoamPtr->createFields_COM();
+
+    //deleteInitFiles(tmpDir);
 
     return 0;
 }
@@ -226,8 +259,8 @@ int comFoam::flowLoop(const char *name)
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-    std::string volName = name+string("VOL");
-    std::string objectName = volName+string(".object");
+    std::string volName = name+std::string("VOL");
+    std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     comFoamPtr->loop();
@@ -242,8 +275,8 @@ int comFoam::flowStep(const char *name)
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
-    std::string volName = name+string("VOL");
-    std::string objectName = volName+string(".object");
+    std::string volName = name+std::string("VOL");
+    std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     comFoamPtr->step();
@@ -256,8 +289,8 @@ int comFoam::flowStep(const char *name)
 //    Foam::Info << "rocFoam.extractData: Extracting flow data." << Foam::endl;
 //    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
 //    comFoam *comFoamPtr = NULL;
-//    std::string volName = name+string("VOL");
-//    std::string objectName = volName+string(".object");
+//    std::string volName = name+std::string("VOL");
+//    std::string objectName = volName+std::string(".object");
 //    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 //    comFoamPtr->extractData();
 //    
@@ -270,8 +303,8 @@ int comFoam::flowStep(const char *name)
 //    Foam::Info << "rocFoam.registerVolumeData: Extracting flow data." << Foam::endl;
 //    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
 //    comFoam *comFoamPtr = NULL;
-//    std::string volName = name+string("VOL");
-//    std::string objectName = volName+string(".object");
+//    std::string volName = name+std::string("VOL");
+//    std::string objectName = volName+std::string(".object");
 //    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 //    comFoamPtr->registerVolumeData(name);
 //    
@@ -295,14 +328,14 @@ int comFoam::registerFunctions(const char *name)
                   << std::endl;
     }
     
-    std::string volName = name+string("VOL");
-    std::string surfName = name+string("SURF");
+    std::string volName = name+std::string("VOL");
+    std::string surfName = name+std::string("SURF");
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = NULL;
 
     //std::string name="ROCFOAM";
-    std::string objectName = volName+string(".object");
+    std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -316,7 +349,7 @@ int comFoam::registerFunctions(const char *name)
     types[0] = COM_RAWDATA;
     types[1] = COM_INT;
 
-    std::string functionName = volName+string(".flowInit");
+    std::string functionName = volName+std::string(".flowInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -326,7 +359,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-    functionName = volName+string(".flowLoop");
+    functionName = volName+std::string(".flowLoop");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -336,7 +369,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-    functionName = volName+string(".flowStep");
+    functionName = volName+std::string(".flowStep");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -346,7 +379,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-    functionName = volName+string(".flowReconstCaData");
+    functionName = volName+std::string(".flowReconstCaData");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -356,7 +389,7 @@ int comFoam::registerFunctions(const char *name)
         &types[0]
     );
 
-//    functionName = name+string(".flowRegisterDate");
+//    functionName = name+std::string(".flowRegisterDate");
 //    COM_set_member_function
 //    (
 //        functionName.c_str(),
@@ -369,28 +402,28 @@ int comFoam::registerFunctions(const char *name)
 
     //COM_set_member_function
     //(
-    //    (name + string(".flowFin")).c_str(),
+    //    (name + std::string(".flowFin")).c_str(),
     //    reinterpret_cast<Member_func_ptr>(&rhoCentral::flowFin),
     //    objectName.c_str(), "b", &types[0]
     //);
 
 //    //  Registering data of this module to COM ^^^^^^^^^^^^
-//    std::string dataName = name+string(".winNProc");
+//    std::string dataName = name+std::string(".winNProc");
 //    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winNProc));
 
-//    dataName = name+string(".winTime");
+//    dataName = name+std::string(".winTime");
 //    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winTime));
 
-//    dataName = name+string(".winDeltaT");
+//    dataName = name+std::string(".winDeltaT");
 //    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winDeltaT) );
 
-//    dataName = name+string(".winRun");
+//    dataName = name+std::string(".winRun");
 //    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
@@ -403,16 +436,18 @@ int comFoam::registerFunctions(const char *name)
 
 //===================================================================
 
-#   include "volumeMethods.H"
-#   include "faceMethods.H"
-#   include "surfaceMethods.H"
-#   include "reconstMethods.H"
+#include "volumeMethods.C"
+#include "faceMethods.C"
+#include "surfaceMethods.C"
+#include "reconstMethods.C"
+#include "tempFiles.C"
 
 comFoam::~comFoam()
 {   
     deleteVolumeData();
     deleteFaceData();
     deleteSurfaceData();
+    deleteFilesData();
 
     if (ca_runStat != NULL){
         delete [] ca_runStat;

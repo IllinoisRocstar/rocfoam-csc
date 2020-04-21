@@ -3,6 +3,8 @@
 
 #include "rocFoam.H"
 #include "com.h"
+#include "fileContainer.H"
+#include <filesystem.hpp>
 
 class comFoam : public COM_Object, public rocFoam
 {
@@ -43,10 +45,23 @@ private:
     int registerSurfaceData(const char *name);
     int reconstCaSurfaceData(const char *name);
 
+    // tempFiles-specific
+    int readInitFiles(const std::string& rootAddr);
+    int createInitFiles(const std::string& rootAddr);
+    int deleteInitFiles(const std::string& addr);
+    int deleteFilesData();
+    int registerInitFiles(const char *name);
+    int reconstCaInitFiles(const char *name, const std::string& rootAddr);
+    
+    
+    int readRecursive(const std::string& rootAddr,
+                      std::string fullAddr,
+                      std::vector<fileContainer>& vecFile,
+                      int& fileCount);
+
+
     bool nameExists(const std::vector<std::string>& dataItemNames,
                           const std::string& dataName);
-
-
     int reconstMesh();
 
 protected:
@@ -122,6 +137,15 @@ protected:
     double** ca_patchT;
     double** ca_patchRho;
     //-------------------------------------------
+    
+    // Files
+    int*   ca_nFiles;
+    int*   ca_fileSize;
+    char** ca_fileName;
+    char** ca_filePath;
+    char** ca_fileContent;
+
+    //-------------------------------------------
 
 protected:
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -157,3 +181,4 @@ public:
 };
 
 #endif
+

@@ -66,24 +66,28 @@ void rhoCentral::load(const char *name)
     MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
 
     //COM_new_window(name, MPI_COMM_NULL);
-    std::string volName = name+string("VOL");
+    std::string volName = name+std::string("VOL");
     COM_new_window(volName, tmpComm);
-    std::string objectName = volName + string(".object");
+    std::string objectName = volName + std::string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
     COM_window_init_done(volName.c_str());
     //-------------------------------------------
 
     // Register Surface Window ^^^^^^^^^^^^^^^^^^
-    std::string surfName = name+string("SURF");
+    std::string surfName = name+std::string("SURF");
     COM_new_window(surfName, tmpComm);
-    objectName = surfName + string(".object");
+    objectName = surfName + std::string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
     COM_window_init_done(surfName);
     //-------------------------------------------
 
+std::cout << 1 << std::endl;
+
     comFoamPtr->registerFunctions(name);
+
+std::cout << 2 << std::endl;
 
     return;
 }
@@ -98,7 +102,7 @@ void rhoCentral::unload(const char *name)
 
     comFoam *comFoamPtr = NULL;
 
-    std::string volName = name+string("VOL");
+    std::string volName = name+std::string("VOL");
     std::string objectName(volName+".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
@@ -106,7 +110,7 @@ void rhoCentral::unload(const char *name)
     delete comFoamPtr;
     COM_delete_window(std::string(volName));
 
-    std::string surfName = name+string("SURF");
+    std::string surfName = name+std::string("SURF");
     COM_delete_window(std::string(surfName));
 }
 //-----------------------------------------------
@@ -139,6 +143,7 @@ int rhoCentral::initialize(int argc, char *argv[], const bool restart)
     }
     else
     {
+        //createDynamicFvMesh();
         reconstDynamicFvMesh();
     }
     // ------------------------------------------
@@ -464,15 +469,9 @@ int rhoCentral::step()
 
     //while (runTime.run())
     {
-
-Info << 1 << endl;
-
         //  readTimeControls.H  ^^^^^^^^^^^^^^^^^
         readTimeControls();
         // --------------------------------------
-
-Info << 2 << endl;
-
         if (!LTS)
         {
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^
@@ -483,9 +482,6 @@ Info << 2 << endl;
             // Do any mesh changes
             mesh.update();
         }
-
-Info << 3 << endl;
-
         // --- Directed interpolation of primitive fields onto faces
 
         surfaceScalarField rho_pos(interpolate(rho, pos));
@@ -510,16 +506,12 @@ Info << 3 << endl;
         surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
-Info << 4 << endl;
-
         // Make fluxes relative to mesh-motion
         if (mesh.moving())
         {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
-
-Info << 5 << endl;
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
         surfaceScalarField cSf_pos
@@ -528,23 +520,17 @@ Info << 5 << endl;
             interpolate(c, pos, T.name()) * mesh.magSf()
         );
 
-Info << 51 << endl;
-
         surfaceScalarField cSf_neg
         (
             "cSf_neg",
             interpolate(c, neg, T.name()) * mesh.magSf()
         );
 
-Info << 52 << endl;
-
         surfaceScalarField ap
         (
             "ap",
             max(max(phiv_pos + cSf_pos, phiv_neg + cSf_neg), v_zero)
         );
-
-Info << 53 << endl;
         
         surfaceScalarField am
         (
@@ -552,15 +538,11 @@ Info << 53 << endl;
             min(min(phiv_pos - cSf_pos, phiv_neg - cSf_neg), v_zero)
         );
 
-Info << 54 << endl;
-
         surfaceScalarField a_pos
         (
             "a_pos",
             ap / (ap - am)
         );
-
-Info << 6 << endl;
 
         // surfaceScalarField amaxSf("amaxSf", max(mag(am), mag(ap)));
         if (amaxSfPtr == NULL)
@@ -592,8 +574,6 @@ Info << 6 << endl;
         // estimated by the central scheme
         amaxSf = max(mag(aphiv_pos), mag(aphiv_neg));
 
-Info << 7 << endl;
-
         //  centralCourantNo.H  ^^^^^^^^^^^^^^^^^
         centralCourantNo();
         // --------------------------------------
@@ -606,10 +586,6 @@ Info << 7 << endl;
             // ----------------------------------
             runTime++;
         }
-
-Info << 8 << endl;
-
-
         Info << "Time = " << runTime.timeName() << nl << endl;
 
         phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
@@ -634,8 +610,6 @@ Info << 8 << endl;
             phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
         }
 
-Info << 9 << endl;
-
         volScalarField muEff("muEff", turbulence.muEff());
         volTensorField tauMC("tauMC", muEff * dev2(Foam::T(fvc::grad(U))));
 
@@ -650,8 +624,6 @@ Info << 9 << endl;
         U.correctBoundaryConditions();
         rhoU.boundaryFieldRef() == rho.boundaryField() * U.boundaryField();
 
-Info << 10 << endl;
-
         if (!inviscid)
         {
             solve
@@ -662,8 +634,6 @@ Info << 10 << endl;
             );
             rhoU = rho * U;
         }
-
-Info << 11 << endl;
 
         // --- Solve energy
         surfaceScalarField sigmaDotU
@@ -796,7 +766,7 @@ int rhoCentral::createFields(const bool restart)
                 "U",
                 runTime.timeName(),
                 mesh,
-                IOobject::NO_READ,
+                IOobject::MUST_READ,
                 IOobject::AUTO_WRITE
             ),
             mesh

@@ -19,7 +19,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
 # Finding libraries ############################################################
 
-option(ENABLE_TESTS "Enabling Testing of RocFOAM" ON)
+option(ENABLE_TESTS "Enabling Testing of RocFOAM" OFF)
 
 if(ENABLE_TESTS)
    enable_testing()
@@ -47,10 +47,14 @@ endif()
 find_package(IMPACT REQUIRED)
 FIND_LIBRARY(IMPACT_LIB SITCOM)
 FIND_FILE(IMPACT_HDR com.h)
-GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
-GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
+#GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
+#GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
 
-
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.45.0 REQUIRED COMPONENTS filesystem regex system)
+#if(Boost_FOUND)
+#    include_directories(${Boost_INCLUDE_DIRS})
+#endif()
 
 # Setting library files ########################################################
 # Setting include files
@@ -63,6 +67,7 @@ foreach(file_path ${rocfoam_INC_FILES})
 endforeach()
 
 list(APPEND rocfoam_INC_DIRS ${IMPACT_HDR})
+list(APPEND rocfoam_INC_DIRS ${BOOST_INC})
 
 list(REMOVE_DUPLICATES rocfoam_INC_DIRS)
 
@@ -70,6 +75,7 @@ list(REMOVE_DUPLICATES rocfoam_INC_DIRS)
 set(rocfoam_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
+    src/foam/fileContainer.C
     src/rhoCentral/rocRhoCentral.C
     src/rhoPimple/rocRhoPimple.C)
     
@@ -115,12 +121,16 @@ target_link_libraries(rocfoam
     PUBLIC
         ${OPNF_LIBRARIES}
         ${IMPACT_LIB}
+        ${BOOST_SYSTEM_LIB}
+        ${BOOST_REGEX_LIB}
+        ${BOOST_FILESYSTEM_LIB}
 )
 
 target_include_directories(rocfoam SYSTEM
     PUBLIC
         ${OPNF_INCLUDE_DIRS}
         ${IMPACT_HDR}
+        ${BOOST_INC}
         )
 
 target_compile_definitions(rocfoam
