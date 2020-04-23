@@ -183,10 +183,28 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, 0, ca_time);
     Info << dataName << " registered." << endl;
 
+    dataName = volName+std::string(".timeName");
+    COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
+    COM_set_size(     dataName, 0, genCharSize);
+    COM_set_array(    dataName, 0, ca_timeName);
+    Info << dataName << " registered." << endl;
+
     dataName = volName+std::string(".deltaT");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_deltaT );
+    COM_set_array(    dataName, 0, ca_deltaT);
+    Info << dataName << " registered." << endl;
+
+    dataName = volName+std::string(".deltaT0");
+    COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, ca_deltaT0);
+    Info << dataName << " registered." << endl;
+
+    dataName = volName+std::string(".timeIndex");
+    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
+    COM_set_size(     dataName, 0, 1);
+    COM_set_array(    dataName, 0, ca_timeIndex);
     Info << dataName << " registered." << endl;
 
     dataName = volName+std::string(".runStat");
@@ -348,11 +366,31 @@ int comFoam::reconstCaVolumeData(const char *name)
     COM_get_array(regName.c_str(), 0, &ca_time);
     Info << "  " << dataName.c_str() << " = " << *ca_time << endl;
 
+    dataName = std::string("timeIndex");
+    nameExists(dataItemNames, dataName);
+    regName = volName+std::string(".")+dataName;
+    COM_get_array(regName.c_str(), 0, &ca_timeIndex);
+    Info << "  " << dataName.c_str() << " = " << *ca_timeIndex << endl;
+
     dataName = std::string("deltaT");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_deltaT);
     std::cout << "  " << dataName.c_str() << " = " << *ca_deltaT << std::endl;
+
+    dataName = std::string("deltaT0");
+    nameExists(dataItemNames, dataName);
+    regName = volName+std::string(".")+dataName;
+    COM_get_array(regName.c_str(), 0, &ca_deltaT0);
+    std::cout << "  " << dataName.c_str() << " = " << *ca_deltaT0 << std::endl;
+
+    int nComp;
+    dataName = std::string("timeName");
+    nameExists(dataItemNames, dataName);
+    regName = volName+std::string(".")+dataName;
+    COM_get_array(regName.c_str(), 0, &ca_timeName);
+    COM_get_size(regName.c_str(), 0, &nComp);
+    Info << "  " << dataName.c_str() << " = " << ca_timeName << endl;
 
     dataName = std::string("runStat");
     nameExists(dataItemNames, dataName);
@@ -383,7 +421,6 @@ int comFoam::reconstCaVolumeData(const char *name)
     dataName = std::string("cellToPointConn_map");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    int nComp;
     COM_get_array(regName.c_str(), 0, &ca_cellToPointConn_map);
     COM_get_size(regName.c_str(), 0, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)

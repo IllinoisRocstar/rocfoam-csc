@@ -83,10 +83,10 @@ void comFoam::copyWindow(const char *name1, const char *name2)
     
     if (fileCount>0)
     {
-        Info << "rocFoam.copyWindow: Total number of "
-        << fileCount << " files copied from "
+        std::cout << "rocFoam.copyWindow: Total number of "
+        << fileCount << " file-related items copied from "
         << winName1.c_str()
-        << " to " << winName2.c_str() << endl;
+        << " to " << winName2.c_str() << std::endl;
     }
     
     Info << endl;
@@ -112,7 +112,7 @@ bool comFoam::nameExists(const std::vector<std::string>& dataItemNames,
     return status;
 }
 
-
+/*
 int comFoam::reconstDynamicFvMesh()
 {
     // Form point data container ^^^^^^^^^^^^^^^^
@@ -242,18 +242,6 @@ int comFoam::reconstDynamicFvMesh()
     mesh.addPatches(of_Patches);
     //-------------------------------------------
 
-/*
-    const polyBoundaryMesh& patches = mesh.boundaryMesh();
-    for(int ipatch=0; ipatch<nPatches; ipatch++)
-    {
-        Info << " patchName =  " << patches[ipatch].name() << endl;
-        Info << " patchType =  " << patches[ipatch].type() << endl;
-        Info << " patchStrat =  " << patches[ipatch].start() << endl;
-        Info << " patchSize =  " << patches[ipatch].size() << endl;
-    }
-*/
-
     return 0;
 }
-
-
+*/

@@ -55,7 +55,7 @@ private:
     int createDyMControls();
     int initContinuityErrs();
 
-    int createFields(const bool restart = false);
+    int createFields();
     int createMRF();
     int compressibleCreatePhi();
     int createFvOptions();
@@ -82,7 +82,7 @@ private:
     
 public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[], const bool restart = false);
+    int initialize(int argc, char *argv[]);
     int loop();
     int step();
     int finalize();

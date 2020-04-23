@@ -72,22 +72,14 @@ protected:
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int initialize() { return 0; };
-    virtual int initialize
-    (
-        int argc,
-        char *argv[],
-        const bool restart = false
-    ) { return 0; };
+    virtual int initialize(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
     virtual int step() { return 0; };
     virtual int finalize();
     //--------------------------------------
     
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    virtual int createFields
-    (
-        const bool restart = false
-    ) { return 0; };
+    virtual int createFields() { return 0; };
     virtual int setRDeltaT() { return 0; };
     virtual int createControl() { return 0; };
     //--------------------------------------

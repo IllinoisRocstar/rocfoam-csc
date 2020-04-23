@@ -110,6 +110,10 @@ int comFoam::initSet()
     ca_time = NULL;
     ca_deltaT = NULL;
 
+    ca_timeIndex = NULL;
+    ca_timeName = NULL;
+    ca_deltaT0 = NULL;
+
     return 0;
 }
 
@@ -193,6 +197,8 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     updateSurfaceData();
     registerSurfaceData(name);
 
+    std::string tmpDir = strTmp+"fluidTmp";
+    deleteInitFiles(tmpDir);
     readInitFiles(strTmp);
     registerInitFiles(name);
 
@@ -211,7 +217,7 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
     if (tmpRank == 0)
     {
         std::cout << "rocFoam.reconstCaData: Initializing CA "
-                  << " reconstructions for window "
+                  << "reconstructions for window "
                   << name << std::endl;
     }
 
@@ -243,7 +249,7 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
     argv[*pargc+1] = new char[strTmp.length()+1];
     std::strcpy(argv[*pargc+1], strTmp.c_str());
 
-    comFoamPtr->initialize(argc, argv, true);
+    comFoamPtr->initialize(argc, argv);
 
 //    comFoamPtr->reconstDynamicFvMesh();
 //    comFoamPtr->createFields_COM();
@@ -428,7 +434,7 @@ int comFoam::registerFunctions(const char *name)
 //    COM_set_size(     dataName.c_str(), 0, 1);
 //    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
 
-    COM_window_init_done(volName); 
+    COM_window_init_done(volName);
 
     return 0;
 }
@@ -440,7 +446,7 @@ int comFoam::registerFunctions(const char *name)
 #include "faceMethods.C"
 #include "surfaceMethods.C"
 #include "reconstMethods.C"
-#include "tempFiles.C"
+#include "initFiles.C"
 
 comFoam::~comFoam()
 {   
@@ -449,19 +455,16 @@ comFoam::~comFoam()
     deleteSurfaceData();
     deleteFilesData();
 
-    if (ca_runStat != NULL){
-        delete [] ca_runStat;
-        ca_runStat = NULL;
-    }
+    if (ca_runStat != NULL){delete ca_runStat; ca_runStat = NULL;}
+    if (ca_time != NULL){delete ca_time; ca_time = NULL;}
+    if (ca_deltaT != NULL){delete ca_deltaT; ca_deltaT = NULL;}
+    if (ca_deltaT0 != NULL){delete ca_deltaT0; ca_deltaT0 = NULL;}
+    if (ca_timeIndex != NULL){delete ca_timeIndex; ca_timeIndex = NULL;}
     
-    if (ca_time != NULL){
-        delete [] ca_time;
-        ca_time = NULL;
-    }
-    
-    if (ca_deltaT != NULL){
-        delete [] ca_deltaT;
-        ca_deltaT = NULL;
+    if (ca_timeName != NULL)
+    {
+        delete [] ca_timeName;
+        ca_timeName = NULL;
     }
 }
 

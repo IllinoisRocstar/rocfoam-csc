@@ -41,7 +41,7 @@ private:
 
    
     // Solver methods ^^^^^^^^^^^^^^^^^^^^^^
-    int createFields(const bool restart = false);
+    int createFields();
     int createFieldRefs();
 
     int readFluxScheme();
@@ -53,7 +53,7 @@ private:
 
 public:
     //  Main methods ^^^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[], const bool restart = false);
+    int initialize(int argc, char *argv[]);
     int loop();
     int step();
     int finalize();

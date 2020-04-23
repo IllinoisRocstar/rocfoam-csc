@@ -83,11 +83,7 @@ void rhoCentral::load(const char *name)
     COM_window_init_done(surfName);
     //-------------------------------------------
 
-std::cout << 1 << std::endl;
-
     comFoamPtr->registerFunctions(name);
-
-std::cout << 2 << std::endl;
 
     return;
 }
@@ -117,7 +113,7 @@ void rhoCentral::unload(const char *name)
 //=========================================================
 
 //^^^ Solver-specific methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int rhoCentral::initialize(int argc, char *argv[], const bool restart)
+int rhoCentral::initialize(int argc, char *argv[])
 {
 #define NO_CONTROL
 
@@ -137,19 +133,11 @@ int rhoCentral::initialize(int argc, char *argv[], const bool restart)
     // ------------------------------------------
 
     //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^
-    if (!restart)
-    {
-        createDynamicFvMesh();
-    }
-    else
-    {
-        //createDynamicFvMesh();
-        reconstDynamicFvMesh();
-    }
+    createDynamicFvMesh();
     // ------------------------------------------
 
     //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
-    createFields(restart);
+    createFields();
     // ------------------------------------------
 
     //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^
@@ -181,6 +169,26 @@ int rhoCentral::initialize(int argc, char *argv[], const bool restart)
         ca_time = new double(runTime.value());
     if (ca_deltaT == NULL)
         ca_deltaT = new double(runTime.deltaTValue());
+    if (ca_deltaT0 == NULL)
+        ca_deltaT0 = new double(runTime.deltaT0Value());
+    if (ca_timeIndex == NULL)
+        ca_timeIndex = new int(runTime.timeIndex());
+    if (ca_timeName == NULL)
+    {
+        ca_timeName = new char[genCharSize];
+
+        std::string timeNameStr = runTime.timeName();
+        int length = timeNameStr.length()+1;
+        if (length > genCharSize)
+        {
+            std::cout << "Warning:: genCharSize is not big enough,"
+                      << " genCharSize = " << genCharSize
+                      << " timeName.size = "
+                      << timeNameStr.length()+1
+                      << std::endl;
+        }
+        std::strcpy(ca_timeName, timeNameStr.c_str());
+    }
     //-------------------------------------------
 
     initializeStat = 0;
@@ -693,14 +701,30 @@ int rhoCentral::step()
     *ca_runStat = static_cast<int>(runTime.run());
     *ca_time = runTime.value();
     *ca_deltaT = runTime.deltaTValue();
+    *ca_deltaT0 = runTime.deltaT0Value();
+    *ca_timeIndex = runTime.timeIndex();
 
+    std::string timeNameStr = "";
+    std::strcpy(ca_timeName, timeNameStr.c_str());
+
+    timeNameStr = runTime.timeName();
+    int length = timeNameStr.length()+1;
+    if (length > genCharSize)
+    {
+        std::cout << "Warning:: genCharSize is not big enough,"
+                  << " genCharSize = " << genCharSize
+                  << " timeName.size = "
+                  << timeNameStr.length()+1
+                  << std::endl;
+    }
+    std::strcpy(ca_timeName, timeNameStr.c_str());
     //-------------------------------------------
 
     stepStat = 0;
     return stepStat;
 }
 
-int rhoCentral::createFields(const bool restart)
+int rhoCentral::createFields()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -713,89 +737,23 @@ int rhoCentral::createFields(const bool restart)
 
     pThermoPtr = autoPtr<psiThermo>(psiThermo::New(mesh));
     Foam::psiThermo &thermo(*pThermoPtr);
-
-    if (restart)
-    {
-        // Updating P & T with COM data ^^^^^^^^^
-        //volScalarField pTmp(thermo.p());
-        //volScalarField TTmp(thermo.T());
-        int cellIndex = 0;
-        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            int ncells = ca_cellToPointConn_size[itype];
-            for(int icell=0; icell<ncells; icell++)
-            {
-                int cellID = ca_cellToCellMap[cellIndex];
-
-                thermo.p()[cellID] = ca_P[cellIndex];
-                thermo.T()[cellID] = ca_T[cellIndex];
-                cellIndex++;
-            }
-        }
-        //thermo.updateP(pTmp);
-        //thermo.updateT(TTmp);
-        //---------------------------------------
-    }
-
     ePtr = &thermo.he();
     volScalarField &e(*ePtr);
 
     Info << "Reading field U\n" << endl;
 
-    if (!restart)
-    {
-        UPtr = new volVectorField
+    UPtr = new volVectorField
+    (
+        IOobject
         (
-            IOobject
-            (
-                "U",
-                runTime.timeName(),
-                mesh,
-                IOobject::MUST_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh
-        );
-    }
-    else
-    {
-        UPtr = new volVectorField
-        (
-            IOobject
-            (
-                "U",
-                runTime.timeName(),
-                mesh,
-                IOobject::MUST_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh
-        );
-        volVectorField &U(*UPtr);
-
-        // Updating U with COM data ^^^^^^^^^^^^^
-        int cellIndex = 0;
-        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            int ncells = ca_cellToPointConn_size[itype];
-            for(int icell=0; icell<ncells; icell++)
-            {
-                int cellID = ca_cellToCellMap[cellIndex];
-
-                for(int jcomp=0; jcomp<nComponents; jcomp++)
-                {
-                    int localComp = jcomp + cellIndex*nComponents;
-                
-                    U[cellID][jcomp] = ca_Vel[localComp];
-                }
-
-                //will be computed based on P & T
-                //rho[cellID] = ca_Rho[cellIndex];
-                cellIndex++;
-            }
-        }
-        //---------------------------------------
-    }
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
     volVectorField &U(*UPtr);
 
     rhoPtr = new volScalarField

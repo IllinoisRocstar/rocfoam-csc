@@ -122,7 +122,7 @@ void rhoPimple::unload(const char *name)
 //=========================================================
 
 //^^^ Solver-specific methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int rhoPimple::initialize(int argc, char *argv[], const bool restart)
+int rhoPimple::initialize(int argc, char *argv[])
 {
     // Not quite sure where this line should be
     createArgs(argc, argv);
@@ -140,14 +140,7 @@ int rhoPimple::initialize(int argc, char *argv[], const bool restart)
     // ------------------------------------------
 
     //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^
-    if (!restart)
-    {
-        createDynamicFvMesh();
-    }
-    else
-    {
-        reconstDynamicFvMesh();
-    }
+    createDynamicFvMesh();
     // ------------------------------------------
 
     //  createDyMControls.H  ^^^^^^^^^^^^^^^^^^^^
@@ -159,7 +152,7 @@ int rhoPimple::initialize(int argc, char *argv[], const bool restart)
     // ------------------------------------------
 
     //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
-    createFields(restart);
+    createFields();
     // ------------------------------------------
 
     //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^
@@ -263,7 +256,7 @@ int rhoPimple::initContinuityErrs()
     return 0;
 }
 
-int rhoPimple::createFields(const bool restart)
+int rhoPimple::createFields()
 {
     Foam::Time &runTime(*runTimePtr);
     Foam::argList &args(*argsPtr);
@@ -280,25 +273,6 @@ int rhoPimple::createFields(const bool restart)
     fluidThermo &thermo(*pThermoPtr);
 
     thermo.validate(args.executable(), "h", "e");
-
-    if (restart)
-    {
-        // Updating P & T with COM data ^^^^^^^^^
-        int cellIndex = 0;
-        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            int ncells = ca_cellToPointConn_size[itype];
-            for(int icell=0; icell<ncells; icell++)
-            {
-                int cellID = ca_cellToCellMap[cellIndex];
-
-                thermo.p()[cellID] = ca_P[cellIndex];
-                thermo.T()[cellID] = ca_T[cellIndex];
-                cellIndex++;
-            }
-        }
-        //---------------------------------------
-    }
 
     pPtr = &thermo.p();
     volScalarField &p(*pPtr);
@@ -319,58 +293,18 @@ int rhoPimple::createFields(const bool restart)
 
     Info << "Reading field U\n" << endl;
 
-    if (!restart)
-    {
-        UPtr = new volVectorField
+    UPtr = new volVectorField
+    (
+        IOobject
         (
-            IOobject
-            (
-                "U",
-                runTime.timeName(),
-                mesh,
-                IOobject::MUST_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh
-        );
-    }
-    else
-    {
-        UPtr = new volVectorField
-        (
-            IOobject
-            (
-                "U",
-                runTime.timeName(),
-                mesh,
-                IOobject::NO_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh
-        );
-        volVectorField &U(*UPtr);
-
-        // Updating U with COM data ^^^^^^^^^^^^^
-        int cellIndex = 0;
-        for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            int ncells = ca_cellToPointConn_size[itype];
-            for(int icell=0; icell<ncells; icell++)
-            {
-                int cellID = ca_cellToCellMap[cellIndex];
-
-                for(int jcomp=0; jcomp<nComponents; jcomp++)
-                {
-                    int localComp = jcomp + cellIndex*nComponents;
-                
-                    U[cellID][jcomp] = ca_Vel[localComp];
-                }
-                rho[cellID] = ca_Rho[cellIndex];
-                cellIndex++;
-            }
-        }
-        //---------------------------------------
-    }
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
     volVectorField &U(*UPtr);
 
     //  compressibleCreatePhi.H  ^^^^^

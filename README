@@ -13,36 +13,34 @@ Ensure you have the latest version of GCC on your machine.
 
 
 
->> Compilation of rocFoam: 
+>> Compilation of rocFoam:
 [1] Transfer the files in the folder "$ROCFOAM_SOURCE_PATH/src/Pstream/mpi/" to the folder "$FOAM_PATH/src/Pstream/mpi/"
-[2] Transfer the files in the folder "$ROCFOAM_SOURCE_PATH/src/dynamicFvMesh/dynamicFvMesh/" to the folder "$FOAM_PATH/src/dynamicFvMesh/dynamicFvMesh/"
-[3] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
-[4] Go to the source folder of rocFoam
-[5] Type "mkdir build" followed by "cd build"
-[6] Set the installation path for by assigning it to the variable "ROCFOAM_INSTALL"
-[7] Execute the following command line for cmake:
+[2] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
+[3] Go to the source folder of rocFoam
+[4] Type "mkdir build" followed by "cd build"
+[5] Set the installation path, by assigning it to the variable "ROCFOAM_INSTALL_PATH"
+[6] Execute the following command line for cmake:
 
 cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DIMPACT_HDR=$IMPACT_INSTALL_PATH/include/impact -DIMPACT_LIB=$IMPACT_INSTALL_PATH/lib/libSITCOM.so -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DBOOST_INC=$BOOST_INC_PATH -DBOOST_FILESYSTEM_LIB=$BOOST_LIB_PATH/libboost_filesystem.so -DBOOST_SYSTEM_LIB=$BOOST_LIB_PATH/libboost_system.so -DBOOST_REGEX_LIB=$BOOST_LIB_PATH/libboost_regex.so ..
 
-7) Execute "make install" for serial compilation, or "make install -jX" (X being number of processors) for paralle compilation.
+[7] Execute "make install" for serial compilation, or "make install -jX" (X being number of processors) for paralle compilation.
 
 
 >> To run
-1) There are two standalone dirvers for rhoCentralFoan and rhoPimpleFoam, respectively called rocRhoCentral and rocRhoPimple. They can be used in serial and parallel modes exactly as openFoam solvers, i.e.
-    a) Serial:
+[1] There are two standalone dirvers for rhoCentralFoan and rhoPimpleFoam, respectively called rocRhoCentral and rocRhoPimple. They can be used in serial and parallel modes exactly as openFoam solvers, i.e.
+    (a) Serial:
           <application>
 
-    b) Parallel:
+    (b) Parallel:
           mpirun -np <nproc> <application> -parallel
 
     <application> needs to be replaced with rocRhoCentral or rocRhoPimple.
 
 
-2) rocFoam is a driver for both rocRhoCentral and rocRhoPimple solvers. To initiate any of these solvers, the following commands need to be executed in a terminal:
-    a) Serial:
+[2] rocFoam is a driver for both rocRhoCentral and rocRhoPimple solvers. To initiate any of these solvers, the following commands need to be executed in a terminal:
+    (a) Serial:
           rocFoam -<application>
 
-    b) Parallel:
+    (b) Parallel:
           mpirun -np <nproc> rocFoam -parallel -<pplication>
-
 

@@ -23,7 +23,7 @@ int comFoam::createSurfaceConnectivities()
 
         const word& patchName = patch.name();
         const word& patchType = patch.type();
-        const wordList& patchInGroup = patch.inGroups();
+        //const wordList& patchInGroup = patch.inGroups();
         const int& patchStart = patch.start();
         const int& patchSize = patch.size();
 

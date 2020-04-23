@@ -5,6 +5,7 @@
 #include "com.h"
 #include "fileContainer.H"
 #include <filesystem.hpp>
+#include <iomanip>
 
 class comFoam : public COM_Object, public rocFoam
 {
@@ -19,6 +20,7 @@ private:
 
 protected:
     const int nComponents = 3;
+    const int genCharSize = 15;
 private:
     const int cellToPointTypeSize=8;
     const int faceToPointTypeSize=4;
@@ -48,6 +50,26 @@ private:
     // tempFiles-specific
     int readInitFiles(const std::string& rootAddr);
     int createInitFiles(const std::string& rootAddr);
+    int createSysConstFiles
+    (
+        const std::string& rootAddr,
+        const std::vector<fileContainer>& vecFile
+    );
+    int createFieldFiles
+    (
+        const std::string& rootAddr,
+        const std::vector<fileContainer>& vecFile
+    );
+    int createBoundaryFile
+    (
+        const std::string& rootAddr,
+        const std::vector<fileContainer>& vecFile
+    );
+    int createUniformTimeFile(const std::string& rootAddr);
+    int createPointsFile(const std::string& rootAddr);
+    int createOwnerFile(const std::string& rootAddr);
+    int createNeighborFile(const std::string& rootAddr);
+    int createFacesFile(const std::string& rootAddr);
     int deleteInitFiles(const std::string& addr);
     int deleteFilesData();
     int registerInitFiles(const char *name);
@@ -159,9 +181,12 @@ protected:
     int ca_myRank;
 
     // registered data set during the simulation
-    int* ca_runStat;
+    int*    ca_runStat;
+    int*    ca_timeIndex;
     double* ca_time;
+    char*   ca_timeName;
     double* ca_deltaT;
+    double* ca_deltaT0;
     
     
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -174,10 +199,10 @@ protected:
     // COM-specific
     int registerFunctions(const char *name);
     int reconstCaData(int* pargc, void** pargv, const char* name);
-    int reconstDynamicFvMesh();
-
 public: 
     static void copyWindow(const char *name1, const char *name2);
+
+    int findGlobalIndex(int* arr, const int& size,  const int& elem);
 };
 
 #endif
