@@ -191,8 +191,28 @@ int rhoPimple::initialize(int argc, char *argv[])
         ca_time = new double(runTime.value());
     if (ca_deltaT == NULL)
         ca_deltaT = new double(runTime.deltaTValue());
+    if (ca_deltaT0 == NULL)
+        ca_deltaT0 = new double(runTime.deltaT0Value());
+    if (ca_timeIndex == NULL)
+        ca_timeIndex = new int(runTime.timeIndex());
+    if (ca_timeName == NULL)
+    {
+        ca_timeName = new char[genCharSize];
+
+        std::string timeNameStr = runTime.timeName();
+        int length = timeNameStr.length()+1;
+        if (length > genCharSize)
+        {
+            std::cout << "Warning:: genCharSize is not big enough,"
+                      << " genCharSize = " << genCharSize
+                      << " timeName.size = "
+                      << timeNameStr.length()+1
+                      << std::endl;
+        }
+        std::strcpy(ca_timeName, timeNameStr.c_str());
+    }
     //-------------------------------------------
-    
+
     initializeStat = 0;
     return initializeStat;
 }
@@ -793,7 +813,24 @@ int rhoPimple::step()
     *ca_runStat = static_cast<int>(runTime.run());
     *ca_time = runTime.value();
     *ca_deltaT = runTime.deltaTValue();
-    //-----------------------------------------------------
+    *ca_deltaT0 = runTime.deltaT0Value();
+    *ca_timeIndex = runTime.timeIndex();
+
+    std::string timeNameStr = "";
+    std::strcpy(ca_timeName, timeNameStr.c_str());
+
+    timeNameStr = runTime.timeName();
+    int length = timeNameStr.length()+1;
+    if (length > genCharSize)
+    {
+        std::cout << "Warning:: genCharSize is not big enough,"
+                  << " genCharSize = " << genCharSize
+                  << " timeName.size = "
+                  << timeNameStr.length()+1
+                  << std::endl;
+    }
+    std::strcpy(ca_timeName, timeNameStr.c_str());
+    //-------------------------------------------
 
     stepStat = 0;
     return stepStat;
