@@ -197,7 +197,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     updateSurfaceData();
     registerSurfaceData(name);
 
-    std::string tmpDir = strTmp+"fluidTmp";
+    std::string tmpDir = strTmp+tmpFluidDir;
     deleteInitFiles(tmpDir);
     readInitFiles(strTmp);
     registerInitFiles(name);
@@ -228,33 +228,57 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
     std::string dataName = volName+std::string(".object");
     COM_get_object(dataName.c_str(), 0, &comFoamPtr);
 
-    reconstCaVolumeData(name);
-    reconstCaFaceData(name);
-    reconstCaSurfaceData(name);
-    std::string tmpDir = "./fluidTmp";
-    deleteInitFiles(tmpDir);
-    reconstCaInitFiles(name, tmpDir);
+    deleteInitFiles(tmpFluidDir);
+    for(int iproc=0; iproc<ca_nProc; iproc++)
+    {
+        if(iproc==ca_myRank)
+        {
+            reconstCaVolumeData(name);
+            reconstCaFaceData(name);
+            reconstCaSurfaceData(name);
+            reconstCaInitFiles(name, tmpFluidDir);
+        }
+        MPI_Barrier(winComm);
+    }
+
 
     //int argc = *pargc;
     //char** argv = reinterpret_cast<char**>(pargv);
+//    int argc = *pargc+2;
+//    char** argv;
+//    argv = new char*[*pargc+2];
+//        
+//    std::string strTmp = "-case";
+//    argv[*pargc] = new char[strTmp.length()+1];
+//    std::strcpy(argv[*pargc], strTmp.c_str());
+
+//    strTmp = tmpFluidDir;
+//    argv[*pargc+1] = new char[strTmp.length()+1];
+//    std::strcpy(argv[*pargc+1], strTmp.c_str());
+
+
     int argc = *pargc+2;
     char** argv;
     argv = new char*[*pargc+2];
-        
+    for (int i=0; i<*pargc; i++)
+    {
+        std::string strTmp = reinterpret_cast<char*>(pargv[i]);
+        argv[i] = new char[strTmp.length()+1];
+        std::strcpy(argv[i], strTmp.c_str());
+    }
+
     std::string strTmp = "-case";
     argv[*pargc] = new char[strTmp.length()+1];
     std::strcpy(argv[*pargc], strTmp.c_str());
 
-    strTmp = tmpDir;
+    strTmp = tmpFluidDir;
     argv[*pargc+1] = new char[strTmp.length()+1];
     std::strcpy(argv[*pargc+1], strTmp.c_str());
 
+
     comFoamPtr->initialize(argc, argv);
 
-//    comFoamPtr->reconstDynamicFvMesh();
-//    comFoamPtr->createFields_COM();
-
-    //deleteInitFiles(tmpDir);
+    //deleteInitFiles(tmpFluidDir);
 
     return 0;
 }

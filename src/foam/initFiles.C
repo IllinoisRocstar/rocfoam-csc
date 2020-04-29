@@ -1,10 +1,20 @@
 int comFoam::readInitFiles(const std::string& rootAddr)
 {
     std::string fullAddr=rootAddr;
+    std::string locaParAddr = "";
+    
+    int myRank = 0;
+    if (Pstream::parRun())
+    {
+        myRank = Pstream::myProcNo();
+        locaParAddr = "processor"+std::to_string(myRank);
+        //fullAddr = rootAddr+locaParAddr;
+    }
+
     std::vector<fileContainer> vecFile;
     int fileCount=0;
     
-    readRecursive(rootAddr, fullAddr, vecFile, fileCount);
+    readRecursive(locaParAddr, fullAddr, vecFile, fileCount);
 
     ca_nFiles      = new int(fileCount);
     ca_fileSize    = new int[*ca_nFiles];
@@ -47,6 +57,8 @@ int comFoam::createInitFiles(const std::string& rootAddr)
         vecFile.push_back(tmpFile);
     }
 
+    std::cout << std::endl;
+    
     createSysConstFiles(rootAddr, vecFile);
     createFieldFiles(rootAddr, vecFile);
     createUniformTimeFile(rootAddr);
@@ -55,6 +67,7 @@ int comFoam::createInitFiles(const std::string& rootAddr)
     createNeighborFile(rootAddr);
     createFacesFile(rootAddr);
     createBoundaryFile(rootAddr, vecFile);
+    createConnectivityFiles(rootAddr, vecFile);
 
     return 0;
 }
@@ -85,12 +98,14 @@ int comFoam::createSysConstFiles
             
             outpuFile << vecFile[ifile].content;
             outpuFile.close();
+
+            std::cout << "    " << fullAddr
+                      << " created." << std::endl;
         }
     }
 
     return 0;
 }
-
 
 int comFoam::createFieldFiles
             (
@@ -101,15 +116,43 @@ int comFoam::createFieldFiles
     namespace BF = boost::filesystem;
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
+        std::string locaParAddr = "";
+        if (ca_nProc>1)
+        {
+            locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+        }
+
         std::string fileName = vecFile[ifile].name;
         std::string localDir = vecFile[ifile].path;
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
 
-        if (localDir=="0")
+        //if (localDir=="0")
+        if (localDir==locaParAddr+"0")
         {
             // Modify the internalField
             std::string content = vecFile[ifile].content;
+
+            std::string locationStr = "location";
+            size_t locationStart = content.find(locationStr);
+            if (locationStart == std::string::npos)
+            {
+                std::cout << "Warning: Cannot find location in file "
+                         << fileName << std::endl;
+            }
+            else
+            {
+                std::string scStr = ";";
+                size_t locationEnd = content.find(scStr, locationStart);
+                size_t length = locationEnd-locationStart;
+                content.erase(locationStart, length);
+                std::string newStr  = "location    \"";
+                newStr += std::string(ca_timeName);
+                newStr += "\"";
+                content.insert(locationStart, newStr);
+            }
+
+
             std::string intFieldStr = "internalField";
             size_t intFieldStart = content.find(intFieldStr);
             if (intFieldStart == std::string::npos)
@@ -121,7 +164,7 @@ int comFoam::createFieldFiles
             size_t intFieldEnd = content.find(scStr, intFieldStart);
             size_t length = intFieldEnd-intFieldStart;
             content.erase(intFieldStart, length);
-
+            
             std::string newStr = "internalField   nonuniform List";
             if (fileName == "U")
             {
@@ -146,7 +189,7 @@ int comFoam::createFieldFiles
                         
                         std::ostringstream doubleToOs;                            
                         //doubleToOs << std::fixed;
-                        doubleToOs << std::setprecision(16);
+                        doubleToOs << std::setprecision(IODigits);
                         doubleToOs << ca_Vel[localComp];
 
                         newStr += doubleToOs.str();
@@ -176,7 +219,7 @@ int comFoam::createFieldFiles
                                     );
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(16);
+                    doubleToOs << std::setprecision(IODigits);
                     doubleToOs << ca_P[cellIndex];
 
                     newStr += doubleToOs.str();
@@ -203,7 +246,7 @@ int comFoam::createFieldFiles
                                     );
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(16);
+                    doubleToOs << std::setprecision(IODigits);
                     doubleToOs << ca_T[cellIndex];
 
                     newStr += doubleToOs.str();
@@ -230,7 +273,7 @@ int comFoam::createFieldFiles
                                     );
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(16);
+                    doubleToOs << std::setprecision(IODigits);
                     doubleToOs << ca_Rho[cellIndex];
 
                     newStr += doubleToOs.str();
@@ -249,6 +292,12 @@ int comFoam::createFieldFiles
             
             for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
             {
+                int nfaces = *ca_patchSize[ipatch];
+                if (nfaces<=0)
+                {
+                    continue;
+                }
+                
                 std::string patchName = patchNameStr[ipatch];
 
                 size_t patchStart = content.find(patchName);
@@ -294,7 +343,6 @@ int comFoam::createFieldFiles
                     if (fileName == "U")
                     {
                         newStr += "<vector>\n";
-                        int nfaces = *ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -314,7 +362,7 @@ int comFoam::createFieldFiles
                                 
                                 std::ostringstream doubleToOs;                            
                                 //doubleToOs << std::fixed;
-                                doubleToOs << std::setprecision(16);
+                                doubleToOs << std::setprecision(IODigits);
                                 doubleToOs << ca_patchVel[ipatch][localComp];
 
                                 newStr += doubleToOs.str();
@@ -342,7 +390,7 @@ int comFoam::createFieldFiles
                                             );
 
                             std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(16);
+                            doubleToOs << std::setprecision(IODigits);
                             doubleToOs << ca_patchP[ipatch][faceIndex];
 
                             newStr += doubleToOs.str();
@@ -367,7 +415,7 @@ int comFoam::createFieldFiles
                                             );
 
                             std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(16);
+                            doubleToOs << std::setprecision(IODigits);
                             doubleToOs << ca_patchT[ipatch][faceIndex];
 
                             newStr += doubleToOs.str();
@@ -392,7 +440,7 @@ int comFoam::createFieldFiles
                                             );
 
                             std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(16);
+                            doubleToOs << std::setprecision(IODigits);
                             doubleToOs << ca_patchRho[ipatch][faceIndex];
 
                             newStr += doubleToOs.str();
@@ -410,8 +458,7 @@ int comFoam::createFieldFiles
                 }
             }
 
-
-            std::string newLocalDir = std::string(ca_timeName);
+            std::string newLocalDir = locaParAddr+std::string(ca_timeName);
             fullDir = rootAddr+"/"+newLocalDir;
             fullAddr = fullDir+"/"+fileName;
 
@@ -423,6 +470,9 @@ int comFoam::createFieldFiles
             
             outpuFile << content;
             outpuFile.close();
+            
+            std::cout << "    " << fullAddr
+                      << " created." << std::endl;
         }
     } 
     return 0;
@@ -432,13 +482,17 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
 {
     namespace BF = boost::filesystem;
 
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+
     std::string timeNameStr = std::string(ca_timeName);
     std::string localDir = timeNameStr+"/uniform";
-    std::string fullDir  = rootAddr+"/"+localDir;
-    std::string fullAddr = fullDir+"/time";
 
     std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(16);
+    doubleToOs << std::setprecision(IODigits);
 
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
@@ -477,6 +531,10 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
     content += "deltaT0    "+doubleToOs.str()+";\n";
     content += "// ************************************************************************* //";
 
+    localDir = locaParAddr+timeNameStr+"/uniform";
+    std::string fullDir  = rootAddr+"/"+localDir;
+    std::string fullAddr = fullDir+"/time";
+
     BF::path fullPath = fullDir;
     BF::create_directories(fullPath);
 
@@ -486,6 +544,9 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
+    std::cout << "    " << fullAddr
+              << " created." << std::endl;
+
     return 0;
 }
 
@@ -493,12 +554,18 @@ int comFoam::createPointsFile(const std::string& rootAddr)
 {
     namespace BF = boost::filesystem;
 
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+
     std::string localDir = "constant/polyMesh";
-    std::string fullDir  = rootAddr+"/"+localDir;
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/points";
 
     std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(16);
+    doubleToOs << std::setprecision(IODigits);
 
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
@@ -530,7 +597,7 @@ int comFoam::createPointsFile(const std::string& rootAddr)
             
             std::ostringstream doubleToOs;                            
             //doubleToOs << std::fixed;
-            doubleToOs << std::setprecision(16);
+            doubleToOs << std::setprecision(IODigits);
             doubleToOs << ca_Points[localComp];
 
             content += doubleToOs.str();
@@ -552,6 +619,9 @@ int comFoam::createPointsFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
+    std::cout << "    " << fullAddr
+              << " created." << std::endl;
+
     return 0;
 }
 
@@ -560,12 +630,18 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
 {
     namespace BF = boost::filesystem;
 
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
     std::string localDir = "constant/polyMesh";
-    std::string fullDir  = rootAddr+"/"+localDir;
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/owner";
 
     std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(16);
+    doubleToOs << std::setprecision(IODigits);
 
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
@@ -607,7 +683,7 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
                         );
 
         std::ostringstream doubleToOs;                            
-        doubleToOs << std::setprecision(16);
+        doubleToOs << std::setprecision(IODigits);
         doubleToOs << ca_faceOwner[faceIndex];
 
         content += doubleToOs.str();
@@ -626,6 +702,9 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
+    std::cout << "    " << fullAddr
+              << " created." << std::endl;
+
     return 0;
 }
 
@@ -634,12 +713,18 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
 {
     namespace BF = boost::filesystem;
 
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+
     std::string localDir = "constant/polyMesh";
-    std::string fullDir  = rootAddr+"/"+localDir;
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/neighbour";
 
     std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(16);
+    doubleToOs << std::setprecision(IODigits);
 
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
@@ -681,7 +766,7 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
                         );
 
         std::ostringstream doubleToOs;                            
-        doubleToOs << std::setprecision(16);
+        doubleToOs << std::setprecision(IODigits);
         doubleToOs << ca_faceNeighb[faceIndex];
 
         content += doubleToOs.str();
@@ -700,6 +785,9 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
+    std::cout << "    " << fullAddr
+              << " created." << std::endl;
+
     return 0;
 }
 
@@ -708,12 +796,18 @@ int comFoam::createFacesFile(const std::string& rootAddr)
 {
     namespace BF = boost::filesystem;
 
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
     std::string localDir = "constant/polyMesh";
-    std::string fullDir  = rootAddr+"/"+localDir;
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/faces";
 
     std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(16);
+    doubleToOs << std::setprecision(IODigits);
 
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
@@ -793,6 +887,9 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
+    std::cout << "    " << fullAddr
+              << " created." << std::endl;
+
     return 0;
 }
 
@@ -803,6 +900,13 @@ int comFoam::createBoundaryFile
             )
 {
     namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
         std::string fileName = vecFile[ifile].name;
@@ -920,11 +1024,60 @@ int comFoam::createBoundaryFile
             
             outpuFile << content;
             outpuFile.close();
+
+            std::cout << "    " << fullAddr
+                      << " created." << std::endl;
         }
     } 
     return 0;
 }
 
+int comFoam::createConnectivityFiles
+            (
+                const std::string& rootAddr,
+                const std::vector<fileContainer>& vecFile
+            )
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+
+    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    {
+        std::string fileName = vecFile[ifile].name;
+        std::string localDir = vecFile[ifile].path;
+        std::string fullDir = rootAddr+"/"+localDir;
+        std::string fullAddr = fullDir+"/"+fileName;
+
+        if (
+            fileName == "boundaryProcAddressing" ||
+            fileName == "cellProcAddressing" ||
+            fileName == "faceProcAddressing" ||
+            fileName == "pointProcAddressing"
+           )
+        {
+            std::string content = vecFile[ifile].content;
+
+
+            BF::path fullPath = fullDir;
+            BF::create_directories(fullPath);
+
+            std::ofstream outpuFile;
+            outpuFile.open(fullAddr);
+            
+            outpuFile << content;
+            outpuFile.close();
+
+            std::cout << "    " << fullAddr
+                      << " created." << std::endl;
+        }
+    } 
+    return 0;
+}
 
 int comFoam::deleteInitFiles(const std::string& addr)
 {
@@ -949,17 +1102,19 @@ int comFoam::registerInitFiles(const char *name)
 
     std::string volName = name+std::string("VOL");
 
+    int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
+
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = volName+std::string(".nFiles");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_nFiles);
+    COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
+    COM_set_size(     dataName, paneID, 1);
+    COM_set_array(    dataName, paneID, ca_nFiles);
     std::cout << "  " << dataName << " registered." << std::endl;
     
     dataName = volName+std::string(".fileSize");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, *ca_nFiles);
-    COM_set_array(    dataName, 0, ca_fileSize);
+    COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
+    COM_set_size(     dataName, paneID, *ca_nFiles);
+    COM_set_array(    dataName, paneID, ca_fileSize);
     //std::cout << dataName << " registered." << std::endl;
 
     // Register file paths
@@ -969,9 +1124,9 @@ int comFoam::registerInitFiles(const char *name)
         int charSize = charToStr.length()+1;
 
         dataName = volName+".filePath"+std::to_string(ifile);
-        COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
-        COM_set_size( dataName, 0, charSize);
-        COM_set_array(dataName, 0, ca_filePath[ifile]);
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID, charSize);
+        COM_set_array(dataName, paneID, ca_filePath[ifile]);
         //std::cout << dataName << " registered." << std::endl;
     }
 
@@ -982,9 +1137,9 @@ int comFoam::registerInitFiles(const char *name)
         int charSize = charToStr.length()+1;
 
         dataName = volName+".fileName"+std::to_string(ifile);
-        COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
-        COM_set_size( dataName, 0, charSize);
-        COM_set_array(dataName, 0, ca_fileName[ifile]);
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID, charSize);
+        COM_set_array(dataName, paneID, ca_fileName[ifile]);
         //std::cout << "  File "
         //          << ca_filePath[ifile]<<"/"<<ca_fileName[ifile]
         //          << " registered."
@@ -998,15 +1153,16 @@ int comFoam::registerInitFiles(const char *name)
         int charSize = charToStr.length()+1;
 
         dataName = volName+".fileContent"+std::to_string(ifile);
-        COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
-        COM_set_size( dataName, 0, charSize);
-        COM_set_array(dataName, 0, ca_fileContent[ifile]);
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID, charSize);
+        COM_set_array(dataName, paneID, ca_fileContent[ifile]);
         //std::cout << dataName << " registered." << std::endl;
     }
 
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "  " << ca_filePath[ifile]
+        std::cout << "  procID = " << Pstream::myProcNo()
+                  << ", " << ca_filePath[ifile]
                   << "/" << ca_fileName[ifile]
                   << " registered." << std::endl;
     }
@@ -1019,13 +1175,14 @@ int comFoam::registerInitFiles(const char *name)
 
 int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
 {
-    /*
-    std::cout << "rocFoam.reconstructInitFiles: "
-               << "Registering flow data with name "
-               << name
-               << std::endl;
-   */
     std::string volName = name+std::string("VOL");
+    std::cout << "rocFoam.reconstructInitFiles, proID = "
+              << Pstream::myProcNo()
+              << ", Retreiving file data form window "
+              << volName << "."
+              << std::endl;
+
+    int paneID = Pstream::myProcNo()+1;// Use this paneID for files
 
     std::string regNames;
     int numDataItems=0;
@@ -1053,15 +1210,15 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
     std::string dataName = std::string("nFiles");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_nFiles);
+    COM_get_array(regName.c_str(), paneID, &ca_nFiles);
     std::cout << "  " << dataName.c_str() << " = " << *ca_nFiles << std::endl;
 
     dataName = std::string("fileSize");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     int nComp;
-    COM_get_array(regName.c_str(), 0, &ca_fileSize);
-    COM_get_size(regName.c_str(), 0, &nComp);
+    COM_get_array(regName.c_str(), paneID, &ca_fileSize);
+    COM_get_size(regName.c_str(), paneID, &nComp);
 
     std::vector<fileContainer> vecFile;
 
@@ -1076,20 +1233,20 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
         dataName = std::string("fileName")+std::to_string(ifile);
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-        COM_get_array(regName.c_str(), 0, &ca_fileName[ifile]);
-        COM_get_size(regName.c_str(), 0, &nComp);
+        COM_get_array(regName.c_str(), paneID, &ca_fileName[ifile]);
+        COM_get_size(regName.c_str(), paneID, &nComp);
 
         dataName = std::string("filePath")+std::to_string(ifile);
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-        COM_get_array(regName.c_str(), 0, &ca_filePath[ifile]);
-        COM_get_size(regName.c_str(), 0, &nComp);
+        COM_get_array(regName.c_str(), paneID, &ca_filePath[ifile]);
+        COM_get_size(regName.c_str(), paneID, &nComp);
 
         dataName = std::string("fileContent")+std::to_string(ifile);
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
-        COM_get_array(regName.c_str(), 0, &ca_fileContent[ifile]);
-        COM_get_size(regName.c_str(), 0, &nComp);
+        COM_get_array(regName.c_str(), paneID, &ca_fileContent[ifile]);
+        COM_get_size(regName.c_str(), paneID, &nComp);
 
         if (nComp != ca_fileSize[ifile]+1)
         {
@@ -1103,10 +1260,10 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
     // Register file status ^^^^^^^^^^^^^^^^^^^^^
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "    file[" << ifile << "] = "
-                          << ca_filePath[ifile] << "/"
-                          << ca_fileName[ifile] << std::endl;
-
+        std::cout << "    file[" << ifile << "], size = "
+                  << ca_fileSize[ifile] << ", "
+                  << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] 
+                  << " retreived." << std::endl;
         /*
         std::cout << "    fileName[" << ifile << "] = "
                   << vecFile[ifile].name.c_str() << std::endl;
@@ -1123,7 +1280,6 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
     }
     //-------------------------------------------
 
-
     createInitFiles(rootAddr);
 
     return 0;
@@ -1132,7 +1288,7 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
 
 int comFoam::readRecursive
 (
-    const std::string& rootAddr,
+    const std::string& locaParAddr,
     std::string fullAddr,
     std::vector<fileContainer>& vecFile,
     int& fileCount
@@ -1176,36 +1332,32 @@ int comFoam::readRecursive
 
                 tmpPath = localPath.filename();
                 std::string fileName = tmpPath.string();
-                
-                std::ifstream inputFile(localPath.string());
-                if (!inputFile.good())
-                {
-                    std::cout << "Warnning: possibly " 
-                              << localPath.string() << " does not exist."
-                              << std::endl;
-                }
-                else
-                {
-                    inputFile.seekg (0, inputFile.end);
-                    int size = inputFile.tellg();
-                    inputFile.seekg (0, inputFile.beg);
 
-                    char* content = new char[size];
-                    inputFile.read(content, size);
-                    
-                    fileContainer tmpFile;
-                    tmpFile.name = fileName;
-                    tmpFile.path = localAddr;
-                    tmpFile.size = size;
-                    tmpFile.content = string(content);
-                    tmpFile.content.resize(size);
-                    
-                    // Only keeping these specific files and folders
-                    if (localAddr == "system" ||
-                        localAddr == "constant" ||
-                        localAddr == "0" ||
-                        fileName  == "boundary")
+                if (fileShouldBeRead(locaParAddr, localAddr, fileName))
+                {
+                    std::ifstream inputFile(localPath.string());
+                    if (!inputFile.good())
                     {
+                        std::cout << "Warnning: possibly " 
+                                  << localPath.string() << " does not exist."
+                                  << std::endl;
+                    }
+                    else
+                    {
+                        inputFile.seekg (0, inputFile.end);
+                        int size = inputFile.tellg();
+                        inputFile.seekg (0, inputFile.beg);
+
+                        char* content = new char[size];
+                        inputFile.read(content, size);
+                        
+                        fileContainer tmpFile;
+                        tmpFile.name = fileName;
+                        tmpFile.path = localAddr;
+                        tmpFile.size = size;
+                        tmpFile.content = string(content);
+                        tmpFile.content.resize(size);
+                        
                         vecFile.push_back(tmpFile);
 
                         //std::cout << vecFile[fileCount].name << std::endl;
@@ -1223,7 +1375,7 @@ int comFoam::readRecursive
                 {
                     BF::path newPath=x.path();
                     std::string neWaddr = BF::canonical(newPath).string();
-                    readRecursive(rootAddr, neWaddr, vecFile, fileCount);
+                    readRecursive(locaParAddr, neWaddr, vecFile, fileCount);
                 }
             }
             else
@@ -1247,6 +1399,57 @@ int comFoam::readRecursive
     
     return 0;
 }
+
+
+bool comFoam::fileShouldBeRead
+(
+    const std::string& locaParAddr,
+    const std::string& localAddr,
+    const std::string& fileName
+)
+{
+    // Only keeping these specific files and folders
+    bool addFile = false;
+    if (locaParAddr == "") 
+    {
+        if (localAddr == "system" ||
+        localAddr == "constant" ||
+        localAddr == "0") addFile = true;
+
+        if (fileName  == "boundary" ||
+            fileName  == "boundaryProcAddressing" ||
+            fileName  == "cellProcAddressing" ||
+            fileName  == "faceProcAddressing" ||
+            fileName  == "pointProcAddressing"
+            ) addFile = true;
+
+    }
+    else
+    {
+        if (Pstream::master())
+        {
+            if (localAddr == "system" ||
+            localAddr == "constant") addFile = true;
+        }
+
+        if (localAddr == locaParAddr+"/system" ||
+            localAddr == locaParAddr+"/constant" ||
+            localAddr == locaParAddr+"/0") addFile = true;
+        
+        if (localAddr == locaParAddr+"/constant/polyMesh") 
+        {
+            if (fileName  == "boundary" ||
+                fileName  == "boundaryProcAddressing" ||
+                fileName  == "cellProcAddressing" ||
+                fileName  == "faceProcAddressing" ||
+                fileName  == "pointProcAddressing"
+                ) addFile = true;
+        }
+    }
+    
+    return addFile;
+}
+
 
 
 int comFoam::deleteFilesData()

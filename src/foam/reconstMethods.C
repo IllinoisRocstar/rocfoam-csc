@@ -23,8 +23,8 @@ void comFoam::copyWindow(const char *name1, const char *name2)
     int nPanes;
     int* paneList;
     COM_get_panes(winName1.c_str(), &nPanes, &paneList);
-    Info << "rocFoam.copyWindow: Number of Panes in "
-         << "winName1 = "
+    Info << "rocFoam.copyWindow: Number of Panes in window "
+         << winName1 << " = "
          << nPanes << endl;
 
     for(int ipane=0; ipane<nPanes; ipane++)

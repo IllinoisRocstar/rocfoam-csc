@@ -7,15 +7,62 @@ int comFoam::createSurfaceConnectivities()
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
     //-------------------------------------------
 
-    //  Create patch general data  arrays ^^^^^^^
-    ca_nPatches = new int(patches.size());
+    // Gather the number of patches in each processor
+    int nPatches = patches.size();
+    ca_nPatches = new int[Pstream::nProcs()];
+    for(int i=0; i<Pstream::nProcs(); i++)
+    {
+        ca_nPatches[i] = 0;
+    }
     
-    ca_patchName    = new char*[*ca_nPatches];
-    ca_patchType    = new char*[*ca_nPatches];
-    //ca_patchInGroup = new wordList*[*ca_nPatches];
-    ca_patchStart   = new int*[*ca_nPatches];
-    ca_patchSize    = new int*[*ca_nPatches];
+    //send local cell addressing to master process
+    if (Pstream::master())
+    {
+        ca_nPatches[Pstream::myProcNo()] = nPatches;
+        for(label jSlave=Pstream::firstSlave(); jSlave<=Pstream::lastSlave(); jSlave++)
+        {
+	        IPstream fromSlave(Pstream::commsTypes::scheduled, jSlave);
+            fromSlave >> ca_nPatches[jSlave];
+        }
+    }
+    else
+    {
+        OPstream toMaster(Pstream::commsTypes::scheduled, Pstream::masterNo());
+        toMaster << nPatches;
+    }
 
+    //redistribute cell addressing to slave processes
+    if (Pstream::master())
+    {
+        for(label jSlave=Pstream::firstSlave(); jSlave<=Pstream::lastSlave(); jSlave++)
+        {
+	        OPstream toSlave(Pstream::commsTypes::scheduled, jSlave);
+	        for(int i=0; i<Pstream::nProcs(); i++)
+	        {
+	            toSlave << ca_nPatches[i];
+	        }
+        }
+    }
+    else
+    {
+        IPstream fromMaster(
+                            Pstream::commsTypes::scheduled,
+                            Pstream::masterNo());
+        for(int i=0; i<Pstream::nProcs(); i++)
+        {
+            fromMaster >> ca_nPatches[i];
+        }
+    }
+    //-------------------------------------------
+
+
+    //  Create patch general data  arrays ^^^^^^^
+    //ca_nPatches = new int(patches.size());
+    ca_patchName    = new char*[nPatches];
+    ca_patchType    = new char*[nPatches];
+    //ca_patchInGroup = new wordList*[nPatches];
+    ca_patchStart   = new int*[nPatches];
+    ca_patchSize    = new int*[nPatches];
 
     forAll(patches, ipatch)
     {
@@ -55,7 +102,7 @@ int comFoam::createSurfaceConnectivities()
 
     // FaceToFace mapping vector ^^^^^^^^^^^^^^^^
     vecPatchFaceToFaceMap.clear();
-    vecPatchFaceToFaceMap.resize(*ca_nPatches);
+    vecPatchFaceToFaceMap.resize(nPatches);
     forAll(patches, ipatch)
     {
         vecPatchFaceToFaceMap[ipatch].resize(faceToPointTypeSize);
@@ -120,8 +167,8 @@ int comFoam::createSurfaceConnectivities()
 
     // FaceToPoint connectivity vectors ^^^^^^^^^
     vecPatchFaceToPointConn.clear();
-    vecPatchFaceToPointConn.resize(*ca_nPatches);
-    for (int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    vecPatchFaceToPointConn.resize(nPatches);
+    for (int ipatch=0; ipatch<nPatches; ipatch++)
     {
         vecPatchFaceToPointConn[ipatch].resize(faceToPointTypeSize);
         for (int itype=0; itype<faceToPointTypeSize; itype++)
@@ -180,12 +227,12 @@ int comFoam::createSurfaceConnectivities()
     //-------------------------------------------
     
     // Create face mapping and connectivity arrays ^^^
-    ca_patchFaceToPointConn_types = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn_map   = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn_size  = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn = new int**[*ca_nPatches];    
+    ca_patchFaceToPointConn_types = new int*[nPatches];
+    ca_patchFaceToPointConn_map   = new int*[nPatches];
+    ca_patchFaceToPointConn_size  = new int*[nPatches];
+    ca_patchFaceToPointConn = new int**[nPatches];    
     
-    ca_patchFaceToFaceMap = new int*[*ca_nPatches];
+    ca_patchFaceToFaceMap = new int*[nPatches];
     forAll(patches, ipatch)
     {
         // Create faceToFace mapping arrays ^^^^^^^^^
@@ -250,8 +297,8 @@ int comFoam::createSurfaceConnectivities()
     //------------------------------------------------
 
     // Create pointToPoint mapping arrays ^^^^^^^
-    ca_patchPointToPointMap_size  = new int*[*ca_nPatches];
-    ca_patchPointToPointMap = new int*[*ca_nPatches];
+    ca_patchPointToPointMap_size  = new int*[nPatches];
+    ca_patchPointToPointMap = new int*[nPatches];
 
     forAll(patches, ipatch)
     {
@@ -275,13 +322,14 @@ int comFoam::createSurfaceData()
 {
     const dynamicFvMesh& mesh(*meshPtr);
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
+    int nPatches = patches.size();
 
     // Field-data
-    ca_patchPoints = new double*[*ca_nPatches];
-    ca_patchVel    = new double*[*ca_nPatches];
-    ca_patchRho    = new double*[*ca_nPatches];
-    ca_patchP      = new double*[*ca_nPatches];
-    ca_patchT      = new double*[*ca_nPatches];
+    ca_patchPoints = new double*[nPatches];
+    ca_patchVel    = new double*[nPatches];
+    ca_patchRho    = new double*[nPatches];
+    ca_patchP      = new double*[nPatches];
+    ca_patchT      = new double*[nPatches];
  
     forAll(patches, ipatch)
     {
@@ -383,6 +431,10 @@ int comFoam::updateSurfaceData()
 
 int comFoam::registerSurfaceData(const char *name)
 {
+    const dynamicFvMesh& mesh(*meshPtr);
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
+    int nPatches = patches.size();
+
     Foam::Info << "rocFoam.registerSurfaceData: "
                << "Registering flow data with name "
                << name
@@ -393,9 +445,9 @@ int comFoam::registerSurfaceData(const char *name)
     // Genral patch data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = surfName+std::string(".nPatches");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_nPatches);
-    Foam::Info << dataName << " registered." << endl;
+    COM_set_size( dataName, 0, Pstream::nProcs());
+    COM_set_array(dataName, 0, ca_nPatches);
+    Info << dataName.c_str() << " registered." << endl;
 
     dataName = surfName+std::string(".patchName");
     COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
@@ -450,27 +502,37 @@ int comFoam::registerSurfaceData(const char *name)
     // ------------------------------------------
 
     // paneID>2 reserved for patches
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    int paneIDStart = 1;
+    for(label iProc=Pstream::master(); iProc<Pstream::myProcNo(); iProc++)
     {
-        int paneID = ipatch+3;
+        paneIDStart += ca_nPatches[iProc];
+    }
+    //int paneIDEnd = paneIDStart+nPatches;
+    
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
+    {
+        int paneID = paneIDStart+ipatch;
 
-        Info << "Patch[" << ipatch
-             <<"]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+        Info << "procID = " << Pstream::myProcNo()
+             << ", paneID = " << paneID
+             << ", PatchID = " << ipatch << ","
+             << " ^^^^^^^^^^^^^^^" << endl;
 
-        // Genral patch data ^^^^^^^^^^^^^^^^^^^^z
+
+        // Genral patch data ^^^^^^^^^^^^^^^^^^^^^
         std::string charToStr = std::string(ca_patchName[ipatch]);
         int charSize = charToStr.size()+1;
         dataName = surfName+std::string(".patchName");
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_patchName[ipatch]);
-        Foam::Info << "   patchName registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         charToStr = std::string(ca_patchType[ipatch]);
         charSize = charToStr.size()+1;
         dataName = surfName+std::string(".patchType");
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_patchType[ipatch]);
-        Foam::Info << "   patchType registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
         
         /*
         charPtr = const_cast<char*>(ca_patchInGroup[ipatch].c_str());
@@ -484,48 +546,48 @@ int comFoam::registerSurfaceData(const char *name)
         dataName = surfName+std::string(".patchStart");
         COM_set_size( dataName, paneID, 1);
         COM_set_array(dataName, paneID, ca_patchStart[ipatch]);
-        Foam::Info << "   patchStart registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         dataName = surfName+std::string(".patchSize");
         COM_set_size( dataName, paneID, 1);
         COM_set_array(dataName, paneID, ca_patchSize[ipatch]);
-        Foam::Info << "   patchSize registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
         //---------------------------------------
         
         // points
         dataName = surfName+std::string(".patchPointToPointMap_size");
         COM_set_size( dataName, paneID, 1);
         COM_set_array(dataName, paneID, ca_patchPointToPointMap_size[ipatch]);
-        Foam::Info << "   patchPointToPointMap_size registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         int npoints = *ca_patchPointToPointMap_size[ipatch];
         dataName = surfName+std::string(".nc");
         COM_set_size( dataName, paneID, npoints);
         COM_set_array(dataName, paneID, ca_patchPoints[ipatch], nComponents);
-        Foam::Info << "   nc registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         // point-mapping
         dataName = surfName+std::string(".patchPointToPointMap");
         COM_set_array(dataName, paneID, ca_patchPointToPointMap[ipatch], 1);
-        Foam::Info << "   patchPointToPointMap registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         // face-connectivity
         dataName = surfName+std::string(".patchFaceToPointConn_types");
         COM_set_size(     dataName, paneID, 1);
         COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_types[ipatch]);
-        Foam::Info << "   patchFaceToPointConn_types registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         int ntypes = *ca_patchFaceToPointConn_types[ipatch];
 
         dataName = surfName+std::string(".patchFaceToPointConn_map");
         COM_set_size(  dataName, paneID, ntypes);
         COM_set_array( dataName, paneID, ca_patchFaceToPointConn_map[ipatch]);
-        Foam::Info << "   patchFaceToPointConn_map registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         dataName = surfName+std::string(".patchFaceToPointConn_size");
         COM_set_size(     dataName, paneID, ntypes);
         COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_size[ipatch]);
-        Foam::Info << "   patchFaceToPointConn_size registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         for(int itype=0; itype<ntypes; itype++)
         {
@@ -556,30 +618,30 @@ int comFoam::registerSurfaceData(const char *name)
                            ca_patchFaceToPointConn[ipatch][itype],
                            typeID
                          );
-            Foam::Info << "   " << dataName << " registered." << endl;
+            Info << "  " << dataName.c_str() << " registered." << endl;
         }
 
         dataName = surfName+std::string(".patchFaceToFaceMap");
         COM_set_array(dataName, paneID, ca_patchFaceToFaceMap[ipatch], 1);
-        Foam::Info << "   patchFaceToFaceMap registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
         // ------------------------------------------
 
         // Field variables
         dataName = surfName+std::string(".vel");
         COM_set_array(dataName, paneID, ca_patchVel[ipatch], nComponents);
-        Foam::Info << "   vel registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         dataName = surfName+std::string(".pres");
         COM_set_array(dataName, paneID, ca_patchP[ipatch], 1);
-        Foam::Info << "   pres registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         dataName = surfName+std::string(".temp");
         COM_set_array(dataName, paneID, ca_patchT[ipatch], 1);
-        Foam::Info << "   temp registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         dataName = surfName+std::string(".rho");
         COM_set_array(dataName, paneID, ca_patchRho[ipatch], 1);
-        Foam::Info << "   rho registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
 
         Info << "----------------------------------------------------"
              << endl << endl;
@@ -593,18 +655,18 @@ int comFoam::registerSurfaceData(const char *name)
 
 int comFoam::reconstCaSurfaceData(const char *name)
 {
-
     std::string volName = name+std::string("SURF");
-    Info << "rocFoam.reconstCaSurfaceData: "
-         << "Retreiving surface data form window "
-         << volName << "."
-         << endl;
+    std::cout << "rocFoam.reconstCaSurfaceData, proID = "
+              << Pstream::myProcNo()
+              << ", Retreiving surface data form window "
+              << volName << "."
+              << std::endl;
 
     std::string regNames;
     int numDataItems=0;
     
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-    Info << "  numDataItems = " << numDataItems << endl;
+    std::cout << "  numDataItems = " << numDataItems << std::endl;
 
     std::vector<std::string> dataItemNames;
     dataItemNames.clear();
@@ -614,57 +676,75 @@ int comFoam::reconstCaSurfaceData(const char *name)
         std::string nameTmp;
         Istr >> nameTmp;
         dataItemNames.push_back(nameTmp);
-        Info << "  DataItem[" << i << "] = " << nameTmp << endl;
+        std::cout << "  DataItem[" << i << "] = " << nameTmp << std::endl;
     }
-    Info << endl;
+    std::cout << std::endl;
 
     
     // Surface data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("nPatches");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
+    int nComp;
     COM_get_array(regName.c_str(), 0, &ca_nPatches);
-    Info << "  " << dataName.c_str() << " = " << *ca_nPatches << endl;
+    COM_get_size(regName.c_str(), 0, &nComp);
+    for(int icomp=0; icomp<nComp; icomp++)
+    {
+        std::cout << "  " << dataName.c_str() << "[" << icomp << "] = "
+                  << ca_nPatches[icomp] << std::endl;
+    }
+
+    // ca_myrank has already been set in YYY::load method
+    int nPatches = ca_nPatches[ca_myRank];
 
     // Primary allocation ^^^^^^^^^^^^^^^^^^^^^^^
-    ca_patchName    = new char*[*ca_nPatches];
-    ca_patchType    = new char*[*ca_nPatches];
+    ca_patchName    = new char*[nPatches];
+    ca_patchType    = new char*[nPatches];
 
-    patchNameStr    = new std::string[*ca_nPatches];
-    patchTypeStr    = new std::string[*ca_nPatches];
+    patchNameStr    = new std::string[nPatches];
+    patchTypeStr    = new std::string[nPatches];
 
-    //ca_patchInGroup = new wordList*[*ca_nPatches];
-    ca_patchStart   = new int*[*ca_nPatches];
-    ca_patchSize    = new int*[*ca_nPatches];
+    //ca_patchInGroup = new wordList*[nPatches];
+    ca_patchStart   = new int*[nPatches];
+    ca_patchSize    = new int*[nPatches];
 
-    ca_patchPointToPointMap_size = new int*[*ca_nPatches];
-    ca_patchPointToPointMap = new int*[*ca_nPatches];
-    ca_patchFaceToFaceMap = new int*[*ca_nPatches];
+    ca_patchPointToPointMap_size = new int*[nPatches];
+    ca_patchPointToPointMap = new int*[nPatches];
+    ca_patchFaceToFaceMap = new int*[nPatches];
 
-    ca_patchFaceToPointConn_types = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn_map = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn_size = new int*[*ca_nPatches];
-    ca_patchFaceToPointConn = new int**[*ca_nPatches];
+    ca_patchFaceToPointConn_types = new int*[nPatches];
+    ca_patchFaceToPointConn_map = new int*[nPatches];
+    ca_patchFaceToPointConn_size = new int*[nPatches];
+    ca_patchFaceToPointConn = new int**[nPatches];
 
-    ca_patchPoints = new double*[*ca_nPatches];
-    ca_patchVel = new double*[*ca_nPatches];
-    ca_patchP = new double*[*ca_nPatches];
-    ca_patchT = new double*[*ca_nPatches];
-    ca_patchRho = new double*[*ca_nPatches];
+    ca_patchPoints = new double*[nPatches];
+    ca_patchVel = new double*[nPatches];
+    ca_patchP = new double*[nPatches];
+    ca_patchT = new double*[nPatches];
+    ca_patchRho = new double*[nPatches];
     //-------------------------------------------
 
     //  List of panes in this window ^^^^^^^^^^^^
     int nPanes;
     int* paneList;
     COM_get_panes(volName.c_str(), &nPanes, &paneList);
-    Info << "  Number of Panes = " << nPanes << endl;
+    std::cout << "  Number of Panes = "
+              << nPanes << std::endl;
 
+    //int paneIDStart = 0;
+    //for(label iProc=Pstream::master(); iProc<Pstream::myProcNo(); iProc++)
+    //{
+    //    paneIDStart += ca_nPatches[iProc];
+    //}
+    //int paneIDEnd = paneIDStart+nPatches;
+    //for (int ipane=paneIDStart; ipane<paneIDEnd; ++ipane)
     for (int ipane=0; ipane<nPanes; ++ipane)
     {
         int paneID = paneList[ipane];
 
-        Info << "  Pane[" << ipane << "], paneID = " << paneID
-             << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+        std::cout << "  Pane[" << ipane
+             << "], paneID = " << paneID
+             << " ^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
 
         dataName = std::string("patchName");
         nameExists(dataItemNames, dataName);
@@ -676,8 +756,8 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         patchNameStr[ipane] = ca_patchName[ipane];
         //patchNameStr[ipane].resize(nComp);
-        Info << "    " << dataName.c_str()
-             << " = " << patchNameStr[ipane].c_str() << endl;
+        std::cout << "    " << dataName.c_str()
+             << " = " << patchNameStr[ipane].c_str() << std::endl;
 
         dataName = std::string("patchType");
         nameExists(dataItemNames, dataName);
@@ -687,49 +767,49 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         patchTypeStr[ipane] = ca_patchType[ipane];
         //patchTypeStr[ipane].resize(nComp);
-        Info << "    " << dataName.c_str()
-             << " = " << patchTypeStr[ipane].c_str() << endl;
+        std::cout << "    " << dataName.c_str()
+             << " = " << patchTypeStr[ipane].c_str() << std::endl;
 
         dataName = std::string("patchStart");
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchStart[ipane]);
-        Info << "    " << dataName.c_str()
-             << " = " << *ca_patchStart[ipane] << endl;
+        std::cout << "    " << dataName.c_str()
+             << " = " << *ca_patchStart[ipane] << std::endl;
 
         dataName = std::string("patchSize");
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
 
         COM_get_array(regName.c_str(), paneID, &ca_patchSize[ipane]);
-        Info << "    " << dataName.c_str()
-             << " = " << *ca_patchSize[ipane] << endl;
+        std::cout << "    " << dataName.c_str()
+             << " = " << *ca_patchSize[ipane] << std::endl;
 
         dataName = std::string("patchPointToPointMap_size");
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap_size[ipane]);
-        Info << "    " << dataName.c_str()
-             << " = " << *ca_patchPointToPointMap_size[ipane] << endl;
+        std::cout << "    " << dataName.c_str()
+             << " = " << *ca_patchPointToPointMap_size[ipane] << std::endl;
 
         dataName = std::string("patchFaceToPointConn_types");
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_types[ipane]);
-        Info << "    " << dataName.c_str() << " = "
-             << *ca_patchFaceToPointConn_types[ipane] << endl;
+        std::cout << "    " << dataName.c_str() << " = "
+             << *ca_patchFaceToPointConn_types[ipane] << std::endl;
 
         dataName = std::string("patchFaceToPointConn_map");
         nameExists(dataItemNames, dataName);
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_map[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
-        //Info << "    " << dataName.c_str() << " size = " << nComp << endl;
+        //std::cout << "    " << dataName.c_str() << " size = " << nComp << std::endl;
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            Info << "    " << dataName.c_str() << "[" << icomp << "] = "
-                 << ca_patchFaceToPointConn_map[ipane][icomp] << endl;
+            std::cout << "    " << dataName.c_str() << "[" << icomp << "] = "
+                 << ca_patchFaceToPointConn_map[ipane][icomp] << std::endl;
         }
 
         dataName = std::string("patchFaceToPointConn_size");
@@ -737,11 +817,11 @@ int comFoam::reconstCaSurfaceData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_size[ipane]);
         COM_get_size(regName.c_str(), paneID, &nComp);
-        //Info << "    " << dataName.c_str() << " size = " << nComp << endl;
+        //std::cout << "    " << dataName.c_str() << " size = " << nComp << std::endl;
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            Info << "    " << dataName.c_str() << "[" << icomp << "] = "
-                 << ca_patchFaceToPointConn_size[ipane][icomp] << endl;
+            std::cout << "    " << dataName.c_str() << "[" << icomp << "] = "
+                 << ca_patchFaceToPointConn_size[ipane][icomp] << std::endl;
         }
 
         // Point and connectivity stuff ^^^^^^^^^
@@ -752,16 +832,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
             
         COM_get_array(regName.c_str(), paneID, &ca_patchPoints[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &nPoints);
-        Info << "    " << dataName.c_str() << " points = " << nPoints
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " points = " << nPoints
+             << ", components = " << nComp << std::endl;
 /*        for(int ipoint=0; ipoint<nPoints; ipoint++)*/
 /*        {*/
-/*          Info << "Node " << ipoint << " ca_patchPoints = ";*/
+/*          std::cout << "Node " << ipoint << " ca_patchPoints = ";*/
 /*          for(int icomp=0; icomp<nComp; icomp++)*/
 /*          {*/
-/*              Info << *(ca_patchPoints+ipoint*nComp+icomp) << " ";*/
+/*              std::cout << *(ca_patchPoints+ipoint*nComp+icomp) << " ";*/
 /*          }*/
-/*          Info << endl;*/
+/*          std::cout << std::endl;*/
 /*        }*/
 
         int nConn;
@@ -786,17 +866,17 @@ int comFoam::reconstCaSurfaceData(const char *name)
             COM_get_array(dataName.c_str(), paneID, &ca_patchFaceToPointConn[ipane][icon], &nComp);
             COM_get_size(dataName.c_str(), paneID, &numElem);
             
-            Info << "    Connectivity[" << icon << "] = " << connName
+            std::cout << "    Connectivity[" << icon << "] = " << connName
                  << ", elements = " << numElem
-                 << ", components =" << nComp << endl;
+                 << ", components =" << nComp << std::endl;
 /*            for(int icell=0; icell<numElem; icell++)*/
 /*            {*/
-/*                Info << "Cell " << icell << " velocity = ";*/
+/*                std::cout << "Cell " << icell << " velocity = ";*/
 /*                for(int icomp=0; icomp<nComp; icomp++)*/
 /*                {*/
-/*                    Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                    std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*                }*/
-/*                Info << endl;*/
+/*                std::cout << std::endl;*/
 /*            }*/
         }
         //---------------------------------------
@@ -808,16 +888,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
         
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numElem; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
 
         dataName = std::string("patchFaceToFaceMap");
@@ -826,16 +906,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
             
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToFaceMap[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numElem; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
         //---------------------------------------
 
@@ -847,16 +927,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         COM_get_array(regName.c_str(), paneID, &ca_patchVel[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numCells; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
             
     
@@ -866,16 +946,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         COM_get_array(regName.c_str(), paneID, &ca_patchP[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numCells; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
 
         dataName = std::string("temp");
@@ -884,16 +964,16 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         COM_get_array(regName.c_str(), paneID, &ca_patchT[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numCells; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
 
         dataName = std::string("rho");
@@ -902,35 +982,39 @@ int comFoam::reconstCaSurfaceData(const char *name)
 
         COM_get_array(regName.c_str(), paneID, &ca_patchRho[ipane], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        Info << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << endl;
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
 /*        for(int icell=0; icell<numCells; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
 
-        Info << "  --------------------------------------------------"
-             << endl;
+        std::cout << "  --------------------------------------------------"
+             << std::endl;
     }
 
-    Info << "----------------------------------------------------"
-         << endl;
+    std::cout << "----------------------------------------------------"
+         << std::endl;
 
     COM_free_buffer(&paneList);
+
     return 0;
 }
 
 int comFoam::deleteSurfaceData()
 {
+    const dynamicFvMesh& mesh(*meshPtr);
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
+    int nPatches = patches.size();
 
     if (ca_patchInGroup != NULL)
     {
-        for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
             if (ca_patchInGroup[ipatch] != NULL)
@@ -946,7 +1030,7 @@ int comFoam::deleteSurfaceData()
 
     if (ca_patchStart != NULL)
     {
-        for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
             if (ca_patchStart[ipatch] != NULL)
@@ -963,7 +1047,7 @@ int comFoam::deleteSurfaceData()
 
     if (ca_patchSize != NULL)
     {
-        for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
             if (ca_patchSize[ipatch] != NULL)
@@ -980,7 +1064,7 @@ int comFoam::deleteSurfaceData()
 
     if (ca_patchName != NULL)
     {
-        for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
             if (&ca_patchName[ipatch] != NULL)
@@ -996,7 +1080,7 @@ int comFoam::deleteSurfaceData()
 
     if (ca_patchType != NULL)
     {
-        for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
             if (&ca_patchType[ipatch] != NULL)
@@ -1023,7 +1107,7 @@ int comFoam::deleteSurfaceData()
     }
 
 
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
     {
         if (ca_patchFaceToFaceMap[ipatch] != NULL)
         {
@@ -1099,7 +1183,7 @@ int comFoam::deleteSurfaceData()
     }
 
     //  Delete faceToPoint connectivity arrays ^^    
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
     {
         int ntypes = *ca_patchFaceToPointConn_types[ipatch];
         for(int itype=0; itype<ntypes; itype++)
@@ -1168,7 +1252,7 @@ int comFoam::deleteSurfaceData()
     //-------------------------------------------
 
     // Delete pointToPoint mapping arrays ^^^^^^^
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    for(int ipatch=0; ipatch<nPatches; ipatch++)
     {
         if (ca_patchPointToPointMap[ipatch]!= NULL)
         {

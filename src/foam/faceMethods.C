@@ -181,32 +181,33 @@ int comFoam::registerFaceData(const char *name)
     std::string dataName = std::string("");
 
 
+    int paneID = Pstream::myProcNo()+1 + Pstream::nProcs();
+    // Use this paneID for face connectivity
+
     dataName = volName+std::string(".nFaces");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_nFaces);
-    Foam::Info << dataName << " registered." << endl;
+    COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
+    COM_set_size(     dataName, paneID, 1);
+    COM_set_array(    dataName, paneID, ca_nFaces);
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     dataName = volName+std::string(".faceToPointConn_types");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_faceToPointConn_types);
-    Foam::Info << dataName << " registered." << endl;
+    COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
+    COM_set_size(     dataName, paneID, 1);
+    COM_set_array(    dataName, paneID, ca_faceToPointConn_types);
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     int ntypes = *ca_faceToPointConn_types;
     dataName = volName+std::string(".faceToPointConn_map");
-    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
-    COM_set_size( dataName, 0, ntypes);
-    COM_set_array(dataName, 0, ca_faceToPointConn_map);
-    Foam::Info << dataName << " registered." << endl;
+    COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
+    COM_set_size( dataName, paneID, ntypes);
+    COM_set_array(dataName, paneID, ca_faceToPointConn_map);
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     dataName = volName+std::string(".faceToPointConn_size");
-    COM_new_dataitem(dataName, 'w', COM_INT, 1, "");
-    COM_set_size( dataName, 0, ntypes);
-    COM_set_array(dataName, 0, ca_faceToPointConn_size);
-    Foam::Info << dataName << " registered." << endl;
-
-    int paneID = 2; // Use this paneID for face connectivity
+    COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
+    COM_set_size( dataName, paneID, ntypes);
+    COM_set_array(dataName, paneID, ca_faceToPointConn_size);
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     // Connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for(int itype=0; itype<ntypes; itype++)
@@ -238,25 +239,25 @@ int comFoam::registerFaceData(const char *name)
                        ca_faceToPointConn[itype],
                        typeID
                      );
-        Foam::Info << dataName << " registered." << endl;
+        Info << "  " << dataName.c_str() << " registered." << endl;
     }
     
     dataName = volName+std::string(".faceToFaceMap");
     COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceToFaceMap, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << "  " << dataName.c_str() << " registered." << endl;
     // ------------------------------------------    
 
     // Field variables
     dataName = volName+std::string(".owner");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceOwner, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     dataName = volName+std::string(".neighbor");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceNeighb, 1);
-    Foam::Info << dataName << " registered." << endl;
+    Info << "  " << dataName.c_str() << " registered." << endl;
 
     COM_window_init_done(volName);
 
@@ -265,17 +266,16 @@ int comFoam::registerFaceData(const char *name)
 
 int comFoam::reconstCaFaceData(const char *name)
 {
-
     std::string volName = name+std::string("VOL");
-/*    Info << "rocFoam.main: Retreiving face data form window "*/
+/*    std::cout << "rocFoam.main: Retreiving face data form window "*/
 /*         << volName << "."*/
-/*         << endl;*/
+/*         << std::endl;*/
 
     std::string regNames;
     int numDataItems=0;
     
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-    //Info << "  numDataItems = " << numDataItems << endl;
+    //std::cout << "  numDataItems = " << numDataItems << std::endl;
 
     std::vector<std::string> dataItemNames;
     dataItemNames.clear();
@@ -285,47 +285,55 @@ int comFoam::reconstCaFaceData(const char *name)
         std::string nameTmp;
         Istr >> nameTmp;
         dataItemNames.push_back(nameTmp);
-        //Info << "  DataItem[" << i << "] = " << nameTmp << endl;
+        //std::cout << "  DataItem[" << i << "] = " << nameTmp << std::endl;
     }
-    Info << endl;
+    std::cout << std::endl;
 
     
+    //  List of panes in this window ^^^^^^^^^^^^
+    int paneID = Pstream::myProcNo()+1 + Pstream::nProcs();
+    // Use this paneID for face connectivity
+
+    std::cout << "  procID = " << Pstream::myProcNo()
+         << ", paneID = " << paneID
+         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
     // Face data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("nFaces");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_nFaces);
-    Info << "  " << dataName.c_str() << " = " << *ca_nFaces << endl;
+    COM_get_array(regName.c_str(), paneID, &ca_nFaces);
+    std::cout << "  " << dataName.c_str() << " = " << *ca_nFaces << std::endl;
 
     dataName = std::string("faceToPointConn_types");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_types);
-    Info << "  " << dataName.c_str() << " = " << *ca_faceToPointConn_types << endl;
+    COM_get_array(regName.c_str(), paneID, &ca_faceToPointConn_types);
+    std::cout << "  " << dataName.c_str() << " = " << *ca_faceToPointConn_types << std::endl;
 
     dataName = std::string("faceToPointConn_map");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     int nComp;
 
-    COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_map);
-    COM_get_size(regName.c_str(), 0, &nComp);
+    COM_get_array(regName.c_str(), paneID, &ca_faceToPointConn_map);
+    COM_get_size(regName.c_str(), paneID, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-             << ca_faceToPointConn_map[icomp] << endl;
+        std::cout << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_faceToPointConn_map[icomp] << std::endl;
     }
 
     dataName = std::string("faceToPointConn_size");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
 
-    COM_get_array(regName.c_str(), 0, &ca_faceToPointConn_size);
-    COM_get_size(regName.c_str(), 0, &nComp);
+    COM_get_array(regName.c_str(), paneID, &ca_faceToPointConn_size);
+    COM_get_size(regName.c_str(), paneID, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-             << ca_faceToPointConn_size[icomp] << endl;
+        std::cout << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_faceToPointConn_size[icomp] << std::endl;
     }
     //-------------------------------------------
 
@@ -333,13 +341,6 @@ int comFoam::reconstCaFaceData(const char *name)
     ca_faceToPointConn = new int*[*ca_faceToPointConn_types];
     //-------------------------------------------
     
-    //  List of panes in this window ^^^^^^^^^^^^
-    int ipane = 1;
-    int paneID = 2;
-
-    Info << "  Pane[" << ipane << "], paneID = " << paneID
-         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
-
     // connectivity stuff ^^^^^^^^^^^^^^^^^^^^^^^
     int nConn;
     int numElem;
@@ -357,17 +358,17 @@ int comFoam::reconstCaFaceData(const char *name)
         COM_get_array(dataName.c_str(), paneID, &ca_faceToPointConn[icon], &nComp);
         COM_get_size(dataName.c_str(), paneID, &numElem);
 
-        Info << "    Connectivity[" << icon << "] = " << connName
+        std::cout << "    Connectivity[" << icon << "] = " << connName
              << ", elements = " << numElem
-             << ", components =" << nComp << endl;
+             << ", components =" << nComp << std::endl;
 /*        for(int icell=0; icell<numCells; icell++)*/
 /*        {*/
-/*            Info << "Cell " << icell << " velocity = ";*/
+/*            std::cout << "Cell " << icell << " velocity = ";*/
 /*            for(int icomp=0; icomp<nComp; icomp++)*/
 /*            {*/
-/*                Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*            }*/
-/*            Info << endl;*/
+/*            std::cout << std::endl;*/
 /*        }*/
     }
     //---------------------------------------
@@ -379,16 +380,16 @@ int comFoam::reconstCaFaceData(const char *name)
     
     COM_get_array(regName.c_str(), paneID, &ca_faceToFaceMap, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    Info << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << endl;
+    std::cout << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << std::endl;
 /*    for(int icell=0; icell<numCells; icell++)*/
 /*    {*/
-/*        Info << "Cell " << icell << " velocity = ";*/
+/*        std::cout << "Cell " << icell << " velocity = ";*/
 /*        for(int icomp=0; icomp<nComp; icomp++)*/
 /*        {*/
-/*            Info << *(cellVel+icell*nComp+icomp) << " ";*/
+/*            std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
 /*        }*/
-/*        Info << endl;*/
+/*        std::cout << std::endl;*/
 /*    }*/
 
     dataName = std::string("owner");
@@ -397,16 +398,16 @@ int comFoam::reconstCaFaceData(const char *name)
 
     COM_get_array(regName.c_str(), paneID, &ca_faceOwner, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    Info << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << endl;
+    std::cout << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << std::endl;
 /*    for(int iface=0; iface<numElem; iface++)*/
 /*    {*/
-/*        Info << "Face " << iface << " owner = ";*/
+/*        std::cout << "Face " << iface << " owner = ";*/
 /*        for(int icomp=0; icomp<nComp; icomp++)*/
 /*        {*/
-/*            Info << *(Owner+iface*nComp+icomp) << " ";*/
+/*            std::cout << *(Owner+iface*nComp+icomp) << " ";*/
 /*        }*/
-/*        Info << endl;*/
+/*        std::cout << std::endl;*/
 /*    }*/
 
     dataName = std::string("neighbor");
@@ -415,23 +416,23 @@ int comFoam::reconstCaFaceData(const char *name)
 
     COM_get_array(regName.c_str(), paneID, &ca_faceNeighb, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    Info << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << endl;
+    std::cout << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << std::endl;
 /*    for(int iface=0; iface<numElem; iface++)*/
 /*    {*/
-/*        Info << "Face " << iface << " neighb = ";*/
+/*        std::cout << "Face " << iface << " neighb = ";*/
 /*        for(int icomp=0; icomp<nComp; icomp++)*/
 /*        {*/
-/*            Info << *(ca_faceNeighb+iface*nComp+icomp) << " ";*/
+/*            std::cout << *(ca_faceNeighb+iface*nComp+icomp) << " ";*/
 /*        }*/
-/*        Info << endl;*/
+/*        std::cout << std::endl;*/
 /*    }*/
 
-    Info << "  --------------------------------------------------"
-         << endl;
+    std::cout << "  --------------------------------------------------"
+         << std::endl;
 
-    Info << "----------------------------------------------------"
-         << endl;
+    std::cout << "----------------------------------------------------"
+         << std::endl;
 
     return 0;
 }

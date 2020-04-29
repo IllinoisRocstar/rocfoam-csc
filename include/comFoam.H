@@ -24,8 +24,13 @@ protected:
 private:
     const int cellToPointTypeSize=8;
     const int faceToPointTypeSize=4;
+    const int panePadding = 100;
+    const int IODigits = 16;
+    
+    const std::string tmpFluidDir = "./fluidTmp";
 
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+protected:
     int createVolumeConnectivities();
     int createVolumeData();
     int deleteVolumeData();
@@ -47,6 +52,7 @@ private:
     int registerSurfaceData(const char *name);
     int reconstCaSurfaceData(const char *name);
 
+private:
     // tempFiles-specific
     int readInitFiles(const std::string& rootAddr);
     int createInitFiles(const std::string& rootAddr);
@@ -65,6 +71,11 @@ private:
         const std::string& rootAddr,
         const std::vector<fileContainer>& vecFile
     );
+    int createConnectivityFiles
+    (
+        const std::string& rootAddr,
+        const std::vector<fileContainer>& vecFile
+    );
     int createUniformTimeFile(const std::string& rootAddr);
     int createPointsFile(const std::string& rootAddr);
     int createOwnerFile(const std::string& rootAddr);
@@ -74,7 +85,13 @@ private:
     int deleteFilesData();
     int registerInitFiles(const char *name);
     int reconstCaInitFiles(const char *name, const std::string& rootAddr);
-    
+
+    bool fileShouldBeRead
+    (
+        const std::string& locaParAddr,
+        const std::string& localAddr,
+        const std::string& fileName
+    );
     
     int readRecursive(const std::string& rootAddr,
                       std::string fullAddr,

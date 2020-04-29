@@ -77,7 +77,7 @@ protected:
     virtual int step() { return 0; };
     virtual int finalize();
     //--------------------------------------
-    
+
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
     virtual int createFields() { return 0; };
     virtual int setRDeltaT() { return 0; };

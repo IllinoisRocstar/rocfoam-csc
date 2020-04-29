@@ -718,6 +718,10 @@ int rhoCentral::step()
                   << std::endl;
     }
     std::strcpy(ca_timeName, timeNameStr.c_str());
+    
+    updateVolumeData();
+    updateFaceData();
+    updateSurfaceData();
     //-------------------------------------------
 
     stepStat = 0;

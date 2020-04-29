@@ -54,9 +54,13 @@ int main(int argc, char *argv[])
     
     std::string lookUpWindow1 = winNames[1]+string("VOL");
     comGetRunStatItems(lookUpWindow1.c_str());
-
     comDrvStep(winNames[1].c_str());
+
     //comDrvFin(winNames[0].c_str());
+
+    comfoam_unload_module(winNames[0].c_str(), solverType);
+    comfoam_unload_module(winNames[1].c_str(), solverType);
+
 
     return 0;
 }
@@ -211,14 +215,12 @@ int comDrvInit(int argc, char *argv[])
     lookUpWindow2 = winNames[1]+string("SURF");
     comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
 
-    lookUpWindow2 = winNames[1]+string("VOL");
+    //lookUpWindow2 = winNames[1]+string("VOL");
     //comGetVolDataItems(lookUpWindow2.c_str());
-    lookUpWindow2 = winNames[1]+string("SURF");
-    comGetVolDataItems(lookUpWindow2.c_str());
+    //lookUpWindow2 = winNames[1]+string("SURF");
+    //comGetVolDataItems(lookUpWindow2.c_str());
 
-
-    comfoam_unload_module(winNames[0].c_str(), solverType);
-
+    //comfoam_unload_module(winNames[0].c_str(), solverType);
 
     COM_call_function(flowReconstCaDataHandle[1],
                       &myArgc, &myArgv,
