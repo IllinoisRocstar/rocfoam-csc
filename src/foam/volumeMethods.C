@@ -9,25 +9,17 @@ int comFoam::createVolumeConnectivities()
 
     ca_nPoints = new int(mesh.nPoints());
     ca_nCells  = new int(mesh.nCells());
-    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
-    std::vector<int> vecTmpInt;
 
-    std::vector< std::vector<int> > vecCellToCellMap;
+    // Temporary STLs ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::map<int, std::vector<int> > mapCellToCellMap;
     //-------------------------------------------
 
     // cellToPoint connectivities ^^^^^^^^^^^^^^^
-    vecCellToCellMap.clear();
-    vecCellToCellMap.resize(cellToPointTypeSize);
-    for (int i=0; i<cellToPointTypeSize; i++)
-    {
-        vecCellToCellMap[i].clear();
-    }
-
     forAll(cellPoints, icell)
     {
         const labelList& pointsList = cellPoints[icell];
         int nPointsInCell = pointsList.size();
-        vecCellToCellMap[nPointsInCell-1].push_back(icell);
+        mapCellToCellMap[nPointsInCell].push_back(icell);
     }
     //-------------------------------------------
 
@@ -35,21 +27,15 @@ int comFoam::createVolumeConnectivities()
     ca_cellToCellMap = new int[*ca_nCells];
 
     int sortedCellIndex = 0;
-    int typeCount = 0;
-    int totalnCellTypes = vecCellToCellMap.size();
-    for(int itype=0; itype<totalnCellTypes; itype++)
+    for(auto it=mapCellToCellMap.begin(); it!=mapCellToCellMap.end(); it++)
     {
-        int nCells = vecCellToCellMap[itype].size();
-        if (nCells > 0)
-        {
-            for(int icell=0; icell<nCells; icell++)
-            {
-                ca_cellToCellMap[sortedCellIndex] =
-                    vecCellToCellMap[itype][icell];
+        const auto& vecCells = it->second;
+        int nCells = vecCells.size();
 
-                sortedCellIndex++;
-            }
-            typeCount++;
+        for(int icell=0; icell<nCells; icell++)
+        {
+            ca_cellToCellMap[sortedCellIndex] = vecCells[icell];
+            sortedCellIndex++;
         }
     }
     //-------------------------------------------
@@ -62,41 +48,39 @@ int comFoam::createVolumeConnectivities()
     }
 
     // cetToPoint Connectivity ^^^^^^^^^^^^^^^^^^
-    ca_cellToPointConn_types = new int(typeCount);
-    ca_cellToPointConn_map   = new int[typeCount];
-    ca_cellToPointConn_size  = new int[typeCount];
-    ca_cellToPointConn = new int*[typeCount];
+    int nTypes = mapCellToCellMap.size();
+    ca_cellToPointConn_types = new int(nTypes);
+    ca_cellToPointConn_map   = new int[nTypes];
+    ca_cellToPointConn_size  = new int[nTypes];
+    ca_cellToPointConn = new int*[nTypes];
 
-    typeCount = 0;
     sortedCellIndex = 0;
-    for(int itype=0; itype<totalnCellTypes; itype++)
+    for(auto it=mapCellToCellMap.begin(); it!=mapCellToCellMap.end(); it++)
     {
-        int nCells = vecCellToCellMap[itype].size();
-        if (nCells > 0)
+        const auto& nPoints = it->first;
+        const auto& vecCells = it->second;
+        int nCells = vecCells.size();
+        int itype = std::distance(mapCellToCellMap.begin(), it);
+
+        ca_cellToPointConn_map[itype] = nPoints;
+        ca_cellToPointConn_size[itype] = nCells;
+
+        int nTypeConn = nCells * nPoints;
+        ca_cellToPointConn[itype] = new int[nTypeConn];
+
+        for (int icell=0; icell<nCells; icell++)
         {
-            int nPoints = itype+1;
-            ca_cellToPointConn_map[typeCount] = nPoints;
-            ca_cellToPointConn_size[typeCount] = nCells;
+            int cellID = ca_cellToCellMap[sortedCellIndex];
+            const cellShape& cellShape_ = cellShapes[cellID];
 
-            int nTypeConn = nCells * nPoints;
-            ca_cellToPointConn[typeCount] = new int[nTypeConn];
-
-            for (int icell=0; icell<nCells; icell++)
+            for (int ipoint=0; ipoint<nPoints; ipoint++)
             {
-                int cellID = ca_cellToCellMap[sortedCellIndex];
-                const cellShape& cellShape_ = cellShapes[cellID];
+                int index = icell*nPoints + ipoint;
 
-                for (int ipoint=0; ipoint<nPoints; ipoint++)
-                {
-                    int index = icell*nPoints + ipoint;
-
-                    ca_cellToPointConn[typeCount][index] = cellShape_[ipoint];
-                }
-                sortedCellIndex++;
+                ca_cellToPointConn[itype][index] = cellShape_[ipoint];
             }
-            typeCount++;
+            sortedCellIndex++;
         }
-
     }
     //-------------------------------------------
 

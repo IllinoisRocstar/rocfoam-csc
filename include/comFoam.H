@@ -22,7 +22,7 @@ protected:
     const int nComponents = 3;
     const int genCharSize = 15;
 private:
-    const int cellToPointTypeSize=8;
+    //const int cellToPointTypeSize=8;
     const int faceToPointTypeSize=4;
     const int panePadding = 100;
     const int IODigits = 16;

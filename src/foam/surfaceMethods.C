@@ -94,14 +94,21 @@ int comFoam::createSurfaceConnectivities()
     std::vector<int> vecTmpInt;
 
     // Patch Connectivity Vectors ^^^^^^^^^^^^^^
-    std::vector< std::vector< std::vector<int> >> vecPatchFaceToFaceMap;
+    //std::vector< std::vector< std::vector<int> >> vecPatchFaceToFaceMap;
+    //std::vector< std::vector<int> >  vecPatchPointToPointMap;
+    //std::vector< std::vector< std::vector< std::vector<int> >>>
+    //    vecPatchFaceToPointConn;
+
+
+    std::vector< std::map<int, std::vector<int> >> vecPatchFaceToFaceMap;
     std::vector< std::vector<int> >  vecPatchPointToPointMap;
-    std::vector< std::vector< std::vector< std::vector<int> >>>
+    std::vector< std::map<int, std::vector< std::vector<int>>>>
         vecPatchFaceToPointConn;
     //-------------------------------------------
 
     // FaceToFace mapping vector ^^^^^^^^^^^^^^^^
-    vecPatchFaceToFaceMap.clear();
+    
+    /*vecPatchFaceToFaceMap.clear();
     vecPatchFaceToFaceMap.resize(nPatches);
     forAll(patches, ipatch)
     {
@@ -110,24 +117,26 @@ int comFoam::createSurfaceConnectivities()
         {
             vecPatchFaceToFaceMap[ipatch][itype].clear();
         }
-    }
+    }*/
 
+    vecPatchFaceToFaceMap.clear();
     forAll(patches, ipatch)
     {
         const polyPatch& patch = patches[ipatch];
-
         const label& patchStart = patch.start();
         const int& patchSize = patch.size();
 
+        std::map<int, std::vector<int>> mapTmpInt;
         for(int iface=0; iface<patchSize; iface++)
         {
             const label& faceID = patchStart + iface;
             const labelList& pointsList = faces[faceID];
                         
             int nPointsInFace = pointsList.size();
-            vecPatchFaceToFaceMap[ipatch][nPointsInFace-1]
-                .push_back(iface);
+
+            mapTmpInt[nPointsInFace].push_back(iface);
         }
+        vecPatchFaceToFaceMap.push_back(mapTmpInt);
     }
     //-------------------------------------------
 
@@ -149,13 +158,12 @@ int comFoam::createSurfaceConnectivities()
             forAll(pointsList, ipoint)
             {
                 const int& pointID = pointsList[ipoint];
-
-                std::vector<int>::iterator index = std::find
-                                  (
-                                    vecTmpInt.begin(),
-                                    vecTmpInt.end(),
-                                    pointID
-                                  );
+                auto index = std::find
+                             (
+                                vecTmpInt.begin(),
+                                vecTmpInt.end(),
+                                pointID
+                             );
                 if (index == vecTmpInt.end())
                 {
                     vecTmpInt.push_back(pointID);
@@ -167,6 +175,7 @@ int comFoam::createSurfaceConnectivities()
 
     // FaceToPoint connectivity vectors ^^^^^^^^^
     vecPatchFaceToPointConn.clear();
+    /*
     vecPatchFaceToPointConn.resize(nPatches);
     for (int ipatch=0; ipatch<nPatches; ipatch++)
     {
@@ -176,14 +185,15 @@ int comFoam::createSurfaceConnectivities()
             vecPatchFaceToPointConn[ipatch][itype].clear();
         }
     }
+    */
 
     forAll(patches, ipatch)
     {
         const polyPatch& patch = patches[ipatch];
-
         const label& patchStart = patch.start();
         const int& patchSize = patch.size();
 
+        std::map<int, std::vector< std::vector<int>>> mapVecTmpInt;
         for(int iface=0; iface<patchSize; iface++)
         {
             const label& faceID = patchStart + iface;
@@ -196,13 +206,14 @@ int comFoam::createSurfaceConnectivities()
             {
                 const int& pointID = pointsList[ipoint];
                 
-                std::vector<int>::iterator indexPtr = std::find
-                                  (
-                                    vecPatchPointToPointMap[ipatch].begin(),
-                                    vecPatchPointToPointMap[ipatch].end(),
+                const auto& pointToPointMap = vecPatchPointToPointMap[ipatch];
+                auto indexPtr = std::find
+                                (
+                                    pointToPointMap.begin(),
+                                    pointToPointMap.end(),
                                     pointID
-                                  );
-                if (indexPtr == vecPatchPointToPointMap[ipatch].end())
+                                );
+                if (indexPtr == pointToPointMap.end())
                 {
                     Foam::Info << "-------------Warnning-------------" << endl
                                << "Found an unregistered point: "
@@ -215,14 +226,15 @@ int comFoam::createSurfaceConnectivities()
 
                 int indexVal = std::distance
                                 (
-                                    vecPatchPointToPointMap[ipatch].begin(),
+                                    pointToPointMap.begin(),
                                     indexPtr
                                 );
 
                 vecTmpInt.push_back(indexVal);
             }
-            vecPatchFaceToPointConn[ipatch][nPointsInFace-1].push_back(vecTmpInt);
+            mapVecTmpInt[nPointsInFace].push_back(vecTmpInt);
         }
+        vecPatchFaceToPointConn.push_back(mapVecTmpInt);
     }
     //-------------------------------------------
     
@@ -239,57 +251,53 @@ int comFoam::createSurfaceConnectivities()
         int nfacesTotal = *ca_patchSize[ipatch];
         ca_patchFaceToFaceMap[ipatch] = new int[nfacesTotal];
 
-        int typeCount = 0;
+        const auto& mapFaceToFaceMap = vecPatchFaceToFaceMap[ipatch];
+
         int sortedFaceIndex = 0;
-        int ntypesTotal = vecPatchFaceToFaceMap[ipatch].size();
-        for (int itype=0; itype<ntypesTotal; itype++)
+        for (auto it : mapFaceToFaceMap)
         {
-            int nfaces = vecPatchFaceToFaceMap[ipatch][itype].size();
-            if (nfaces>0)
+            const auto& vecFaceToFaceMap = it.second;
+            int nfaces = vecFaceToFaceMap.size();
+            for(int iface=0; iface<nfaces; iface++)
             {
-                for(int iface=0; iface<nfaces; iface++)
-                {
-                    ca_patchFaceToFaceMap[ipatch][sortedFaceIndex] =
-                        vecPatchFaceToFaceMap[ipatch][itype][iface];
-                    
-                    sortedFaceIndex++;
-                }
-                typeCount++;
+                ca_patchFaceToFaceMap[ipatch][sortedFaceIndex] =
+                    vecFaceToFaceMap[iface];
+                
+                sortedFaceIndex++;
             }
         }
         //-------------------------------------------
 
         //  Create faceToPoint connectivity arrays ^^    
-        ca_patchFaceToPointConn_types[ipatch] = new int(typeCount);
-        ca_patchFaceToPointConn_map[ipatch]   = new int[typeCount];
-        ca_patchFaceToPointConn_size[ipatch]  = new int[typeCount];
-        ca_patchFaceToPointConn[ipatch] = new int*[typeCount];
+        int ntypes = mapFaceToFaceMap.size();
+        ca_patchFaceToPointConn_types[ipatch] = new int(ntypes);
+        ca_patchFaceToPointConn_map[ipatch]   = new int[ntypes];
+        ca_patchFaceToPointConn_size[ipatch]  = new int[ntypes];
+        ca_patchFaceToPointConn[ipatch] = new int*[ntypes];
 
-        typeCount = 0;
-        for (int itype=0; itype<ntypesTotal; itype++)
+        auto mapFaceToPointConn = vecPatchFaceToPointConn[ipatch];
+        for (auto it=mapFaceToPointConn.begin(); it!=mapFaceToPointConn.end(); it++)
         {
-            int nfaces = vecPatchFaceToPointConn[ipatch][itype].size();
-            if (nfaces>0)
-            {
-                int npoints = itype+1;
-                ca_patchFaceToPointConn_map[ipatch][typeCount]  = npoints;
-                ca_patchFaceToPointConn_size[ipatch][typeCount] = nfaces;
-        
-                int nTypeConn = npoints * nfaces;
-                ca_patchFaceToPointConn[ipatch][typeCount] = new int[nTypeConn];
-                
-                for(int iface=0; iface<nfaces; iface++)
-                {
-                    for(int ipoint=0; ipoint<npoints; ipoint++)
-                    {
-                        int index = ipoint+iface*npoints;
-                        
-                        ca_patchFaceToPointConn[ipatch][typeCount][index] =
-                            vecPatchFaceToPointConn[ipatch][itype][iface][ipoint];
-                    }
-                }
+            const auto& npoints = it->first;
+            const auto& vecFaceToPointConn = it->second;
+            int nfaces = vecFaceToPointConn.size();
+            int itype = std::distance(mapFaceToPointConn.begin(), it);
 
-                typeCount++;
+            ca_patchFaceToPointConn_map[ipatch][itype]  = npoints;
+            ca_patchFaceToPointConn_size[ipatch][itype] = nfaces;
+    
+            int nTypeConn = npoints * nfaces;
+            ca_patchFaceToPointConn[ipatch][itype] = new int[nTypeConn];
+            
+            for(int iface=0; iface<nfaces; iface++)
+            {
+                for(int ipoint=0; ipoint<npoints; ipoint++)
+                {
+                    int index = ipoint+iface*npoints;
+                    
+                    ca_patchFaceToPointConn[ipatch][itype][index] =
+                        vecFaceToPointConn[iface][ipoint];
+                }
             }
         }
         //-------------------------------------------

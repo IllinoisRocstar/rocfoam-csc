@@ -7,40 +7,25 @@ int comFoam::createFaceConnectivities()
     const faceList& faces = mesh.faces();
     //-------------------------------------------
 
-    // Temporary Vectors ^^^^^^^^^^^^^^^^^^^^^^^^
+    // Temporary STLs ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::vector<int> vecTmpInt;
-    std::vector< std::vector<int> > vecFaceToFaceMap;
-    std::vector< std::vector< std::vector<int> >> vecFaceToPointConn;
+    std::map<int, std::vector<int>> mapFaceToFaceMap;
+    std::map<int, std::vector< std::vector<int> >> mapFaceToPointConn;
     //-------------------------------------------
 
     ca_nFaces = new int(mesh.nFaces());
 
     // Face-mapping vectors ^^^^^^^^^^^^^^^^^^^^^
-    vecFaceToFaceMap.clear();
-    vecFaceToFaceMap.resize(faceToPointTypeSize);
-    for (int itype=0; itype<faceToPointTypeSize; itype++)
-    {
-        vecFaceToFaceMap[itype].clear();
-    }
-
     forAll(faces, iface)
     {
         const labelList& pointsList = faces[iface];
-                    
         int nPointsInFace = pointsList.size();
-        vecFaceToFaceMap[nPointsInFace-1]
-            .push_back(iface);
+        
+        mapFaceToFaceMap[nPointsInFace].push_back(iface);
     }
     //-------------------------------------------
 
     // FaceToPoint connectivity vectors ^^^^^^^^^
-    vecFaceToPointConn.clear();
-    vecFaceToPointConn.resize(faceToPointTypeSize);
-    for (int itype=0; itype<faceToPointTypeSize; itype++)
-    {
-        vecFaceToPointConn[itype].clear();
-    }
-
     forAll(faces, iface)
     {
         const labelList& pointsList = faces[iface];
@@ -50,10 +35,9 @@ int comFoam::createFaceConnectivities()
         forAll(pointsList, ipoint)
         {
             const int& pointID = pointsList[ipoint];
-
             vecTmpInt.push_back(pointID);
         }
-        vecFaceToPointConn[nPointsInFace-1].push_back(vecTmpInt);
+        mapFaceToPointConn[nPointsInFace].push_back(vecTmpInt);
     }
     //-------------------------------------------
 
@@ -61,56 +45,47 @@ int comFoam::createFaceConnectivities()
     ca_faceToFaceMap = new int[*ca_nFaces];
     
     int sortedFaceIndex = 0;
-    int typeCount = 0;
-    int totalnFaceTypes = vecFaceToFaceMap.size();
-    for (int itype=0; itype<totalnFaceTypes; itype++)
+    for (auto it=mapFaceToFaceMap.begin(); it!=mapFaceToFaceMap.end(); it++)
     {
-        int nfaces = vecFaceToFaceMap[itype].size();
-        if (nfaces>0)
+        const auto& vecFaces = it->second;
+        int nfaces = vecFaces.size();
+        for(int iface=0; iface<nfaces; iface++)
         {
-            for(int iface=0; iface<nfaces; iface++)
-            {
-                ca_faceToFaceMap[sortedFaceIndex] =
-                    vecFaceToFaceMap[itype][iface];
-
-                sortedFaceIndex++;
-            }
-            typeCount++;
+            ca_faceToFaceMap[sortedFaceIndex] = vecFaces[iface];
+            sortedFaceIndex++;
         }
     }
     //-------------------------------------------
 
     //  Create faceToPoint connectivity arrays ^^    
-    ca_faceToPointConn_types = new int(typeCount);
-    ca_faceToPointConn_map   = new int[typeCount];
-    ca_faceToPointConn_size  = new int[typeCount];
-    ca_faceToPointConn = new int*[typeCount];
+    int nTypes = mapFaceToFaceMap.size();
+    ca_faceToPointConn_types = new int(nTypes);
+    ca_faceToPointConn_map   = new int[nTypes];
+    ca_faceToPointConn_size  = new int[nTypes];
+    ca_faceToPointConn = new int*[nTypes];
 
-    typeCount = 0;
-    for (int itype=0; itype<totalnFaceTypes; itype++)
+    for (auto it=mapFaceToPointConn.begin(); it!=mapFaceToPointConn.end(); it++)
     {
-        int nfaces = vecFaceToPointConn[itype].size();
-        if (nfaces>0)
-        {
-            int npoints = itype+1;
-            ca_faceToPointConn_map[typeCount]  = npoints;
-            ca_faceToPointConn_size[typeCount] = nfaces;
-    
-            int nTypeConn = npoints * nfaces;
-            ca_faceToPointConn[typeCount] = new int[nTypeConn];
-            
-            for(int iface=0; iface<nfaces; iface++)
-            {
-                for(int ipoint=0; ipoint<npoints; ipoint++)
-                {
-                    int index = ipoint+iface*npoints;
-                    
-                    ca_faceToPointConn[typeCount][index] =
-                        vecFaceToPointConn[itype][iface][ipoint];
-                }
-            }
+        const auto& nPoints = it->first;
+        const auto& vecFaceToPointConn = it->second;
+        int nFaces = vecFaceToPointConn.size();
+        int itype = std::distance(mapFaceToPointConn.begin(), it);
 
-            typeCount++;
+        ca_faceToPointConn_map[itype]  = nPoints;
+        ca_faceToPointConn_size[itype] = nFaces;
+
+        int nTypeConn = nPoints * nFaces;
+        ca_faceToPointConn[itype] = new int[nTypeConn];
+        
+        for(int iface=0; iface<nFaces; iface++)
+        {
+            for(int ipoint=0; ipoint<nPoints; ipoint++)
+            {
+                int index = ipoint+iface*nPoints;
+                
+                ca_faceToPointConn[itype][index] =
+                    vecFaceToPointConn[iface][ipoint];
+            }
         }
     }
     //-------------------------------------------
