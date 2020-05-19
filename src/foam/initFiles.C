@@ -114,36 +114,55 @@ int comFoam::createFieldFiles
             )
 {
     namespace BF = boost::filesystem;
-    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    
+    int nTotal=*ca_nFiles;
+    if (ca_Rho != NULL) nTotal++;
+    if (ca_Phi != NULL) nTotal++;
+    
+    for(int ifile=0; ifile<nTotal; ifile++)
     {
+        // rho: ifile == *ca_nFiles
+        // phi: ifile == *ca_nFiles+1
+    
         std::string locaParAddr = "";
         if (ca_nProc>1)
         {
             locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
         }
 
-        std::string fileName = vecFile[ifile].name;
-        std::string localDir = vecFile[ifile].path;
+        std::string fileName = "";
+        std::string localDir = "";
+        std::string content = "";
+        if (ifile<*ca_nFiles)
+        {
+            fileName = vecFile[ifile].name;
+            localDir = vecFile[ifile].path;
+            content = vecFile[ifile].content;
+        }
+        else if (ifile==*ca_nFiles)
+        {
+            fileName = "rho";
+            localDir = locaParAddr+"0";
+            content = createBaseScalar("rho");
+        }
+        else if (ifile==*ca_nFiles+1)
+        {
+            fileName = "phi";
+            localDir = locaParAddr+"0";
+            content = createBaseScalar("phi");
+        }
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
 
         //if (localDir=="0")
         if (localDir==locaParAddr+"0")
         {
-            // Modify the internalField
-            std::string content = vecFile[ifile].content;
-
             std::string locationStr = "location";
-            size_t locationStart = content.find(locationStr);
-            if (locationStart == std::string::npos)
-            {
-                std::cout << "Warning: Cannot find location in file "
-                         << fileName << std::endl;
-            }
-            else
+            size_t locationStart = findLoc(fullAddr, content, locationStr);
+            if (locationStart != std::string::npos)
             {
                 std::string scStr = ";";
-                size_t locationEnd = content.find(scStr, locationStart);
+                size_t locationEnd = findLoc(fullAddr, content, scStr, locationStart);
                 size_t length = locationEnd-locationStart;
                 content.erase(locationStart, length);
                 std::string newStr  = "location    \"";
@@ -152,16 +171,11 @@ int comFoam::createFieldFiles
                 content.insert(locationStart, newStr);
             }
 
-
+            // Modify the internalField
             std::string intFieldStr = "internalField";
-            size_t intFieldStart = content.find(intFieldStr);
-            if (intFieldStart == std::string::npos)
-            {
-                std::cout << "Warning: Cannot find internalField in file"
-                         << fullAddr << std::endl;
-            }
             std::string scStr = ";";
-            size_t intFieldEnd = content.find(scStr, intFieldStart);
+            size_t intFieldStart= findOnlyLoc(fullAddr, content, intFieldStr);
+            size_t intFieldEnd  = findLoc(fullAddr, content, scStr, intFieldStart);
             size_t length = intFieldEnd-intFieldStart;
             content.erase(intFieldStart, length);
             
@@ -172,27 +186,29 @@ int comFoam::createFieldFiles
                 int ncells = *ca_nCells;
                 newStr += std::to_string(ncells);
                 newStr += "\n(\n";
-                
+
                 for(int icell=0; icell<ncells; icell++)
                 {
+                    /*
                     int cellIndex = findGlobalIndex
                                     (
                                         ca_cellToCellMap,
                                         ncells,
                                         icell
                                     );
-
+                    */
+                    
+                    int cellIndex = ca_cellToCellMap_inverse[icell];
                     newStr += "(";
                     for(int jcomp=0; jcomp<nComponents; jcomp++)
                     {
                         int localComp = jcomp + cellIndex*nComponents;
                         
-                        std::ostringstream doubleToOs;                            
-                        //doubleToOs << std::fixed;
-                        doubleToOs << std::setprecision(IODigits);
+                        std::ostringstream doubleToOs;
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
                         doubleToOs << ca_Vel[localComp];
 
-                        newStr += doubleToOs.str();
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
                         if (jcomp<nComponents-1)
                             newStr += " ";
                     }
@@ -211,18 +227,21 @@ int comFoam::createFieldFiles
                 
                 for(int icell=0; icell<ncells; icell++)
                 {
+                    /*
                     int cellIndex = findGlobalIndex
                                     (
                                         ca_cellToCellMap,
                                         ncells,
                                         icell
                                     );
+                    */
+                    int cellIndex = ca_cellToCellMap_inverse[icell];
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(IODigits);
+                    doubleToOs << std::scientific << std::setprecision(IODigits);
                     doubleToOs << ca_P[cellIndex];
 
-                    newStr += doubleToOs.str();
+                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
                     newStr += "\n";
                 }
                 newStr += ")\n";
@@ -238,18 +257,21 @@ int comFoam::createFieldFiles
                 
                 for(int icell=0; icell<ncells; icell++)
                 {
+                    /*
                     int cellIndex = findGlobalIndex
                                     (
                                         ca_cellToCellMap,
                                         ncells,
                                         icell
                                     );
+                    */
+                    int cellIndex = ca_cellToCellMap_inverse[icell];
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(IODigits);
+                    doubleToOs << std::scientific << std::setprecision(IODigits);
                     doubleToOs << ca_T[cellIndex];
 
-                    newStr += doubleToOs.str();
+                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
                     newStr += "\n";
                 }
                 newStr += ")\n";
@@ -265,29 +287,63 @@ int comFoam::createFieldFiles
                 
                 for(int icell=0; icell<ncells; icell++)
                 {
+                    /*
                     int cellIndex = findGlobalIndex
                                     (
                                         ca_cellToCellMap,
                                         ncells,
                                         icell
                                     );
+                    */
+                    int cellIndex = ca_cellToCellMap_inverse[icell];
 
                     std::ostringstream doubleToOs;                            
-                    doubleToOs << std::setprecision(IODigits);
+                    doubleToOs << std::scientific << std::setprecision(IODigits);
                     doubleToOs << ca_Rho[cellIndex];
 
-                    newStr += doubleToOs.str();
+                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
                     newStr += "\n";
                 }
                 newStr += ")\n";
                 
                 content.insert(intFieldStart, newStr);
             }
+            else if (fileName == "phi")
+            {
+                newStr += "<scalar>\n";
+                int nfaces = *ca_patchStart[0];
+                newStr += std::to_string(nfaces);
+                newStr += "\n(\n";
+
+                for(int iface=0; iface<nfaces; iface++)
+                {
+                    /*
+                    int faceIndex = findGlobalIndex
+                                    (
+                                        ca_faceToFaceMap,
+                                        nfaces,
+                                        iface
+                                    );
+                    */
+                    int faceIndex = ca_faceToFaceMap_inverse[iface];
+
+                    std::ostringstream doubleToOs;                            
+                    doubleToOs << std::scientific << std::setprecision(IODigits);
+                    doubleToOs << ca_Phi[faceIndex];
+
+                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                    newStr += "\n";
+                }
+                newStr += ")\n";
+                
+                content.insert(intFieldStart, newStr);
+            }
+
             else
             {
                 std::cout << "========== WARNING ===============" << std::endl
                           << "Solution field for file " 
-                          << fileName << "is not found." << std::endl;
+                          << fileName << " is not found." << std::endl;
             }
             
             for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
@@ -299,163 +355,216 @@ int comFoam::createFieldFiles
                 }
                 
                 std::string patchName = patchNameStr[ipatch];
-
-                size_t patchStart = content.find(patchName);
-                if (patchStart == std::string::npos)
-                {
-                    std::cout << "Warning: patchName " << patchName
-                              << " was not found" << std::endl;
-                }
+                size_t patchStart = findOnlyLoc(fullAddr, content, patchName);
                 
-                // Assume only 1 patch of this name
+                std::string brckOpen = "{";
+                std::string brckClose = "}";
+                size_t brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
+                size_t brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
+                
                 std::string typeStr = "type";
                 scStr = ";";
-                size_t typeStart = content.find(typeStr, patchStart);
-                size_t typeEnd = content.find(scStr, typeStart);
+                size_t typeStart = findOnlyLoc(fullAddr, content, typeStr, brckStart, brckEnd);
+                size_t typeEnd   = findLoc(fullAddr, content, scStr, typeStart);
 
                 length = typeEnd-typeStart;
                 std::string subType = content.substr(typeStart, length);
                 std::stringstream iStr(subType);
 
-                std::string tmpStr;
-                while(iStr >> tmpStr)
+                std::string typeName;
+                while(iStr >> typeName)
                 {
                 }
-                if (tmpStr=="fixedValue"    ||
-                    tmpStr=="symmetryPlane" ||
-                    tmpStr=="slip"          ||
-                    tmpStr=="zeroGradient"  ||
-                    tmpStr=="empty"
+                if (typeName=="fixedValue"       ||
+                    typeName=="symmetryPlane"    ||
+                    typeName=="slip"             ||
+                    typeName=="noSlip"           ||
+                    typeName=="zeroGradient"     ||
+                    typeName=="totalTemperature" ||
+                    typeName=="totalPressure"    ||
+                    typeName=="empty"
                    ) continue;
-
                 
                 std::string valueStr = "value";
-                size_t valueStart = content.find(valueStr, typeStart);
-                if (valueStart != std::string::npos)
+                scStr = ";";
+                size_t valueStart = findOnlyLoc(fullAddr, content, valueStr, brckStart, brckEnd);
+                size_t valueEnd   = findLoc(fullAddr, content, scStr, valueStart);
+
+                length = valueEnd-valueStart;
+                content.erase(valueStart, length);
+
+                newStr.clear();
+                newStr = "value           nonuniform List";
+                if (fileName == "U")
                 {
-                    size_t valueEnd = content.find(scStr, valueStart);
+                    newStr += "<vector>\n";
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
 
-                    length = valueEnd-valueStart;
-                    content.erase(valueStart, length);
-
-                    newStr.clear();
-                    newStr = "value           nonuniform List";
-                    if (fileName == "U")
+                    for(int iface=0; iface<nfaces; iface++)
                     {
-                        newStr += "<vector>\n";
-                        newStr += std::to_string(nfaces);
-                        newStr += "\n(\n";
+                        /*
+                        int faceIndex = findGlobalIndex
+                                        (
+                                            ca_patchFaceToFaceMap[ipatch],
+                                            nfaces,
+                                            iface
+                                        );
+                        */
+                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
-                        for(int iface=0; iface<nfaces; iface++)
+                        newStr += "(";
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
                         {
-                            int faceIndex = findGlobalIndex
-                                            (
-                                                ca_patchFaceToFaceMap[ipatch],
-                                                nfaces,
-                                                iface
-                                            );
+                            int localComp = jcomp + faceIndex*nComponents;
+                            
+                            std::ostringstream doubleToOs;                            
+                            //doubleToOs << std::fixed;
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            double dblTmp=0;
 
-                            newStr += "(";
-                            for(int jcomp=0; jcomp<nComponents; jcomp++)
+                            dblTmp = ca_patchVel[ipatch][localComp];
+                            /*
+                            if (typeName == "flowRateOutletVelocity")
                             {
-                                int localComp = jcomp + faceIndex*nComponents;
-                                
-                                std::ostringstream doubleToOs;                            
-                                //doubleToOs << std::fixed;
-                                doubleToOs << std::setprecision(IODigits);
-                                doubleToOs << ca_patchVel[ipatch][localComp];
-
-                                newStr += doubleToOs.str();
-                                if (jcomp<nComponents-1)
-                                    newStr += " ";
+                                dblTmp = ca_patchVel[ipatch][localComp] *
+                                         ca_patchSf[ipatch][localComp] *
+                                         ca_patchRho[ipatch][localComp];
                             }
-                            newStr += ")\n";
+                            */
+                            
+                            doubleToOs << dblTmp;
+
+                            newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                            if (jcomp<nComponents-1)
+                                newStr += " ";
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "p")
-                    {
-                        newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
-                        newStr += std::to_string(nfaces);
-                        newStr += "\n(\n";
-
-                        for(int iface=0; iface<nfaces; iface++)
-                        {
-                            int faceIndex = findGlobalIndex
-                                            (
-                                                ca_patchFaceToFaceMap[ipatch],
-                                                nfaces,
-                                                iface
-                                            );
-
-                            std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(IODigits);
-                            doubleToOs << ca_patchP[ipatch][faceIndex];
-
-                            newStr += doubleToOs.str();
-                            newStr += "\n";
-                        }
-                        newStr += ")\n";
-                    }
-                    else if (fileName == "T")
-                    {
-                        newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
-                        newStr += std::to_string(nfaces);
-                        newStr += "\n(\n";
-
-                        for(int iface=0; iface<nfaces; iface++)
-                        {
-                            int faceIndex = findGlobalIndex
-                                            (
-                                                ca_patchFaceToFaceMap[ipatch],
-                                                nfaces,
-                                                iface
-                                            );
-
-                            std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(IODigits);
-                            doubleToOs << ca_patchT[ipatch][faceIndex];
-
-                            newStr += doubleToOs.str();
-                            newStr += "\n";
-                        }
-                        newStr += ")\n";
-                    }
-                    else if (fileName == "rho")
-                    {
-                        newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
-                        newStr += std::to_string(nfaces);
-                        newStr += "\n(\n";
-
-                        for(int iface=0; iface<nfaces; iface++)
-                        {
-                            int faceIndex = findGlobalIndex
-                                            (
-                                                ca_patchFaceToFaceMap[ipatch],
-                                                nfaces,
-                                                iface
-                                            );
-
-                            std::ostringstream doubleToOs;                            
-                            doubleToOs << std::setprecision(IODigits);
-                            doubleToOs << ca_patchRho[ipatch][faceIndex];
-
-                            newStr += doubleToOs.str();
-                            newStr += "\n";
-                        }
-                        newStr += ")\n";
-                    }
-                    else
-                    {
-                        std::cout << "========== WARNING ===============" << std::endl
-                                  << "Boundary field for file " 
-                                  << fileName << "is not found." << std::endl;
-                    }
-                    content.insert(valueStart, newStr);
+                    newStr += ")\n";
                 }
+                else if (fileName == "p")
+                {
+                    newStr += "<scalar>\n";
+                    int nfaces = *ca_patchSize[ipatch];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
+
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        /*
+                        int faceIndex = findGlobalIndex
+                                        (
+                                            ca_patchFaceToFaceMap[ipatch],
+                                            nfaces,
+                                            iface
+                                        );
+                        */
+                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_patchP[ipatch][faceIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                }
+                else if (fileName == "T")
+                {
+                    newStr += "<scalar>\n";
+                    int nfaces = *ca_patchSize[ipatch];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
+
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        /*
+                        int faceIndex = findGlobalIndex
+                                        (
+                                            ca_patchFaceToFaceMap[ipatch],
+                                            nfaces,
+                                            iface
+                                        );
+                        */
+                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_patchT[ipatch][faceIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                }
+                else if (fileName == "rho")
+                {
+                    newStr += "<scalar>\n";
+                    int nfaces = *ca_patchSize[ipatch];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
+
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        /*
+                        int faceIndex = findGlobalIndex
+                                        (
+                                            ca_patchFaceToFaceMap[ipatch],
+                                            nfaces,
+                                            iface
+                                        );
+                        */
+                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_patchRho[ipatch][faceIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                }
+                else if (fileName == "phi")
+                {
+                    newStr += "<scalar>\n";
+                    int nfaces = *ca_patchSize[ipatch];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
+
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        /*
+                        int faceIndex = findGlobalIndex
+                                        (
+                                            ca_patchFaceToFaceMap[ipatch],
+                                            nfaces,
+                                            iface
+                                        );
+                        */
+                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_patchPhi[ipatch][faceIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                }
+
+
+
+                else
+                {
+                    std::cout << "========== WARNING ===============" << std::endl
+                              << "Boundary field for file " 
+                              << fileName << " is not found." << std::endl;
+                }
+                content.insert(valueStart, newStr);
             }
 
             std::string newLocalDir = locaParAddr+std::string(ca_timeName);
@@ -491,9 +600,6 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
     std::string timeNameStr = std::string(ca_timeName);
     std::string localDir = timeNameStr+"/uniform";
 
-    std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(IODigits);
-
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -510,25 +616,28 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
     content += "    object      time;\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
 
+    std::ostringstream doubleToOs;
+    doubleToOs << std::scientific << std::setprecision(IODigits);
     doubleToOs.str("");
     doubleToOs.clear();
     doubleToOs << *ca_time;
-
     content += "value      "+doubleToOs.str()+";\n";
+    
     content += "name       \""+timeNameStr+"\";\n";
+    
     content += "index      "+std::to_string(*ca_timeIndex)+";\n";
 
     doubleToOs.str("");
     doubleToOs.clear();
     doubleToOs << *ca_deltaT;
 
-    content += "deltaT     "+doubleToOs.str()+";\n";
+    content += "deltaT     "+removeTrailZero(doubleToOs.str())+";\n";
 
     doubleToOs.str("");
     doubleToOs.clear();
     doubleToOs << *ca_deltaT0;
 
-    content += "deltaT0    "+doubleToOs.str()+";\n";
+    content += "deltaT0    "+removeTrailZero(doubleToOs.str())+";\n";
     content += "// ************************************************************************* //";
 
     localDir = locaParAddr+timeNameStr+"/uniform";
@@ -564,9 +673,6 @@ int comFoam::createPointsFile(const std::string& rootAddr)
     std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/points";
 
-    std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(IODigits);
-
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -595,12 +701,11 @@ int comFoam::createPointsFile(const std::string& rootAddr)
         {
             int localComp = jcomp + ipoint*nComponents;
             
-            std::ostringstream doubleToOs;                            
-            //doubleToOs << std::fixed;
-            doubleToOs << std::setprecision(IODigits);
+            std::ostringstream doubleToOs;
+            doubleToOs << std::scientific << std::setprecision(IODigits);
             doubleToOs << ca_Points[localComp];
 
-            content += doubleToOs.str();
+            content += removeTrailZero(doubleToOs.str());
             if (jcomp<nComponents-1)
                 content += " ";
         }
@@ -640,9 +745,6 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
     std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/owner";
 
-    std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(IODigits);
-
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -675,18 +777,17 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
+        /*
         int faceIndex = findGlobalIndex
                         (
                             ca_faceToFaceMap,
                             nfaces,
                             iface
                         );
+        */
+        int faceIndex = ca_faceToFaceMap_inverse[iface];
 
-        std::ostringstream doubleToOs;                            
-        doubleToOs << std::setprecision(IODigits);
-        doubleToOs << ca_faceOwner[faceIndex];
-
-        content += doubleToOs.str();
+        content += std::to_string(ca_faceOwner[faceIndex]);
         content += "\n";
     }
     content += ")\n\n\n";
@@ -723,9 +824,6 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
     std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/neighbour";
 
-    std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(IODigits);
-
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -758,18 +856,17 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
+        /*
         int faceIndex = findGlobalIndex
                         (
                             ca_faceToFaceMap,
                             nfaces,
                             iface
                         );
+        */
+        int faceIndex = ca_faceToFaceMap_inverse[iface];
 
-        std::ostringstream doubleToOs;                            
-        doubleToOs << std::setprecision(IODigits);
-        doubleToOs << ca_faceNeighb[faceIndex];
-
-        content += doubleToOs.str();
+        content += std::to_string(ca_faceNeighb[faceIndex]);
         content += "\n";
     }
     content += ")\n\n\n";
@@ -806,9 +903,6 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
     std::string fullAddr = fullDir+"/faces";
 
-    std::ostringstream doubleToOs;
-    doubleToOs << std::setprecision(IODigits);
-
     std::string
     content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -832,12 +926,15 @@ int comFoam::createFacesFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
+        /*
         int faceIndex = findGlobalIndex
                         (
                             ca_faceToFaceMap,
                             nfaces,
                             iface
                         );
+        */
+        int faceIndex = ca_faceToFaceMap_inverse[iface];
 
         int ntypes = *ca_faceToPointConn_types;
         int typeSelect = -1;
@@ -1010,12 +1107,6 @@ int comFoam::createBoundaryFile
                 }
             }
             
-            /*
-            std::string localDir = "constant/polyMesh";
-            std::string fullDir  = rootAddr+"/"+localDir;
-            std::string fullAddr = fullDir+"/faces";
-            */
-
             BF::path fullPath = fullDir;
             BF::create_directories(fullPath);
 
@@ -1079,6 +1170,89 @@ int comFoam::createConnectivityFiles
     return 0;
 }
 
+std::string comFoam::createBaseScalar(std::string name)
+{
+
+    if (name!="rho" && name!="phi")
+    {
+        std::cout << "Watning: Invalid scalar name \""
+                  << name << "\" sent to createBaseScalar"
+                  << std::endl;
+        exit(-1);
+    }
+
+    std::string content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+
+    if (name=="rho")
+    {
+        content += "    class       volScalarField;\n";
+    }
+    else if (name=="phi")
+    {
+        content += "    class       surfaceScalarField;\n";
+    }
+
+    content += "    location    \""+std::string("0")+"\";\n";
+    content += "    object      "+name+";\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\n";
+    if (name=="rho")
+    {
+        content += "dimensions      [1 -3 0 0 0 0 0];\n\n";
+    }
+    else if (name=="phi")
+    {
+        content += "dimensions      [1 0 -1 0 0 0 0];\n\n";
+    }
+
+    content += "internalField   uniform 1;\n\n";
+    content += "boundaryField\n";
+    content += "{\n";
+
+    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    {
+        std::string patchName = patchNameStr[ipatch];
+        std::string patchType = patchTypeStr[ipatch];
+        
+        content += "    "+patchName+"\n";
+        content += "    {\n";
+        if (patchType=="processor"      ||
+            patchType=="cyclic"         ||
+            patchType=="cyclicAMI"      ||
+            patchType=="cyclicSlip"     ||
+            patchType=="symmetry"       ||
+            patchType=="basicSymmetry"  ||
+            patchType=="symmetryPlane"  ||
+            patchType=="wedge")
+        {
+            content += "        type            "+patchType+";\n";
+            content += "        value           uniform 1;\n";
+        }
+        else if (patchType == "empty")
+        {
+            content += "        type            "+patchType+";\n";
+        }
+        else
+        {
+            content += "        type            calculated;\n";
+            content += "        value           uniform 1;\n";
+        }
+        content += "    }\n";
+    }
+    content += "}\n\n";
+        content += "// ************************************************************************* //";
+    
+    return content;
+}
+
 int comFoam::deleteInitFiles(const std::string& addr)
 {
     namespace BF = boost::filesystem;
@@ -1088,7 +1262,6 @@ int comFoam::deleteInitFiles(const std::string& addr)
 
     return 0;
 }
-
 
 int comFoam::registerInitFiles(const char *name)
 {
@@ -1451,7 +1624,6 @@ bool comFoam::fileShouldBeRead
 }
 
 
-
 int comFoam::deleteFilesData()
 {
     if (ca_fileContent != NULL)
@@ -1526,3 +1698,270 @@ int comFoam::findGlobalIndex(int* arr, const int& size,  const int& elem)
     
     return index;
 }
+
+size_t comFoam::findLoc
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp,
+    size_t start
+)
+{
+    size_t intFieldStart = content.find(exp, start);
+    if (intFieldStart==std::string::npos)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword in file"
+                  << fullAddr << std::endl;
+    }
+
+    return intFieldStart;
+}
+
+size_t comFoam::findLoc
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp,
+    size_t start,
+    size_t end
+)
+{
+    size_t intFieldStart = content.find(exp, start);
+    if (intFieldStart==std::string::npos || intFieldStart>end)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword"
+                  << " in the range "+std::to_string(start)
+                  << " and "+std::to_string(end)
+                  << " in file "
+                  << fullAddr << std::endl;
+    }
+
+    return intFieldStart;
+}
+
+size_t comFoam::findOnlyLoc
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp
+)
+{
+    size_t firstLoc=0;
+
+    int count=0;
+    size_t start=0;
+    size_t intFieldStart=0;
+    while (intFieldStart!=std::string::npos)
+    {
+        intFieldStart = content.find(exp, start);
+
+        if (intFieldStart != std::string::npos)
+        {
+            count++;
+            if (count == 1) firstLoc = intFieldStart;
+
+            start = intFieldStart+exp.length();
+        }
+    }
+    if (count == 0)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword in file"
+                 << fullAddr << std::endl;
+         exit(-1);
+    }
+    else if (count > 1)
+    {
+        std::cout << "Warning: Found more than one \""
+                  << exp+"\" keyword in file"
+                    << fullAddr << std::endl;
+        exit(-1);
+    }
+
+    return firstLoc;
+}
+
+size_t comFoam::findOnlyLoc
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp,
+    size_t start
+)
+{
+    size_t firstLoc=0;
+    int count=0;
+    size_t intFieldStart=0;
+    while (intFieldStart!=std::string::npos)
+    {
+        intFieldStart = content.find(exp, start);
+
+        if (intFieldStart != std::string::npos)
+        {
+            count++;
+            if (count == 1) firstLoc = intFieldStart;
+
+            start = intFieldStart+exp.length();
+        }
+    }
+    if (count == 0)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword in file"
+                 << fullAddr << std::endl;
+         exit(-1);
+    }
+    else if (count > 1)
+    {
+        std::cout << "Warning: Found more than one \""
+                  << exp+"\" keyword in file"
+                    << fullAddr << std::endl;
+        exit(-1);
+    }
+
+    return firstLoc;
+}
+
+size_t comFoam::findOnlyLoc
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp,
+    size_t start,
+    size_t end
+)
+{
+    size_t firstLoc=0;
+    int count=0;
+    size_t intFieldStart=0;
+
+    while (intFieldStart!=std::string::npos && intFieldStart<=end)
+    {
+        intFieldStart = content.find(exp, start);
+
+        if (intFieldStart != std::string::npos && intFieldStart<=end)
+        {
+            count++;
+            if (count == 1) firstLoc = intFieldStart;
+        
+            start = intFieldStart+exp.length();
+        }
+    }
+
+    if (count == 0)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword in file"
+                 << fullAddr << std::endl;
+         exit(-1);
+    }
+    else if (count > 1)
+    {
+        std::cout << "Warning: Found more than one \""
+                  << exp+"\" keyword in file"
+                    << fullAddr << std::endl;
+        exit(-1);
+    }
+
+    return firstLoc;
+}
+
+
+std::string comFoam::removeTrailZero(std::string in)
+{
+    size_t decLoc = in.find(".");
+    size_t powLoc = in.find("e");
+    //size_t endLoc = in.size();
+    
+    if(decLoc != std::string::npos)
+    {
+        //decLoc++;
+        int length = powLoc-decLoc;
+        std::string decimal = in.substr(decLoc, length);
+
+        // Remove trailing zeroes
+        decimal = decimal.substr(0, decimal.find_last_not_of('0')+1);
+
+        // If the decimal point is now the last character, remove that as well
+        if(decimal.find('.') == 0 && decimal.find('.') == decimal.size()-1)
+        {
+            decimal = decimal.substr(0, decimal.size()-1);
+        }
+
+        in.erase(decLoc, length);
+        in.insert(decLoc, decimal);
+    }    
+
+    return in;
+}
+
+
+/*
+std::string comFoam::removeTrailZero(std::string in)
+{
+    size_t decLoc = in.find(".");
+    size_t powLoc = in.find("e");
+    size_t endLoc = in.size();
+    
+    std::string decimal = "";
+
+std::cout << "in = " << in << ", decLoc = " << decLoc 
+          << ", powLoc = " << powLoc << ", endLoc = " << endLoc << std::endl;
+
+    
+    if(powLoc != std::string::npos)
+    {
+        powLoc++;
+        int length = powLoc-endLoc;
+        std::string powStr = in.substr(powLoc, length);
+        
+        int powInt = std::stoi(powStr);
+        
+        if (powInt != 0)
+        {
+            decimal = in.substr(0, powLoc+1) + std::to_string(powInt);
+        }
+        else
+        {
+            decimal = in.substr(0, powLoc);
+        }
+        
+        powLoc++;
+
+std::cout << "powStr = " << powStr << ", powInt = " << powInt << ", decimal = " << decimal << std::endl;
+
+    }    
+    else
+    {
+        powLoc = endLoc+1;
+        decimal = in;
+    }
+
+
+    
+    if(decLoc != std::string::npos)
+    {
+        decLoc++;
+        int length = powLoc-decLoc;
+        decimal = decimal.substr(decLoc, length);
+        // Remove trailing zeroes
+        decimal = decimal.substr(0, decimal.find_last_not_of('0')+1);
+
+        // If the decimal point is now the last character, remove that as well
+        if(decimal.find('.') == decimal.size()-1)
+        {
+            decimal = decimal.substr(0, decimal.size()-1);
+        }
+
+        decimal.erase(decLoc, length);
+        decimal.insert(decLoc, decimal);
+    }    
+
+    return decimal;
+}
+*/
+
+
+

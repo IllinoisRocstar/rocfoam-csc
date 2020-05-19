@@ -25,6 +25,7 @@ int comFoam::createVolumeConnectivities()
 
     // Create cellToCell mapping ^^^^^^^^^^^^^^^^
     ca_cellToCellMap = new int[*ca_nCells];
+    ca_cellToCellMap_inverse = new int[*ca_nCells];
 
     int sortedCellIndex = 0;
     for(auto it=mapCellToCellMap.begin(); it!=mapCellToCellMap.end(); it++)
@@ -35,6 +36,8 @@ int comFoam::createVolumeConnectivities()
         for(int icell=0; icell<nCells; icell++)
         {
             ca_cellToCellMap[sortedCellIndex] = vecCells[icell];
+            ca_cellToCellMap_inverse[vecCells[icell]] = sortedCellIndex;
+
             sortedCellIndex++;
         }
     }
@@ -97,8 +100,12 @@ int comFoam::createVolumeData()
     ca_Vel = new double[nTotal];
 
     ca_P   = new double[*ca_nCells];
-    ca_T   = new double[*ca_nCells];
-    ca_Rho = new double[*ca_nCells];
+    
+    if (TPtr != NULL)
+        ca_T   = new double[*ca_nCells];
+
+    if (rhoPtr != NULL)
+        ca_Rho = new double[*ca_nCells];
 
     return 0;
 }
@@ -140,9 +147,13 @@ int comFoam::updateVolumeData()
             }
 
             ca_P[cellIndex] = p[cellID];
-            ca_T[cellIndex] = T[cellID];
-            ca_Rho[cellIndex] = rho[cellID];
             
+            if (ca_T != NULL)
+                ca_T[cellIndex] = T[cellID];
+            
+            if (ca_Rho != NULL)
+                ca_Rho[cellIndex] = rho[cellID];
+
             cellIndex++;
         }
     }
@@ -256,7 +267,7 @@ int comFoam::registerVolumeData(const char *name)
         //}
         else if (typeID == 6)
         { // Prism
-            dataName = volName+std::string(".:P4");
+            dataName = volName+std::string(".:P6");
         }
         //else if (typeID == 7)
         //{ // Type?
@@ -288,6 +299,11 @@ int comFoam::registerVolumeData(const char *name)
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(    dataName, paneID, ca_cellToCellMap, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+    dataName = volName+std::string(".cellToCellMap_inverse");
+    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
+    COM_set_array(    dataName, paneID, ca_cellToCellMap_inverse, 1);
+    Info << "  " << dataName.c_str() << " registered." << endl;
     // ------------------------------------------
 
     // Element data registered with window
@@ -301,15 +317,21 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, paneID, ca_P, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-    dataName = volName+std::string(".temp");
-    COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
-    COM_set_array(    dataName, paneID, ca_T, 1);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    if (ca_T != NULL)
+    {
+        dataName = volName+std::string(".temp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
+        COM_set_array(    dataName, paneID, ca_T, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
 
-    dataName = volName+std::string(".rho");
-    COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
-    COM_set_array(    dataName, paneID, ca_Rho, 1);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    if (ca_Rho != NULL)
+    {
+        dataName = volName+std::string(".rho");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
+        COM_set_array(    dataName, paneID, ca_Rho, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
 
     COM_window_init_done(volName); 
 
@@ -510,6 +532,16 @@ int comFoam::reconstCaVolumeData(const char *name)
 /*        std::cout << std::endl;*/
 /*    }*/
 
+    dataName = std::string("cellToCellMap_inverse");
+    nameExists(dataItemNames, dataName);
+    regName = volName+std::string(".")+dataName;
+    
+    COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap_inverse, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    std::cout << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << std::endl;
+    //---------------------------------------
+
     // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     dataName = std::string("vel");
     nameExists(dataItemNames, dataName);
@@ -548,40 +580,26 @@ int comFoam::reconstCaVolumeData(const char *name)
 /*    }*/
 
     dataName = std::string("temp");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
 
-    COM_get_array(regName.c_str(), paneID, &ca_T, &nComp);
-    COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
-/*    for(int icell=0; icell<numCells; icell++)*/
-/*    {*/
-/*        std::cout << "Cell " << icell << " temperature = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*            std::cout << *(cellTemp+icell*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
+        COM_get_array(regName.c_str(), paneID, &ca_T, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
+    }
 
     dataName = std::string("rho");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
 
-    COM_get_array(regName.c_str(), paneID, &ca_Rho, &nComp);
-    COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
-/*    for(int icell=0; icell<numCells; icell++)*/
-/*    {*/
-/*        std::cout << "Cell " << icell << " density = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*            std::cout << *(cellRho+icell*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
+        COM_get_array(regName.c_str(), paneID, &ca_Rho, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
+    }
 
     std::cout << "  --------------------------------------------------"
          << std::endl;
@@ -610,19 +628,34 @@ int comFoam::deleteVolumeData()
         delete [] ca_cellToCellMap;
         ca_cellToCellMap = NULL;
     }
-   
-    if (ca_cellToPointConn != NULL)
+
+    if (ca_cellToCellMap_inverse != NULL)
     {
-        for (int itype=0; itype<*ca_cellToPointConn_types; itype++)
-        {
-            if (ca_cellToPointConn[itype] != NULL)
-            {
-                delete [] ca_cellToPointConn[itype];
-            }
-        }
-        delete [] ca_cellToPointConn;
-        ca_cellToPointConn = NULL;
+        delete [] ca_cellToCellMap_inverse;
+        ca_cellToCellMap_inverse = NULL;
     }
+   
+    if (ca_cellToPointConn_types != NULL)
+    {
+        int ntype = *ca_cellToPointConn_types;
+        if (ca_cellToPointConn != NULL)
+        {
+            for (int itype=0; itype<ntype; itype++)
+            {
+                if (ca_cellToPointConn[itype] != NULL)
+                {
+                    delete [] ca_cellToPointConn[itype];
+                    ca_cellToPointConn[itype] = NULL;
+                }
+            }
+            delete [] ca_cellToPointConn;
+            ca_cellToPointConn = NULL;
+        }
+
+        delete[] ca_cellToPointConn_types;
+        ca_cellToPointConn_types = NULL;
+    }
+
     
     if (ca_Points != NULL)
     {
@@ -652,12 +685,6 @@ int comFoam::deleteVolumeData()
     {
         delete[] ca_Rho;
         ca_Rho = NULL;
-    }
-
-    if (ca_cellToPointConn_types != NULL)
-    {
-        delete[] ca_cellToPointConn_types;
-        ca_cellToPointConn_types = NULL;
     }
 
     if (ca_nPoints!= NULL)

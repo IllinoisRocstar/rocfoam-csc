@@ -719,9 +719,14 @@ int rhoCentral::step()
     }
     std::strcpy(ca_timeName, timeNameStr.c_str());
     
-    updateVolumeData();
-    updateFaceData();
-    updateSurfaceData();
+    // This garanties that the updates are called
+    //  if the pointers are allocated
+    if (ca_nCells != NULL)
+        updateVolumeData();
+    if (ca_nFaces != NULL)
+        updateFaceData();
+    if (ca_nPatches != NULL)
+        updateSurfaceData();
     //-------------------------------------------
 
     stepStat = 0;

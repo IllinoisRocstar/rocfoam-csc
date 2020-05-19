@@ -28,7 +28,7 @@ int rhoPimple::initSet()
     pThermoPtr = NULL;
     rhoUfPtr = NULL;
     divrhoUPtr = NULL;
-    tUEqnPtr = NULL;
+    //tUEqnPtr = NULL;
     correctPhi = false;
     checkMeshCourantNo = false;
     moveMeshOuterCorrectors = false;
@@ -296,6 +296,8 @@ int rhoPimple::createFields()
 
     pPtr = &thermo.p();
     volScalarField &p(*pPtr);
+    
+    TPtr = &thermo.T();
 
     rhoPtr = new volScalarField
     (
@@ -831,9 +833,14 @@ int rhoPimple::step()
     }
     std::strcpy(ca_timeName, timeNameStr.c_str());
 
-    updateVolumeData();
-    updateFaceData();
-    updateSurfaceData();
+    // This garanties that the updates are called
+    //  if the pointers are allocated
+    if (ca_nCells != NULL)
+        updateVolumeData();
+    if (ca_nFaces != NULL)
+        updateFaceData();
+    if (ca_nPatches != NULL)
+        updateSurfaceData();
     //-------------------------------------------
 
     stepStat = 0;

@@ -25,7 +25,7 @@ private:
     //const int cellToPointTypeSize=8;
     const int faceToPointTypeSize=4;
     const int panePadding = 100;
-    const int IODigits = 16;
+    const int IODigits = 10;
     
     const std::string tmpFluidDir = "./fluidTmp";
 
@@ -85,6 +85,8 @@ private:
     int deleteFilesData();
     int registerInitFiles(const char *name);
     int reconstCaInitFiles(const char *name, const std::string& rootAddr);
+    
+    std::string createBaseScalar(std::string name);
 
     bool fileShouldBeRead
     (
@@ -114,6 +116,7 @@ protected:
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
     int*  ca_cellToCellMap;
+    int*  ca_cellToCellMap_inverse;
 
     // Connectivity
     int*  ca_cellToPointConn_types; //single value
@@ -127,11 +130,13 @@ protected:
     double* ca_P;
     double* ca_T;
     double* ca_Rho;
+    double* ca_Phi;
     //-------------------------------------------
     
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
     int*  ca_faceToFaceMap;
+    int*  ca_faceToFaceMap_inverse;
 
     // Connectivity
     int*  ca_faceToPointConn_types; //single value
@@ -162,6 +167,7 @@ protected:
 
     // FaceToFace Mapping
     int** ca_patchFaceToFaceMap;
+    int** ca_patchFaceToFaceMap_inverse;
 
     // FaceToPoint Mapping
     int**  ca_patchFaceToPointConn_types; //single value for the last
@@ -175,6 +181,9 @@ protected:
     double** ca_patchP;
     double** ca_patchT;
     double** ca_patchRho;
+    double** ca_patchPhi;
+    
+    double** ca_patchSf;
     //-------------------------------------------
     
     // Files
@@ -220,6 +229,51 @@ public:
     static void copyWindow(const char *name1, const char *name2);
 
     int findGlobalIndex(int* arr, const int& size,  const int& elem);
+
+    static std::string removeTrailZero(std::string in);
+
+    size_t findLoc
+    (
+        const std::string& fullAddr,
+        const std::string& content,
+        const std::string& exp,
+        size_t start = 0
+    );
+
+    size_t findLoc
+    (
+        const std::string& fullAddr,
+        const std::string& content,
+        const std::string& exp,
+        size_t start,
+        size_t end
+    );
+
+
+    size_t findOnlyLoc
+    (
+        const std::string& fullAddr,
+        const std::string& content,
+        const std::string& exp
+    );
+
+    size_t findOnlyLoc
+    (
+        const std::string& fullAddr,
+        const std::string& content,
+        const std::string& exp,
+        size_t start
+    );
+
+    size_t findOnlyLoc
+    (
+        const std::string& fullAddr,
+        const std::string& content,
+        const std::string& exp,
+        size_t start,
+        size_t end
+    );
+
 };
 
 #endif

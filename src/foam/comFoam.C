@@ -24,6 +24,7 @@ int comFoam::initSet()
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
     ca_cellToCellMap = NULL;
+    ca_cellToCellMap_inverse = NULL;
 
     // Connectivity
     ca_cellToPointConn_types = NULL; //single value
@@ -37,11 +38,13 @@ int comFoam::initSet()
     ca_P = NULL;
     ca_T = NULL;
     ca_Rho = NULL;
+    ca_patchSf = NULL;
     //-------------------------------------------
     
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
     ca_faceToFaceMap = NULL;
+    ca_faceToFaceMap_inverse = NULL;
 
     // Connectivity
     ca_faceToPointConn_types = NULL; //single value
@@ -72,6 +75,7 @@ int comFoam::initSet()
 
     // FaceToFace Mapping
     ca_patchFaceToFaceMap = NULL;
+    ca_patchFaceToFaceMap_inverse = NULL;
 
     // FaceToPoint Mapping
     ca_patchFaceToPointConn_types = NULL; //single value for the last
@@ -159,29 +163,8 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     argv[*pargc+1] = new char[strTmp.length()+1];
     std::strcpy(argv[*pargc+1], strTmp.c_str());
     
-    comFoamPtr->initialize(argc, argv);
-
+    initialize(argc, argv);
     //  Other initializations ^^^^^^^^^^^^^^^^^^^
-    // extractData can be called here, or in
-    // rocFoam driver with comExtractData
-
-    /*
-    comFoamPtr->createVolumeConnectivities();
-    comFoamPtr->createVolumeData();
-    comFoamPtr->updateVolumeData();
-    comFoamPtr->registerVolumeData(name);
-
-    comFoamPtr->createFaceConnectivities();
-    comFoamPtr->createFaceData();
-    comFoamPtr->updateFaceData();
-    comFoamPtr->registerFaceData(name);
-
-    comFoamPtr->createSurfaceConnectivities();
-    comFoamPtr->createSurfaceData();
-    comFoamPtr->updateSurfaceData();
-    comFoamPtr->registerSurfaceData(name);
-    */
-
     createVolumeConnectivities();
     createVolumeData();
     updateVolumeData();
@@ -197,8 +180,8 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     updateSurfaceData();
     registerSurfaceData(name);
 
-    std::string tmpDir = strTmp+tmpFluidDir;
-    deleteInitFiles(tmpDir);
+    //std::string tmpDir = strTmp+tmpFluidDir;
+    deleteInitFiles(tmpFluidDir);
     readInitFiles(strTmp);
     registerInitFiles(name);
 
@@ -241,7 +224,6 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
         MPI_Barrier(winComm);
     }
 
-
     //int argc = *pargc;
     //char** argv = reinterpret_cast<char**>(pargv);
 //    int argc = *pargc+2;
@@ -255,7 +237,6 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
 //    strTmp = tmpFluidDir;
 //    argv[*pargc+1] = new char[strTmp.length()+1];
 //    std::strcpy(argv[*pargc+1], strTmp.c_str());
-
 
     int argc = *pargc+2;
     char** argv;
@@ -375,7 +356,7 @@ int comFoam::registerFunctions(const char *name)
     types[2] = COM_VOID;
     */
 
-    std::vector<COM_Type> types(13,COM_VOID);
+    COM_Type types[13]={COM_VOID};
     types[0] = COM_RAWDATA;
     types[1] = COM_INT;
 
@@ -386,7 +367,7 @@ int comFoam::registerFunctions(const char *name)
         reinterpret_cast<Member_func_ptr>(&comFoam::flowInit),
         objectName.c_str(),
         "biii",
-        &types[0]
+        types
     );
 
     functionName = volName+std::string(".flowLoop");
@@ -396,7 +377,7 @@ int comFoam::registerFunctions(const char *name)
         reinterpret_cast<Member_func_ptr>(&comFoam::flowLoop),
         objectName.c_str(),
         "bi",
-        &types[0]
+        types
     );
 
     functionName = volName+std::string(".flowStep");
@@ -406,7 +387,7 @@ int comFoam::registerFunctions(const char *name)
         reinterpret_cast<Member_func_ptr>(&comFoam::flowStep),
         objectName.c_str(),
         "bi",
-        &types[0]
+        types
     );
 
     functionName = volName+std::string(".flowReconstCaData");
@@ -416,47 +397,8 @@ int comFoam::registerFunctions(const char *name)
         reinterpret_cast<Member_func_ptr>(&comFoam::reconstCaData),
         objectName.c_str(),
         "biii",
-        &types[0]
+        types
     );
-
-//    functionName = name+std::string(".flowRegisterDate");
-//    COM_set_member_function
-//    (
-//        functionName.c_str(),
-//        reinterpret_cast<Member_func_ptr>(&comFoam::flowExtractData),
-//        objectName.c_str(),
-//        "bi",
-//        &types[0]
-//    );
-
-
-    //COM_set_member_function
-    //(
-    //    (name + std::string(".flowFin")).c_str(),
-    //    reinterpret_cast<Member_func_ptr>(&rhoCentral::flowFin),
-    //    objectName.c_str(), "b", &types[0]
-    //);
-
-//    //  Registering data of this module to COM ^^^^^^^^^^^^
-//    std::string dataName = name+std::string(".winNProc");
-//    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
-//    COM_set_size(     dataName.c_str(), 0, 1);
-//    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winNProc));
-
-//    dataName = name+std::string(".winTime");
-//    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
-//    COM_set_size(     dataName.c_str(), 0, 1);
-//    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winTime));
-
-//    dataName = name+std::string(".winDeltaT");
-//    COM_new_dataitem( dataName.c_str(), 'w', COM_DOUBLE, 1, "");
-//    COM_set_size(     dataName.c_str(), 0, 1);
-//    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winDeltaT) );
-
-//    dataName = name+std::string(".winRun");
-//    COM_new_dataitem( dataName.c_str(), 'w', COM_INT, 1, "");
-//    COM_set_size(     dataName.c_str(), 0, 1);
-//    COM_set_array(    dataName.c_str(), 0, &(comFoamPtr->winRun));
 
     COM_window_init_done(volName);
 

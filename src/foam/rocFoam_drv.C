@@ -48,6 +48,21 @@ int comDrvFin(const char *name);
 
 int main(int argc, char *argv[])
 {
+
+/*
+for (;;)
+{
+std::string strTmp;
+std::cin >> strTmp;
+std::cout << "strTmp1 = " << strTmp << std::endl;
+strTmp = comFoam::removeTrailZero(strTmp);
+std::cout << "strTmp2 = " << strTmp << std::endl;
+std::cin.get();
+}
+*/
+
+
+
     comDrvInit(argc, argv);
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);

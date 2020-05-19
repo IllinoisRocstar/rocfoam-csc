@@ -43,6 +43,7 @@ int comFoam::createFaceConnectivities()
 
     // Create faceToFace mapping arrays ^^^^^^^^^
     ca_faceToFaceMap = new int[*ca_nFaces];
+    ca_faceToFaceMap_inverse = new int[*ca_nFaces];
     
     int sortedFaceIndex = 0;
     for (auto it=mapFaceToFaceMap.begin(); it!=mapFaceToFaceMap.end(); it++)
@@ -52,6 +53,8 @@ int comFoam::createFaceConnectivities()
         for(int iface=0; iface<nfaces; iface++)
         {
             ca_faceToFaceMap[sortedFaceIndex] = vecFaces[iface];
+            ca_faceToFaceMap_inverse[vecFaces[iface]] = sortedFaceIndex;
+            
             sortedFaceIndex++;
         }
     }
@@ -98,6 +101,9 @@ int comFoam::createFaceData()
     ca_faceOwner = new int[*ca_nFaces];
     ca_faceNeighb = new int[*ca_nFaces];
 
+    if (phiPtr != NULL)
+        ca_Phi = new double[*ca_nFaces];
+
     return 0;
 }
 
@@ -113,9 +119,9 @@ int comFoam::updateFaceData()
         nNeighbFaces = patches[0].start()-1;
     }
 
-
     const labelList&  faceOwner  = mesh.faceOwner();
-    const labelList&  faceNeighb = mesh.faceNeighbour();    
+    const labelList&  faceNeighb = mesh.faceNeighbour();
+    const surfaceScalarField& phi(*phiPtr);    
 
     int ntypes = *ca_faceToPointConn_types;
     int faceIndex = 0;
@@ -127,7 +133,7 @@ int comFoam::updateFaceData()
             int faceID = ca_faceToFaceMap[faceIndex];
 
             ca_faceOwner[faceIndex] = faceOwner[faceID];
-            
+
             if (faceIndex>nNeighbFaces)
             {
                 ca_faceNeighb[faceIndex] = -1;
@@ -136,6 +142,9 @@ int comFoam::updateFaceData()
             {                
                 ca_faceNeighb[faceIndex] = faceNeighb[faceID];
             }
+
+            if (ca_Phi != NULL)
+                ca_Phi[faceIndex] = phi[faceID];
 
             faceIndex++;
         }
@@ -221,6 +230,11 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceToFaceMap, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+    dataName = volName+std::string(".faceToFaceMap_inverse");
+    COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
+    COM_set_array(dataName, paneID, ca_faceToFaceMap_inverse, 1);
+    Info << "  " << dataName.c_str() << " registered." << endl;
     // ------------------------------------------    
 
     // Field variables
@@ -233,6 +247,14 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceNeighb, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+    if (ca_Phi != NULL)
+    {
+        dataName = volName+std::string(".phi");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/s");
+        COM_set_array(    dataName, paneID, ca_Phi, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
 
     COM_window_init_done(volName);
 
@@ -367,6 +389,18 @@ int comFoam::reconstCaFaceData(const char *name)
 /*        std::cout << std::endl;*/
 /*    }*/
 
+
+    dataName = std::string("faceToFaceMap_inverse");
+    nameExists(dataItemNames, dataName);
+    regName = volName+std::string(".")+dataName;
+
+    COM_get_array(regName.c_str(), paneID, &ca_faceToFaceMap_inverse, &nComp);
+    COM_get_size(regName.c_str(), paneID, &numElem);
+    std::cout << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp << std::endl;
+
+
+
     dataName = std::string("owner");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
@@ -403,6 +437,17 @@ int comFoam::reconstCaFaceData(const char *name)
 /*        std::cout << std::endl;*/
 /*    }*/
 
+    dataName = std::string("phi");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+
+        COM_get_array(regName.c_str(), paneID, &ca_Phi, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+             << ", components = " << nComp << std::endl;
+    }
+
     std::cout << "  --------------------------------------------------"
          << std::endl;
 
@@ -415,20 +460,27 @@ int comFoam::reconstCaFaceData(const char *name)
 int comFoam::deleteFaceData()
 {
     //  faceToPoint connectivity arrays ^^^^^^^^^
-    int ntypes = *ca_faceToPointConn_types;
-
-    if (ca_faceToPointConn != NULL)
+    
+    if (ca_faceToPointConn_types != NULL)
     {
-        for(int itype=0; itype<ntypes; itype++)
+        int ntypes = *ca_faceToPointConn_types;
+
+        if (ca_faceToPointConn != NULL)
         {
-            if (ca_faceToPointConn[itype] != NULL)
+            for(int itype=0; itype<ntypes; itype++)
             {
-                delete [] ca_faceToPointConn[itype];
-                ca_faceToPointConn[itype] = NULL;
+                if (ca_faceToPointConn[itype] != NULL)
+                {
+                    delete [] ca_faceToPointConn[itype];
+                    ca_faceToPointConn[itype] = NULL;
+                }
             }
+            delete [] ca_faceToPointConn;
+            ca_faceToPointConn = NULL;
         }
-        delete [] ca_faceToPointConn;
-        ca_faceToPointConn = NULL;
+
+        delete[] ca_faceToPointConn_types;
+        ca_faceToPointConn_types = NULL;
     }
 
     if (ca_faceToPointConn_map != NULL)
@@ -456,6 +508,12 @@ int comFoam::deleteFaceData()
         ca_faceNeighb = NULL;
     }
 
+    if (ca_Phi != NULL)
+    {
+        delete[] ca_Phi;
+        ca_Phi = NULL;
+    }
+
     // Connectivity-map
     if (ca_faceToFaceMap != NULL)
     {
@@ -463,16 +521,17 @@ int comFoam::deleteFaceData()
         ca_faceToFaceMap = NULL;
     }
 
+    // Connectivity-map
+    if (ca_faceToFaceMap_inverse != NULL)
+    {
+        delete [] ca_faceToFaceMap_inverse;
+        ca_faceToFaceMap_inverse = NULL;
+    }
+
     if (ca_nFaces != NULL)
     {
         delete[] ca_nFaces;
         ca_nFaces = NULL;
-    }
-
-    if (ca_faceToPointConn_types != NULL)
-    {
-        delete[] ca_faceToPointConn_types;
-        ca_faceToPointConn_types = NULL;
     }
 
     return 0;
