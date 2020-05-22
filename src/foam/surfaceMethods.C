@@ -55,7 +55,6 @@ int comFoam::createSurfaceConnectivities()
     }
     //-------------------------------------------
 
-
     //  Create patch general data  arrays ^^^^^^^
     //ca_nPatches = new int(patches.size());
     ca_patchName    = new char*[nPatches];

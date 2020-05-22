@@ -134,7 +134,7 @@ int comFoam::updateFaceData()
 
             ca_faceOwner[faceIndex] = faceOwner[faceID];
 
-            if (faceIndex>nNeighbFaces)
+            if (faceID>nNeighbFaces)
             {
                 ca_faceNeighb[faceIndex] = -1;
             }

@@ -317,14 +317,6 @@ int comFoam::createFieldFiles
 
                 for(int iface=0; iface<nfaces; iface++)
                 {
-                    /*
-                    int faceIndex = findGlobalIndex
-                                    (
-                                        ca_faceToFaceMap,
-                                        nfaces,
-                                        iface
-                                    );
-                    */
                     int faceIndex = ca_faceToFaceMap_inverse[iface];
 
                     std::ostringstream doubleToOs;                            
@@ -346,7 +338,7 @@ int comFoam::createFieldFiles
                           << fileName << " is not found." << std::endl;
             }
             
-            for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+            for(int ipatch=0; ipatch<ca_nPatches[ca_myRank]; ipatch++)
             {
                 int nfaces = *ca_patchSize[ipatch];
                 if (nfaces<=0)
@@ -403,14 +395,6 @@ int comFoam::createFieldFiles
 
                     for(int iface=0; iface<nfaces; iface++)
                     {
-                        /*
-                        int faceIndex = findGlobalIndex
-                                        (
-                                            ca_patchFaceToFaceMap[ipatch],
-                                            nfaces,
-                                            iface
-                                        );
-                        */
                         int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
                         newStr += "(";
@@ -419,23 +403,9 @@ int comFoam::createFieldFiles
                             int localComp = jcomp + faceIndex*nComponents;
                             
                             std::ostringstream doubleToOs;                            
-                            //doubleToOs << std::fixed;
                             doubleToOs << std::scientific << std::setprecision(IODigits);
-                            double dblTmp=0;
-
-                            dblTmp = ca_patchVel[ipatch][localComp];
-                            /*
-                            if (typeName == "flowRateOutletVelocity")
-                            {
-                                dblTmp = ca_patchVel[ipatch][localComp] *
-                                         ca_patchSf[ipatch][localComp] *
-                                         ca_patchRho[ipatch][localComp];
-                            }
-                            */
-                            
-                            doubleToOs << dblTmp;
-
-                            newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                            doubleToOs << ca_patchVel[ipatch][localComp];
+                            newStr += removeTrailZero(doubleToOs.str());
                             if (jcomp<nComponents-1)
                                 newStr += " ";
                         }
@@ -452,21 +422,12 @@ int comFoam::createFieldFiles
 
                     for(int iface=0; iface<nfaces; iface++)
                     {
-                        /*
-                        int faceIndex = findGlobalIndex
-                                        (
-                                            ca_patchFaceToFaceMap[ipatch],
-                                            nfaces,
-                                            iface
-                                        );
-                        */
                         int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
                         std::ostringstream doubleToOs;                            
                         doubleToOs << std::scientific << std::setprecision(IODigits);
                         doubleToOs << ca_patchP[ipatch][faceIndex];
-
-                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += removeTrailZero(doubleToOs.str());
                         newStr += "\n";
                     }
                     newStr += ")\n";
@@ -480,21 +441,12 @@ int comFoam::createFieldFiles
 
                     for(int iface=0; iface<nfaces; iface++)
                     {
-                        /*
-                        int faceIndex = findGlobalIndex
-                                        (
-                                            ca_patchFaceToFaceMap[ipatch],
-                                            nfaces,
-                                            iface
-                                        );
-                        */
                         int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
                         std::ostringstream doubleToOs;                            
                         doubleToOs << std::scientific << std::setprecision(IODigits);
                         doubleToOs << ca_patchT[ipatch][faceIndex];
-
-                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += removeTrailZero(doubleToOs.str());
                         newStr += "\n";
                     }
                     newStr += ")\n";
@@ -508,21 +460,12 @@ int comFoam::createFieldFiles
 
                     for(int iface=0; iface<nfaces; iface++)
                     {
-                        /*
-                        int faceIndex = findGlobalIndex
-                                        (
-                                            ca_patchFaceToFaceMap[ipatch],
-                                            nfaces,
-                                            iface
-                                        );
-                        */
                         int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
                         std::ostringstream doubleToOs;                            
                         doubleToOs << std::scientific << std::setprecision(IODigits);
                         doubleToOs << ca_patchRho[ipatch][faceIndex];
-
-                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += removeTrailZero(doubleToOs.str());
                         newStr += "\n";
                     }
                     newStr += ")\n";
@@ -536,28 +479,16 @@ int comFoam::createFieldFiles
 
                     for(int iface=0; iface<nfaces; iface++)
                     {
-                        /*
-                        int faceIndex = findGlobalIndex
-                                        (
-                                            ca_patchFaceToFaceMap[ipatch],
-                                            nfaces,
-                                            iface
-                                        );
-                        */
                         int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
 
                         std::ostringstream doubleToOs;                            
                         doubleToOs << std::scientific << std::setprecision(IODigits);
                         doubleToOs << ca_patchPhi[ipatch][faceIndex];
-
-                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += removeTrailZero(doubleToOs.str());
                         newStr += "\n";
                     }
                     newStr += ")\n";
                 }
-
-
-
                 else
                 {
                     std::cout << "========== WARNING ===============" << std::endl
@@ -777,14 +708,6 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
-        /*
-        int faceIndex = findGlobalIndex
-                        (
-                            ca_faceToFaceMap,
-                            nfaces,
-                            iface
-                        );
-        */
         int faceIndex = ca_faceToFaceMap_inverse[iface];
 
         content += std::to_string(ca_faceOwner[faceIndex]);
@@ -856,14 +779,6 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
-        /*
-        int faceIndex = findGlobalIndex
-                        (
-                            ca_faceToFaceMap,
-                            nfaces,
-                            iface
-                        );
-        */
         int faceIndex = ca_faceToFaceMap_inverse[iface];
 
         content += std::to_string(ca_faceNeighb[faceIndex]);
@@ -926,14 +841,6 @@ int comFoam::createFacesFile(const std::string& rootAddr)
 
     for(int iface=0; iface<nfaces; iface++)
     {
-        /*
-        int faceIndex = findGlobalIndex
-                        (
-                            ca_faceToFaceMap,
-                            nfaces,
-                            iface
-                        );
-        */
         int faceIndex = ca_faceToFaceMap_inverse[iface];
 
         int ntypes = *ca_faceToPointConn_types;
@@ -1014,39 +921,63 @@ int comFoam::createBoundaryFile
         if (fileName == "boundary")
         {
             std::string content = vecFile[ifile].content;
-            for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+            for(int ipatch=0; ipatch<ca_nPatches[ca_myRank]; ipatch++)
             {
                 std::string patchName = patchNameStr[ipatch];
+                size_t patchStart = 0;
 
-                size_t patchStart = content.find(patchName);
-                if (patchStart == std::string::npos)
+                std::string brckOpen = "{";
+                std::string brckClose = "}";
+                size_t brckStart = std::string::npos;
+                size_t brckEnd   = std::string::npos;
+
+                bool found = false;
+                int startTmp = 0;
+                while (!found)
                 {
-                    std::cout << "========== WARNING ===============" << std::endl
-                              << "patchName " << patchName
-                              << " not found." << std::endl;
-                }
-                
-                // Assume only 1 patch of this name
-                std::string startStr = "{";
-                std::string endtStr = "}";
-                size_t typeStart = content.find(startStr, patchStart);
-                size_t typeEnd = content.find(endtStr, patchStart);
+                    patchStart = findLoc(fullAddr, content, patchName, startTmp);
+                    brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
+                    brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
 
+                    if (patchStart != std::string::npos)
+                    {
+                        if (brckStart!=std::string::npos &&
+                            brckEnd!=std::string::npos)
+                        {
+                            if (patchStart<brckStart && brckStart<brckEnd)
+                              found = true;  
+                        }
+                        else
+                        {
+                            startTmp = patchStart;
+                        }
+                    }
+                    else
+                    {
+                        std::cout << "========== WARNING ===============" << std::endl
+                                  << "patchName " << patchName
+                                  << " not found." << std::endl;
+                        exit(-1);
+                    }
+                }
+ 
                 // Update nFaces of each patch in boundary file
                 std::string itemStr = "nFaces";
                 std::string scStr = ";";
-                size_t itemStart = content.find(itemStr, typeStart);
-                size_t itemEnd = content.find(scStr, itemStart);
+                size_t itemStart = findOnlyLoc(fullAddr, content, itemStr, brckStart, brckEnd);
+                size_t itemEnd = findLoc(fullAddr, content, scStr, itemStart);
 
-                if(patchStart == std::string::npos ||
-                   !(typeStart<=itemStart && itemStart<=typeEnd) ||
-                   !(typeStart<=itemEnd && itemEnd<=typeEnd)
+                if(itemStart == std::string::npos ||
+                   !(brckStart<=itemStart && itemStart<=brckEnd) ||
+                   !(brckStart<=itemEnd && itemEnd<=brckEnd)
                    )
                 {
                     std::cout << "========== WARNING ===============" << std::endl
                               << "Patch " << patchName << "\'s nFaces limit"
                               << " not found." << std::endl;
+                    exit(-1);
                 }
+
                 int length = itemEnd-itemStart;
                 std::string subType = content.substr(itemStart, length);
                 std::stringstream iStr(subType);
@@ -1070,18 +1001,20 @@ int comFoam::createBoundaryFile
                 // Update startFace of each patch in boundary file
                 itemStr = "startFace";
                 scStr = ";";
-                itemStart = content.find(itemStr, typeStart);
-                itemEnd = content.find(scStr, itemStart);
+                itemStart = findOnlyLoc(fullAddr, content, itemStr, brckStart, brckEnd);
+                itemEnd = findLoc(fullAddr, content, scStr, itemStart);
 
-                if(patchStart == std::string::npos ||
-                   !(typeStart<=itemStart && itemStart<=typeEnd) ||
-                   !(typeStart<=itemEnd && itemEnd<=typeEnd)
+                if(itemStart == std::string::npos ||
+                   !(brckStart<=itemStart && itemStart<=brckEnd) ||
+                   !(brckStart<=itemEnd && itemEnd<=brckEnd)
                    )
                 {
                     std::cout << "========== WARNING ===============" << std::endl
                               << "Patch " << patchName << "\'s startFace limit"
                               << " not found." << std::endl;
+                    exit(-1);
                 }
+
                 length = itemEnd-itemStart;
                 subType = content.substr(itemStart, length);
                 iStr.str("");
@@ -1217,14 +1150,21 @@ std::string comFoam::createBaseScalar(std::string name)
     content += "boundaryField\n";
     content += "{\n";
 
-    for(int ipatch=0; ipatch<*ca_nPatches; ipatch++)
+    for(int ipatch=0; ipatch<ca_nPatches[ca_myRank]; ipatch++)
     {
         std::string patchName = patchNameStr[ipatch];
         std::string patchType = patchTypeStr[ipatch];
+        int nFaces = *ca_patchSize[ipatch];
         
         content += "    "+patchName+"\n";
         content += "    {\n";
-        if (patchType=="processor"      ||
+        
+        if (patchType == "empty")
+        {
+            content += "        type            "+patchType+";\n";
+        }
+        else if (
+            patchType=="processor"      ||
             patchType=="cyclic"         ||
             patchType=="cyclicAMI"      ||
             patchType=="cyclicSlip"     ||
@@ -1234,16 +1174,26 @@ std::string comFoam::createBaseScalar(std::string name)
             patchType=="wedge")
         {
             content += "        type            "+patchType+";\n";
-            content += "        value           uniform 1;\n";
-        }
-        else if (patchType == "empty")
-        {
-            content += "        type            "+patchType+";\n";
+            if (nFaces>0)
+            {
+                content += "        value           uniform 1;\n";
+            }
+            else
+            {
+                content += "        value           nonuniform 0();\n";
+            }
         }
         else
         {
             content += "        type            calculated;\n";
-            content += "        value           uniform 1;\n";
+            if (nFaces>0)
+            {
+                content += "        value           uniform 1;\n";
+            }
+            else
+            {
+                content += "        value           nonuniform 0();\n";
+            }
         }
         content += "    }\n";
     }
