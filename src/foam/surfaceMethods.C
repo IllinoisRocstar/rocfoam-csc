@@ -339,11 +339,11 @@ int comFoam::createSurfaceData()
     ca_patchPoints = new double*[nPatches];
     ca_patchVel    = new double*[nPatches];
     ca_patchP      = new double*[nPatches];
-    if (rhoPtr != NULL)
+    if (rhoPtr != nullptr)
         ca_patchRho    = new double*[nPatches];
-    if (TPtr != NULL)
+    if (TPtr != nullptr)
         ca_patchT      = new double*[nPatches];
-    if (phiPtr != NULL)
+    if (phiPtr != nullptr)
         ca_patchPhi    = new double*[nPatches];
     //ca_patchSf     = new double*[nPatches];
  
@@ -360,11 +360,11 @@ int comFoam::createSurfaceData()
 
         ca_patchVel[ipatch] = new double[nTotal];
         ca_patchP[ipatch]   = new double[nfaces];
-        if (rhoPtr != NULL)
+        if (rhoPtr != nullptr)
             ca_patchRho[ipatch] = new double[nfaces];
-        if (TPtr != NULL)
+        if (TPtr != nullptr)
             ca_patchT[ipatch]   = new double[nfaces];
-        if (phiPtr != NULL)
+        if (phiPtr != nullptr)
             ca_patchPhi[ipatch]   = new double[nfaces];
         //ca_patchSf[ipatch]  = new double[nTotal];
     }
@@ -427,13 +427,13 @@ int comFoam::updateSurfaceData()
                         ca_patchVel[ipatch][localComp] = 0;
                     }
                     ca_patchP[ipatch][faceIndex] = 0;
-                    if (ca_patchT != NULL)
+                    if (ca_patchT != nullptr)
                         ca_patchT[ipatch][faceIndex] = 0;
-                    if (ca_patchRho != NULL)
+                    if (ca_patchRho != nullptr)
                         ca_patchRho[ipatch][faceIndex] = 0;
-                    if (ca_patchPhi != NULL)
+                    if (ca_patchPhi != nullptr)
                         ca_patchPhi[ipatch][faceIndex] = 0;
-                    if (ca_patchSf != NULL)
+                    if (ca_patchSf != nullptr)
                         ca_patchSf[ipatch][faceIndex] = 0;
                 }
                 else
@@ -448,16 +448,16 @@ int comFoam::updateSurfaceData()
 
                     ca_patchP[ipatch][faceIndex] = p.boundaryField()[ipatch][localFaceID];
 
-                    if (ca_patchT != NULL)
+                    if (ca_patchT != nullptr)
                         ca_patchT[ipatch][faceIndex] = T.boundaryField()[ipatch][localFaceID];
 
-                    if (ca_patchRho != NULL)
+                    if (ca_patchRho != nullptr)
                         ca_patchRho[ipatch][faceIndex] = rho.boundaryField()[ipatch][localFaceID];
 
-                    if (ca_patchPhi != NULL)
+                    if (ca_patchPhi != nullptr)
                         ca_patchPhi[ipatch][faceIndex] = phi.boundaryField()[ipatch][localFaceID];
 
-                    if (ca_patchSf != NULL)
+                    if (ca_patchSf != nullptr)
                         ca_patchSf[ipatch][faceIndex] = magSf.boundaryField()[ipatch][localFaceID];
                 }
                 
@@ -538,25 +538,25 @@ int comFoam::registerSurfaceData(const char *name)
     dataName = surfName+std::string(".pres");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
 
-    if (ca_patchT != NULL)
+    if (ca_patchT != nullptr)
     {
         dataName = surfName+std::string(".temp");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
     }
 
-    if (ca_patchRho != NULL)
+    if (ca_patchRho != nullptr)
     {
         dataName = surfName+std::string(".rho");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
     }
 
-    if (ca_patchPhi != NULL)
+    if (ca_patchPhi != nullptr)
     {
         dataName = surfName+std::string(".phi");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/s");
     }
 
-    if (ca_patchSf != NULL)
+    if (ca_patchSf != nullptr)
     {
         dataName = surfName+std::string(".sf");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2");
@@ -701,28 +701,28 @@ int comFoam::registerSurfaceData(const char *name)
         COM_set_array(dataName, paneID, ca_patchP[ipatch], 1);
         Info << "  " << dataName.c_str() << " registered." << endl;
 
-        if (ca_patchT != NULL)
+        if (ca_patchT != nullptr)
         {
             dataName = surfName+std::string(".temp");
             COM_set_array(dataName, paneID, ca_patchT[ipatch], 1);
             Info << "  " << dataName.c_str() << " registered." << endl;
         }
 
-        if (ca_patchRho != NULL)
+        if (ca_patchRho != nullptr)
         {
             dataName = surfName+std::string(".rho");
             COM_set_array(dataName, paneID, ca_patchRho[ipatch], 1);
             Info << "  " << dataName.c_str() << " registered." << endl;
         }
 
-        if (ca_patchPhi != NULL)
+        if (ca_patchPhi != nullptr)
         {
             dataName = surfName+std::string(".phi");
             COM_set_array(dataName, paneID, ca_patchPhi[ipatch], 1);
             Info << "  " << dataName.c_str() << " registered." << endl;
         }
 
-        if (ca_patchSf != NULL)
+        if (ca_patchSf != nullptr)
         {
             dataName = surfName+std::string(".sf");
             COM_set_array(dataName, paneID, ca_patchSf[ipatch], 1);
@@ -1130,334 +1130,334 @@ int comFoam::deleteSurfaceData()
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
     int nPatches = patches.size();
 
-    if (ca_patchInGroup != NULL)
+    if (ca_patchInGroup != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
-            if (ca_patchInGroup[ipatch] != NULL)
+            if (ca_patchInGroup[ipatch] != nullptr)
             {
                 delete [] ca_patchInGroup[ipatch];
-                ca_patchInGroup[ipatch] = NULL;
+                ca_patchInGroup[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchInGroup;
-        ca_patchInGroup = NULL;
+        ca_patchInGroup = nullptr;
     }
 
-    if (ca_patchStart != NULL)
+    if (ca_patchStart != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
-            if (ca_patchStart[ipatch] != NULL)
+            if (ca_patchStart[ipatch] != nullptr)
             {
                 delete [] ca_patchStart[ipatch];
-                ca_patchStart[ipatch] = NULL;
+                ca_patchStart[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchStart;
-        ca_patchStart = NULL;
+        ca_patchStart = nullptr;
     }
 
 
-    if (ca_patchSize != NULL)
+    if (ca_patchSize != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
-            if (ca_patchSize[ipatch] != NULL)
+            if (ca_patchSize[ipatch] != nullptr)
             {
                 delete [] ca_patchSize[ipatch];
-                ca_patchSize[ipatch] = NULL;
+                ca_patchSize[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchSize;
-        ca_patchSize = NULL;
+        ca_patchSize = nullptr;
     }
 
 
-    if (ca_patchName != NULL)
+    if (ca_patchName != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
-            if (&ca_patchName[ipatch] != NULL)
+            if (&ca_patchName[ipatch] != nullptr)
             {
                 delete [] ca_patchName[ipatch];
-                ca_patchName[ipatch] = NULL;
+                ca_patchName[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchName;
-        ca_patchName = NULL;
+        ca_patchName = nullptr;
     }
 
-    if (ca_patchType != NULL)
+    if (ca_patchType != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
 
-            if (&ca_patchType[ipatch] != NULL)
+            if (&ca_patchType[ipatch] != nullptr)
             {
                 delete [] ca_patchType[ipatch];
-                ca_patchType[ipatch] = NULL;
+                ca_patchType[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchType;
-        ca_patchType = NULL;
+        ca_patchType = nullptr;
     }
 
-    if (patchNameStr != NULL)
+    if (patchNameStr != nullptr)
     {
         delete [] patchNameStr;
-        patchNameStr = NULL;
+        patchNameStr = nullptr;
     }
     
-    if (patchTypeStr != NULL)
+    if (patchTypeStr != nullptr)
     {
         delete [] patchTypeStr;
-        patchTypeStr = NULL;
+        patchTypeStr = nullptr;
     }
 
 
-    if (ca_patchFaceToFaceMap != NULL)
+    if (ca_patchFaceToFaceMap != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToFaceMap[ipatch] != NULL)
+            if (ca_patchFaceToFaceMap[ipatch] != nullptr)
             {
                 delete [] ca_patchFaceToFaceMap[ipatch];
-                ca_patchFaceToFaceMap[ipatch] = NULL;
+                ca_patchFaceToFaceMap[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchFaceToFaceMap;
-        ca_patchFaceToFaceMap = NULL;
+        ca_patchFaceToFaceMap = nullptr;
     }
 
-    if (ca_patchFaceToFaceMap_inverse != NULL)
+    if (ca_patchFaceToFaceMap_inverse != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToFaceMap_inverse[ipatch] != NULL)
+            if (ca_patchFaceToFaceMap_inverse[ipatch] != nullptr)
             {
                 delete [] ca_patchFaceToFaceMap_inverse[ipatch];
-                ca_patchFaceToFaceMap_inverse[ipatch] = NULL;
+                ca_patchFaceToFaceMap_inverse[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchFaceToFaceMap_inverse;
-        ca_patchFaceToFaceMap_inverse = NULL;
+        ca_patchFaceToFaceMap_inverse = nullptr;
     }
 
-    if (ca_patchPoints != NULL)
+    if (ca_patchPoints != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchPoints[ipatch] != NULL)
+            if (ca_patchPoints[ipatch] != nullptr)
             {
                 delete [] ca_patchPoints[ipatch];
-                ca_patchPoints[ipatch] = NULL;
+                ca_patchPoints[ipatch] = nullptr;
             }
         }
         delete [] ca_patchPoints;
-        ca_patchPoints = NULL;
+        ca_patchPoints = nullptr;
     }
 
-    if (ca_patchVel != NULL)
+    if (ca_patchVel != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchVel[ipatch] != NULL)
+            if (ca_patchVel[ipatch] != nullptr)
             {
                 delete [] ca_patchVel[ipatch];
-                ca_patchVel[ipatch] = NULL;
+                ca_patchVel[ipatch] = nullptr;
             }
         }
         delete [] ca_patchVel;
-        ca_patchVel = NULL;
+        ca_patchVel = nullptr;
     }
 
-    if (ca_patchRho != NULL)
+    if (ca_patchRho != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchRho[ipatch] != NULL)
+            if (ca_patchRho[ipatch] != nullptr)
             {
                 delete [] ca_patchRho[ipatch];
-                ca_patchRho[ipatch] = NULL;
+                ca_patchRho[ipatch] = nullptr;
             }
         }
         delete [] ca_patchRho;
-        ca_patchRho = NULL;
+        ca_patchRho = nullptr;
     }
 
-    if (ca_patchPhi != NULL)
+    if (ca_patchPhi != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchPhi[ipatch] != NULL)
+            if (ca_patchPhi[ipatch] != nullptr)
             {
                 delete [] ca_patchPhi[ipatch];
-                ca_patchPhi[ipatch] = NULL;
+                ca_patchPhi[ipatch] = nullptr;
             }
         }
         delete [] ca_patchPhi;
-        ca_patchPhi = NULL;
+        ca_patchPhi = nullptr;
     }
     
-    if (ca_patchP != NULL)
+    if (ca_patchP != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchP[ipatch] != NULL)
+            if (ca_patchP[ipatch] != nullptr)
             {
                 delete [] ca_patchP[ipatch];
-                ca_patchP[ipatch] = NULL;
+                ca_patchP[ipatch] = nullptr;
             }
         }
         delete [] ca_patchP;
-        ca_patchP = NULL;
+        ca_patchP = nullptr;
     }
 
-    if (ca_patchT != NULL)
+    if (ca_patchT != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchT[ipatch] != NULL)
+            if (ca_patchT[ipatch] != nullptr)
             {
                 delete [] ca_patchT[ipatch];
-                ca_patchT[ipatch] = NULL;
+                ca_patchT[ipatch] = nullptr;
             }
         }
         delete [] ca_patchT;
-        ca_patchT = NULL;
+        ca_patchT = nullptr;
     }
 
-    if (ca_patchSf != NULL)
+    if (ca_patchSf != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchSf[ipatch] != NULL)
+            if (ca_patchSf[ipatch] != nullptr)
             {
                 delete [] ca_patchSf[ipatch];
-                ca_patchSf[ipatch] = NULL;
+                ca_patchSf[ipatch] = nullptr;
             }
         }
         delete [] ca_patchSf;
-        ca_patchSf = NULL;
+        ca_patchSf = nullptr;
     }
 
 
     //  Delete faceToPoint connectivity arrays ^^    
-    if (ca_patchFaceToPointConn_types != NULL)
+    if (ca_patchFaceToPointConn_types != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToPointConn_types[ipatch] != NULL)
+            if (ca_patchFaceToPointConn_types[ipatch] != nullptr)
             {
                 int ntypes = *ca_patchFaceToPointConn_types[ipatch];
                 for(int itype=0; itype<ntypes; itype++)
                 {
-                    if (ca_patchFaceToPointConn[ipatch][itype] != NULL)
+                    if (ca_patchFaceToPointConn[ipatch][itype] != nullptr)
                     {
                         delete [] ca_patchFaceToPointConn[ipatch][itype];
-                        ca_patchFaceToPointConn[ipatch][itype] = NULL;
+                        ca_patchFaceToPointConn[ipatch][itype] = nullptr;
                     }
                 }
 
                 delete [] ca_patchFaceToPointConn_types[ipatch];
-                ca_patchFaceToPointConn_types[ipatch] = NULL;
+                ca_patchFaceToPointConn_types[ipatch] = nullptr;
             }
         }
 
         delete [] ca_patchFaceToPointConn_types;
-        ca_patchFaceToPointConn_types = NULL;
+        ca_patchFaceToPointConn_types = nullptr;
     }
 
 
-    if (ca_patchFaceToPointConn != NULL)
+    if (ca_patchFaceToPointConn != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToPointConn[ipatch] != NULL)
+            if (ca_patchFaceToPointConn[ipatch] != nullptr)
             {
                 delete [] ca_patchFaceToPointConn[ipatch];
-                ca_patchFaceToPointConn[ipatch] = NULL;
+                ca_patchFaceToPointConn[ipatch] = nullptr;
             }
         }
         delete [] ca_patchFaceToPointConn;
-        ca_patchFaceToPointConn = NULL;
+        ca_patchFaceToPointConn = nullptr;
     }
 
-    if (ca_patchFaceToPointConn_map != NULL)
+    if (ca_patchFaceToPointConn_map != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToPointConn_map[ipatch] != NULL)
+            if (ca_patchFaceToPointConn_map[ipatch] != nullptr)
             {
                 delete [] ca_patchFaceToPointConn_map[ipatch];
-                ca_patchFaceToPointConn_map[ipatch] = NULL;
+                ca_patchFaceToPointConn_map[ipatch] = nullptr;
             }
         }
         delete [] ca_patchFaceToPointConn_map;
-        ca_patchFaceToPointConn_map = NULL;
+        ca_patchFaceToPointConn_map = nullptr;
     }
 
-    if (ca_patchFaceToPointConn_size != NULL)
+    if (ca_patchFaceToPointConn_size != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchFaceToPointConn_size[ipatch] != NULL)
+            if (ca_patchFaceToPointConn_size[ipatch] != nullptr)
             {
                 delete [] ca_patchFaceToPointConn_size[ipatch];
-                ca_patchFaceToPointConn_size[ipatch] = NULL;
+                ca_patchFaceToPointConn_size[ipatch] = nullptr;
             }
         }
         delete [] ca_patchFaceToPointConn_size;
-        ca_patchFaceToPointConn_size = NULL;
+        ca_patchFaceToPointConn_size = nullptr;
     }
     //-------------------------------------------
 
     // Delete pointToPoint mapping arrays ^^^^^^^
-    if (ca_patchPointToPointMap != NULL)
+    if (ca_patchPointToPointMap != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchPointToPointMap[ipatch] != NULL)
+            if (ca_patchPointToPointMap[ipatch] != nullptr)
             {
                 delete [] ca_patchPointToPointMap[ipatch];
-                ca_patchPointToPointMap[ipatch] = NULL;
+                ca_patchPointToPointMap[ipatch] = nullptr;
             }
         }
         delete [] ca_patchPointToPointMap;
-        ca_patchPointToPointMap = NULL;
+        ca_patchPointToPointMap = nullptr;
     }
 
-    if (ca_patchPointToPointMap_size != NULL)
+    if (ca_patchPointToPointMap_size != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchPointToPointMap_size[ipatch] != NULL)
+            if (ca_patchPointToPointMap_size[ipatch] != nullptr)
             {
                 delete [] ca_patchPointToPointMap_size[ipatch];
-                ca_patchPointToPointMap_size[ipatch] = NULL;
+                ca_patchPointToPointMap_size[ipatch] = nullptr;
             }
         }
         delete [] ca_patchPointToPointMap_size;
-        ca_patchPointToPointMap_size = NULL;
+        ca_patchPointToPointMap_size = nullptr;
     }
     //-------------------------------------------
 
-    if (ca_nPatches != NULL)
+    if (ca_nPatches != nullptr)
     {
         delete [] ca_nPatches;
-        ca_nPatches = NULL;
+        ca_nPatches = nullptr;
     }
 
     return 0;

@@ -101,10 +101,10 @@ int comFoam::createVolumeData()
 
     ca_P   = new double[*ca_nCells];
     
-    if (TPtr != NULL)
+    if (TPtr != nullptr)
         ca_T   = new double[*ca_nCells];
 
-    if (rhoPtr != NULL)
+    if (rhoPtr != nullptr)
         ca_Rho = new double[*ca_nCells];
 
     return 0;
@@ -148,10 +148,10 @@ int comFoam::updateVolumeData()
 
             ca_P[cellIndex] = p[cellID];
             
-            if (ca_T != NULL)
+            if (ca_T != nullptr)
                 ca_T[cellIndex] = T[cellID];
             
-            if (ca_Rho != NULL)
+            if (ca_Rho != nullptr)
                 ca_Rho[cellIndex] = rho[cellID];
 
             cellIndex++;
@@ -317,7 +317,7 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_array(    dataName, paneID, ca_P, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-    if (ca_T != NULL)
+    if (ca_T != nullptr)
     {
         dataName = volName+std::string(".temp");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
@@ -325,7 +325,7 @@ int comFoam::registerVolumeData(const char *name)
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
-    if (ca_Rho != NULL)
+    if (ca_Rho != nullptr)
     {
         dataName = volName+std::string(".rho");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
@@ -611,92 +611,92 @@ int comFoam::reconstCaVolumeData(const char *name)
 
 int comFoam::deleteVolumeData()
 {
-    if (ca_cellToPointConn_map != NULL)
+    if (ca_cellToPointConn_map != nullptr)
     {
         delete [] ca_cellToPointConn_map;
-        ca_cellToPointConn_map = NULL;
+        ca_cellToPointConn_map = nullptr;
     }
     
-    if (ca_cellToPointConn_size != NULL)
+    if (ca_cellToPointConn_size != nullptr)
     {
         delete [] ca_cellToPointConn_size;
-        ca_cellToPointConn_size = NULL;
+        ca_cellToPointConn_size = nullptr;
     }
 
-    if (ca_cellToCellMap != NULL)
+    if (ca_cellToCellMap != nullptr)
     {
         delete [] ca_cellToCellMap;
-        ca_cellToCellMap = NULL;
+        ca_cellToCellMap = nullptr;
     }
 
-    if (ca_cellToCellMap_inverse != NULL)
+    if (ca_cellToCellMap_inverse != nullptr)
     {
         delete [] ca_cellToCellMap_inverse;
-        ca_cellToCellMap_inverse = NULL;
+        ca_cellToCellMap_inverse = nullptr;
     }
    
-    if (ca_cellToPointConn_types != NULL)
+    if (ca_cellToPointConn_types != nullptr)
     {
         int ntype = *ca_cellToPointConn_types;
-        if (ca_cellToPointConn != NULL)
+        if (ca_cellToPointConn != nullptr)
         {
             for (int itype=0; itype<ntype; itype++)
             {
-                if (ca_cellToPointConn[itype] != NULL)
+                if (ca_cellToPointConn[itype] != nullptr)
                 {
                     delete [] ca_cellToPointConn[itype];
-                    ca_cellToPointConn[itype] = NULL;
+                    ca_cellToPointConn[itype] = nullptr;
                 }
             }
             delete [] ca_cellToPointConn;
-            ca_cellToPointConn = NULL;
+            ca_cellToPointConn = nullptr;
         }
 
         delete[] ca_cellToPointConn_types;
-        ca_cellToPointConn_types = NULL;
+        ca_cellToPointConn_types = nullptr;
     }
 
     
-    if (ca_Points != NULL)
+    if (ca_Points != nullptr)
     {
         delete[] ca_Points;
-        ca_Points = NULL;
+        ca_Points = nullptr;
     }
 
-    if (ca_Vel != NULL)
+    if (ca_Vel != nullptr)
     {
         delete[] ca_Vel;
-        ca_Vel = NULL;
+        ca_Vel = nullptr;
     }
 
-    if (ca_P != NULL)
+    if (ca_P != nullptr)
     {
         delete[] ca_P;
-        ca_P = NULL;
+        ca_P = nullptr;
     }
 
-    if (ca_T != NULL)
+    if (ca_T != nullptr)
     {
         delete[] ca_T;
-        ca_T = NULL;
+        ca_T = nullptr;
     }
 
-    if (ca_Rho != NULL)
+    if (ca_Rho != nullptr)
     {
         delete[] ca_Rho;
-        ca_Rho = NULL;
+        ca_Rho = nullptr;
     }
 
-    if (ca_nPoints!= NULL)
+    if (ca_nPoints!= nullptr)
     {
         delete[] ca_nPoints;
-        ca_nPoints = NULL;
+        ca_nPoints = nullptr;
     }
 
-    if (ca_nCells != NULL)
+    if (ca_nCells != nullptr)
     {
         delete[] ca_nCells;
-        ca_nCells = NULL;
+        ca_nCells = nullptr;
     }
 
     return 0;

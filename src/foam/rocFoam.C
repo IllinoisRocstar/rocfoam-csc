@@ -2,9 +2,10 @@
 #include <vector>
 
 rocFoam::rocFoam()
-{ initSet(); }
+{ //initSet();
+}
 
-int rocFoam::initSet()
+/* int rocFoam::initSet()
 {
     solverType = NULL;
     argsPtr = NULL;
@@ -37,7 +38,7 @@ int rocFoam::initSet()
     testStat = -1.0;
     
     return 0;
-}
+} */
 
 
 rocFoam::~rocFoam()
@@ -48,13 +49,13 @@ rocFoam::~rocFoam()
 int rocFoam::finalize()
 {
     // Delete thing that are allocated here
-    if (runTimePtr != NULL)
+    if (runTimePtr != nullptr)
     {
       delete runTimePtr;
-      runTimePtr = NULL;
+      runTimePtr = nullptr;
     }
 
-    if (argsPtr != NULL)
+    if (argsPtr != nullptr)
     {
          // Once this is deleted, all information
          // about the openfoam-related stuff is gone.
@@ -62,7 +63,7 @@ int rocFoam::finalize()
          // this. One option is not to delete this.
 
          delete argsPtr;
-         argsPtr = NULL;
+         argsPtr = nullptr;
     }
 
     return 0;

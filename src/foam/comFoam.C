@@ -3,99 +3,99 @@
 
 comFoam::comFoam()
 {
-    initSet();
+    //initSet();
 };
 
 comFoam::comFoam(int *pargc, void **pargv, const char *name)
 {
-    initSet();
+    //initSet();
     flowInit(pargc, pargv, name);
 }
 
-int comFoam::initSet()
+/*int comFoam::initSet()
 {
     // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ca_nPoints = NULL;  //single value
-    ca_nCells = NULL;   //single value
-    ca_nFaces = NULL;   //single value
-    ca_nPatches = NULL; //single value
+    ca_nPoints = nullptr;  //single value
+    ca_nCells = nullptr;   //single value
+    ca_nFaces = nullptr;   //single value
+    ca_nPatches = nullptr; //single value
     //-------------------------------------------
 
     // COM Volume Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
-    ca_cellToCellMap = NULL;
-    ca_cellToCellMap_inverse = NULL;
+    ca_cellToCellMap = nullptr;
+    ca_cellToCellMap_inverse = nullptr;
 
     // Connectivity
-    ca_cellToPointConn_types = NULL; //single value
-    ca_cellToPointConn_map = NULL;
-    ca_cellToPointConn_size = NULL;
-    ca_cellToPointConn = NULL;
+    ca_cellToPointConn_types = nullptr; //single value
+    ca_cellToPointConn_map = nullptr;
+    ca_cellToPointConn_size = nullptr;
+    ca_cellToPointConn = nullptr;
 
     // Field Data
-    ca_Points = NULL;
-    ca_Vel = NULL;
-    ca_P = NULL;
-    ca_T = NULL;
-    ca_Rho = NULL;
-    ca_patchSf = NULL;
+    ca_Points = nullptr;
+    ca_Vel = nullptr;
+    ca_P = nullptr;
+    ca_T = nullptr;
+    ca_Rho = nullptr;
+    ca_patchSf = nullptr;
     //-------------------------------------------
     
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // Mapping
-    ca_faceToFaceMap = NULL;
-    ca_faceToFaceMap_inverse = NULL;
+    ca_faceToFaceMap = nullptr;
+    ca_faceToFaceMap_inverse = nullptr;
 
     // Connectivity
-    ca_faceToPointConn_types = NULL; //single value
-    ca_faceToPointConn_map = NULL;
-    ca_faceToPointConn_size = NULL;
-    ca_faceToPointConn = NULL;
+    ca_faceToPointConn_types = nullptr; //single value
+    ca_faceToPointConn_map = nullptr;
+    ca_faceToPointConn_size = nullptr;
+    ca_faceToPointConn = nullptr;
 
     // Field data
-    ca_faceOwner = NULL;
-    ca_faceNeighb = NULL;
+    ca_faceOwner = nullptr;
+    ca_faceNeighb = nullptr;
     //-------------------------------------------
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
 
-    patchNameStr = NULL; //single value for the last
-    patchTypeStr = NULL; //single value for the last
+    patchNameStr = nullptr; //single value for the last
+    patchTypeStr = nullptr; //single value for the last
 
-    ca_patchName = NULL; //single value for the last
-    ca_patchType = NULL; //single value for the last
-    ca_patchInGroup = NULL; //single value for the last
-    ca_patchStart = NULL; //single value for the last
-    ca_patchSize = NULL; //single value for the last
+    ca_patchName = nullptr; //single value for the last
+    ca_patchType = nullptr; //single value for the last
+    ca_patchInGroup = nullptr; //single value for the last
+    ca_patchStart = nullptr; //single value for the last
+    ca_patchSize = nullptr; //single value for the last
 
     // PointToPoint Mapping
-    ca_patchPointToPointMap_size = NULL; //single value for the last
-    ca_patchPointToPointMap = NULL;
+    ca_patchPointToPointMap_size = nullptr; //single value for the last
+    ca_patchPointToPointMap = nullptr;
 
     // FaceToFace Mapping
-    ca_patchFaceToFaceMap = NULL;
-    ca_patchFaceToFaceMap_inverse = NULL;
+    ca_patchFaceToFaceMap = nullptr;
+    ca_patchFaceToFaceMap_inverse = nullptr;
 
     // FaceToPoint Mapping
-    ca_patchFaceToPointConn_types = NULL; //single value for the last
-    ca_patchFaceToPointConn_map = NULL;
-    ca_patchFaceToPointConn_size = NULL;
-    ca_patchFaceToPointConn = NULL;
+    ca_patchFaceToPointConn_types = nullptr; //single value for the last
+    ca_patchFaceToPointConn_map = nullptr;
+    ca_patchFaceToPointConn_size = nullptr;
+    ca_patchFaceToPointConn = nullptr;
 
     // Field data
-    ca_patchPoints = NULL;
-    ca_patchVel = NULL;
-    ca_patchP = NULL;
-    ca_patchT = NULL;
-    ca_patchRho = NULL;
+    ca_patchPoints = nullptr;
+    ca_patchVel = nullptr;
+    ca_patchP = nullptr;
+    ca_patchT = nullptr;
+    ca_patchRho = nullptr;
 
     // File data
-    ca_nFiles = NULL;
-    ca_fileSize = NULL;
-    ca_fileName = NULL;
-    ca_filePath = NULL;
-    ca_fileContent = NULL;
+    ca_nFiles = nullptr;
+    ca_fileSize = nullptr;
+    ca_fileName = nullptr;
+    ca_filePath = nullptr;
+    ca_fileContent = nullptr;
 
     //-------------------------------------------
 
@@ -104,22 +104,22 @@ int comFoam::initSet()
     //std::string winSurfName; /// Tracks *this* volume window name.
 
     solverType = "";
-    winComm = NULL;
+    winComm = nullptr;
     
     ca_nProc = 1;
     ca_myRank = 0;
 
     // registered data set during the simulation
-    ca_runStat = NULL;
-    ca_time = NULL;
-    ca_deltaT = NULL;
+    ca_runStat = nullptr;
+    ca_time = nullptr;
+    ca_deltaT = nullptr;
 
-    ca_timeIndex = NULL;
-    ca_timeName = NULL;
-    ca_deltaT0 = NULL;
+    ca_timeIndex = nullptr;
+    ca_timeName = nullptr;
+    ca_deltaT0 = nullptr;
 
     return 0;
-}
+} */
 
 
 
@@ -137,7 +137,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
                   << name << std::endl;
     }
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
 
     std::string volName = name+std::string("VOL");
     std::string surfName = name+std::string("SURF");
@@ -205,7 +205,7 @@ int comFoam::reconstCaData(int *pargc, void **pargv, const char *name)
     }
 
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
     std::string volName = name+std::string("VOL");
     std::string surfName = name+std::string("SURF");
     std::string dataName = volName+std::string(".object");
@@ -269,7 +269,7 @@ int comFoam::flowLoop(const char *name)
     Foam::Info << "rocFoam.flowLoop: Iterating flow solver." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
     std::string volName = name+std::string("VOL");
     std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
@@ -285,7 +285,7 @@ int comFoam::flowStep(const char *name)
     Foam::Info << "rocFoam.flowStep: Stepping flow solver." << Foam::endl;
 
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
     std::string volName = name+std::string("VOL");
     std::string objectName = volName+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
@@ -299,7 +299,7 @@ int comFoam::flowStep(const char *name)
 //{
 //    Foam::Info << "rocFoam.extractData: Extracting flow data." << Foam::endl;
 //    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-//    comFoam *comFoamPtr = NULL;
+//    comFoam *comFoamPtr = nullptr;
 //    std::string volName = name+std::string("VOL");
 //    std::string objectName = volName+std::string(".object");
 //    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
@@ -313,7 +313,7 @@ int comFoam::flowStep(const char *name)
 
 //    Foam::Info << "rocFoam.registerVolumeData: Extracting flow data." << Foam::endl;
 //    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-//    comFoam *comFoamPtr = NULL;
+//    comFoam *comFoamPtr = nullptr;
 //    std::string volName = name+std::string("VOL");
 //    std::string objectName = volName+std::string(".object");
 //    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
@@ -343,7 +343,7 @@ int comFoam::registerFunctions(const char *name)
     std::string surfName = name+std::string("SURF");
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
 
     //std::string name="ROCFOAM";
     std::string objectName = volName+std::string(".object");
@@ -421,16 +421,16 @@ comFoam::~comFoam()
     deleteSurfaceData();
     deleteFilesData();
 
-    if (ca_runStat != NULL){delete ca_runStat; ca_runStat = NULL;}
-    if (ca_time != NULL){delete ca_time; ca_time = NULL;}
-    if (ca_deltaT != NULL){delete ca_deltaT; ca_deltaT = NULL;}
-    if (ca_deltaT0 != NULL){delete ca_deltaT0; ca_deltaT0 = NULL;}
-    if (ca_timeIndex != NULL){delete ca_timeIndex; ca_timeIndex = NULL;}
+    if (ca_runStat != nullptr){delete ca_runStat; ca_runStat = nullptr;}
+    if (ca_time != nullptr){delete ca_time; ca_time = nullptr;}
+    if (ca_deltaT != nullptr){delete ca_deltaT; ca_deltaT = nullptr;}
+    if (ca_deltaT0 != nullptr){delete ca_deltaT0; ca_deltaT0 = nullptr;}
+    if (ca_timeIndex != nullptr){delete ca_timeIndex; ca_timeIndex = nullptr;}
     
-    if (ca_timeName != NULL)
+    if (ca_timeName != nullptr)
     {
         delete [] ca_timeName;
-        ca_timeName = NULL;
+        ca_timeName = nullptr;
     }
 }
 

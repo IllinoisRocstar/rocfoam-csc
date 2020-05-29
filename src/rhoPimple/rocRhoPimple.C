@@ -5,37 +5,37 @@ using namespace COM;
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoPimple::rhoPimple()
 {
-    initSet();
+    //initSet();
     solverType = const_cast<char *>("rocRhoPimple");
 }
 
 rhoPimple::rhoPimple(int argc, char *argv[])
 {
-    initSet();
+    //initSet();
     solverType = const_cast<char *>("rocRhoPimple");
     initialize(argc, argv);
 }
 
-int rhoPimple::initSet()
+/* int rhoPimple::initSet()
 {
-    pimplePtr = NULL;
-    pressureControlPtr = NULL;
-    dpdtPtr = NULL;
-    KPtr = NULL;
-    fvOptionsPtr = NULL;
-    MRFPtr = NULL;
-    UEqnPtr = NULL;
-    pThermoPtr = NULL;
-    rhoUfPtr = NULL;
-    divrhoUPtr = NULL;
-    //tUEqnPtr = NULL;
+    pimplePtr = nullptr;
+    pressureControlPtr = nullptr;
+    dpdtPtr = nullptr;
+    KPtr = nullptr;
+    fvOptionsPtr = nullptr;
+    MRFPtr = nullptr;
+    UEqnPtr = nullptr;
+    pThermoPtr = nullptr;
+    rhoUfPtr = nullptr;
+    divrhoUPtr = nullptr;
+    //tUEqnPtr = nullptr;
     correctPhi = false;
     checkMeshCourantNo = false;
     moveMeshOuterCorrectors = false;
     cumulativeContErr = 0.0;
 
     return 0;
-}
+} */
 
 //=========================================================
 
@@ -105,7 +105,7 @@ void rhoPimple::unload(const char *name)
     Foam::Info << "rocFoam.unload: Unloading rocRhoPimple with name "
                << name << "." << Foam::endl;
 
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
 
     std::string volName = name+string("VOL");
     std::string objectName(volName+".object");
@@ -185,17 +185,17 @@ int rhoPimple::initialize(int argc, char *argv[])
     //   solver runs step-by-step.
     Foam::Time &runTime(*runTimePtr);
 
-    if (ca_runStat == NULL)
+    if (ca_runStat == nullptr)
         ca_runStat = new int(static_cast<int>(runTime.run()));
-    if (ca_time == NULL)
+    if (ca_time == nullptr)
         ca_time = new double(runTime.value());
-    if (ca_deltaT == NULL)
+    if (ca_deltaT == nullptr)
         ca_deltaT = new double(runTime.deltaTValue());
-    if (ca_deltaT0 == NULL)
+    if (ca_deltaT0 == nullptr)
         ca_deltaT0 = new double(runTime.deltaT0Value());
-    if (ca_timeIndex == NULL)
+    if (ca_timeIndex == nullptr)
         ca_timeIndex = new int(runTime.timeIndex());
-    if (ca_timeName == NULL)
+    if (ca_timeName == nullptr)
     {
         ca_timeName = new char[genCharSize];
 
@@ -835,11 +835,11 @@ int rhoPimple::step()
 
     // This garanties that the updates are called
     //  if the pointers are allocated
-    if (ca_nCells != NULL)
+    if (ca_nCells != nullptr)
         updateVolumeData();
-    if (ca_nFaces != NULL)
+    if (ca_nFaces != nullptr)
         updateFaceData();
-    if (ca_nPatches != NULL)
+    if (ca_nPatches != nullptr)
         updateSurfaceData();
     //-------------------------------------------
 
@@ -1459,22 +1459,22 @@ int rhoPimple::finalize()
     //delete psiPtr;
     //delete ePtr;
 
-    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr = NULL;}
-    if (UPtr != NULL) {delete UPtr; UPtr = NULL;}
-    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr = NULL;}
-    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr = NULL;}
-    if (phiPtr != NULL) {delete phiPtr; phiPtr = NULL;}
+    if (rhoPtr != nullptr) {delete rhoPtr; rhoPtr = nullptr;}
+    if (UPtr != nullptr) {delete UPtr; UPtr = nullptr;}
+    if (rhoUPtr != nullptr) {delete rhoUPtr; rhoUPtr = nullptr;}
+    if (rhoEPtr != nullptr) {delete rhoEPtr; rhoEPtr = nullptr;}
+    if (phiPtr != nullptr) {delete phiPtr; phiPtr = nullptr;}
 
     // delete meshPtr;
     // delete turbulencePtr;
     // delete trDeltaT;
 
-    if (pimplePtr != NULL) {delete pimplePtr; pimplePtr = NULL;}
-    if (pressureControlPtr != NULL) {delete pressureControlPtr; pressureControlPtr = NULL;}
-    if (dpdtPtr != NULL) {delete dpdtPtr; dpdtPtr = NULL;}
-    if (KPtr != NULL) {delete KPtr; KPtr = NULL;}
-    if (fvOptionsPtr != NULL) {delete fvOptionsPtr; fvOptionsPtr = NULL;}
-    if (MRFPtr != NULL) {delete MRFPtr; MRFPtr = NULL;}
+    if (pimplePtr != nullptr) {delete pimplePtr; pimplePtr = nullptr;}
+    if (pressureControlPtr != nullptr) {delete pressureControlPtr; pressureControlPtr = nullptr;}
+    if (dpdtPtr != nullptr) {delete dpdtPtr; dpdtPtr = nullptr;}
+    if (KPtr != nullptr) {delete KPtr; KPtr = nullptr;}
+    if (fvOptionsPtr != nullptr) {delete fvOptionsPtr; fvOptionsPtr = nullptr;}
+    if (MRFPtr != nullptr) {delete MRFPtr; MRFPtr = nullptr;}
 
     //delete UEqnPtr;
 

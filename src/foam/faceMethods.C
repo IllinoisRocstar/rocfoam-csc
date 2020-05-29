@@ -101,7 +101,7 @@ int comFoam::createFaceData()
     ca_faceOwner = new int[*ca_nFaces];
     ca_faceNeighb = new int[*ca_nFaces];
 
-    if (phiPtr != NULL)
+    if (phiPtr != nullptr)
         ca_Phi = new double[*ca_nFaces];
 
     return 0;
@@ -143,7 +143,7 @@ int comFoam::updateFaceData()
                 ca_faceNeighb[faceIndex] = faceNeighb[faceID];
             }
 
-            if (ca_Phi != NULL)
+            if (ca_Phi != nullptr)
                 ca_Phi[faceIndex] = phi[faceID];
 
             faceIndex++;
@@ -248,7 +248,7 @@ int comFoam::registerFaceData(const char *name)
     COM_set_array(dataName, paneID, ca_faceNeighb, 1);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-    if (ca_Phi != NULL)
+    if (ca_Phi != nullptr)
     {
         dataName = volName+std::string(".phi");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/s");
@@ -461,77 +461,77 @@ int comFoam::deleteFaceData()
 {
     //  faceToPoint connectivity arrays ^^^^^^^^^
     
-    if (ca_faceToPointConn_types != NULL)
+    if (ca_faceToPointConn_types != nullptr)
     {
         int ntypes = *ca_faceToPointConn_types;
 
-        if (ca_faceToPointConn != NULL)
+        if (ca_faceToPointConn != nullptr)
         {
             for(int itype=0; itype<ntypes; itype++)
             {
-                if (ca_faceToPointConn[itype] != NULL)
+                if (ca_faceToPointConn[itype] != nullptr)
                 {
                     delete [] ca_faceToPointConn[itype];
-                    ca_faceToPointConn[itype] = NULL;
+                    ca_faceToPointConn[itype] = nullptr;
                 }
             }
             delete [] ca_faceToPointConn;
-            ca_faceToPointConn = NULL;
+            ca_faceToPointConn = nullptr;
         }
 
         delete[] ca_faceToPointConn_types;
-        ca_faceToPointConn_types = NULL;
+        ca_faceToPointConn_types = nullptr;
     }
 
-    if (ca_faceToPointConn_map != NULL)
+    if (ca_faceToPointConn_map != nullptr)
     {
         delete [] ca_faceToPointConn_map;
-        ca_faceToPointConn_map = NULL;
+        ca_faceToPointConn_map = nullptr;
     }
 
-    if (ca_faceToPointConn_size != NULL)
+    if (ca_faceToPointConn_size != nullptr)
     {
         delete [] ca_faceToPointConn_size;
-        ca_faceToPointConn_size = NULL;
+        ca_faceToPointConn_size = nullptr;
     }
     //-------------------------------------------
 
-    if (ca_faceOwner != NULL)
+    if (ca_faceOwner != nullptr)
     {
         delete [] ca_faceOwner;
-        ca_faceOwner = NULL;
+        ca_faceOwner = nullptr;
     }
 
-    if (ca_faceNeighb != NULL)
+    if (ca_faceNeighb != nullptr)
     {
         delete [] ca_faceNeighb;
-        ca_faceNeighb = NULL;
+        ca_faceNeighb = nullptr;
     }
 
-    if (ca_Phi != NULL)
+    if (ca_Phi != nullptr)
     {
         delete[] ca_Phi;
-        ca_Phi = NULL;
+        ca_Phi = nullptr;
     }
 
     // Connectivity-map
-    if (ca_faceToFaceMap != NULL)
+    if (ca_faceToFaceMap != nullptr)
     {
         delete [] ca_faceToFaceMap;
-        ca_faceToFaceMap = NULL;
+        ca_faceToFaceMap = nullptr;
     }
 
     // Connectivity-map
-    if (ca_faceToFaceMap_inverse != NULL)
+    if (ca_faceToFaceMap_inverse != nullptr)
     {
         delete [] ca_faceToFaceMap_inverse;
-        ca_faceToFaceMap_inverse = NULL;
+        ca_faceToFaceMap_inverse = nullptr;
     }
 
-    if (ca_nFaces != NULL)
+    if (ca_nFaces != nullptr)
     {
         delete[] ca_nFaces;
-        ca_nFaces = NULL;
+        ca_nFaces = nullptr;
     }
 
     return 0;

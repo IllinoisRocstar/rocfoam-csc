@@ -24,19 +24,19 @@ public:
     //--------------------------------------
 
 private:
-    int initSet();
+    //int initSet();
 
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^^
-    surfaceScalarField *posPtr;
-    surfaceScalarField *negPtr;
-    surfaceScalarField *amaxSfPtr;
+    surfaceScalarField *posPtr{nullptr};
+    surfaceScalarField *negPtr{nullptr};
+    surfaceScalarField *amaxSfPtr{nullptr};
 
-    autoPtr<psiThermo> pThermoPtr;
+    autoPtr<psiThermo> pThermoPtr{nullptr};
     //--------------------------------------
 
     //  Control variables ^^^^^^^^^^^^^^^^^^
-    word fluxScheme;
-    bool inviscid;
+    word fluxScheme{""};
+    bool inviscid{false};
     //--------------------------------------
 
    

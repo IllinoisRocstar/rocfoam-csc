@@ -25,7 +25,7 @@ int comFoam::readInitFiles(const std::string& rootAddr)
     for(int ifile=0; ifile<fileCount; ifile++)
     {
         ca_fileSize[ifile] = vecFile[ifile].size; //This does not
-                                                  //include the Null char
+                                                  //include the nullptr char
 
         std::string tmpStr = vecFile[ifile].name;
         ca_fileName[ifile] = new char [tmpStr.length()+1];
@@ -116,8 +116,8 @@ int comFoam::createFieldFiles
     namespace BF = boost::filesystem;
     
     int nTotal=*ca_nFiles;
-    if (ca_Rho != NULL) nTotal++;
-    if (ca_Phi != NULL) nTotal++;
+    if (ca_Rho != nullptr) nTotal++;
+    if (ca_Phi != nullptr) nTotal++;
     
     for(int ifile=0; ifile<nTotal; ifile++)
     {
@@ -1576,55 +1576,55 @@ bool comFoam::fileShouldBeRead
 
 int comFoam::deleteFilesData()
 {
-    if (ca_fileContent != NULL)
+    if (ca_fileContent != nullptr)
     {
         for (int ifile=0; ifile<*ca_nFiles; ifile++)
         {
-            if (ca_fileContent[ifile] != NULL)
+            if (ca_fileContent[ifile] != nullptr)
             {
                 delete [] ca_fileContent[ifile];
             }
         }
         delete [] ca_fileContent;
-        ca_fileContent = NULL;
+        ca_fileContent = nullptr;
     }
 
-    if (ca_filePath != NULL)
+    if (ca_filePath != nullptr)
     {
         for (int ifile=0; ifile<*ca_nFiles; ifile++)
         {
-            if (ca_filePath[ifile] != NULL)
+            if (ca_filePath[ifile] != nullptr)
             {
                 delete [] ca_filePath[ifile];
             }
         }
         delete [] ca_filePath;
-        ca_filePath = NULL;
+        ca_filePath = nullptr;
     }
 
-    if (ca_fileName != NULL)
+    if (ca_fileName != nullptr)
     {
         for (int ifile=0; ifile<*ca_nFiles; ifile++)
         {
-            if (ca_fileName[ifile] != NULL)
+            if (ca_fileName[ifile] != nullptr)
             {
                 delete [] ca_fileName[ifile];
             }
         }
         delete [] ca_fileName;
-        ca_fileName = NULL;
+        ca_fileName = nullptr;
     }
 
-    if (ca_fileSize != NULL)
+    if (ca_fileSize != nullptr)
     {
         delete [] ca_fileSize;
-        ca_fileSize = NULL;
+        ca_fileSize = nullptr;
     }
 
-    if (ca_nFiles != NULL)
+    if (ca_nFiles != nullptr)
     {
         delete [] ca_nFiles;
-        ca_nFiles = NULL;
+        ca_nFiles = nullptr;
     }
 
     return 0;

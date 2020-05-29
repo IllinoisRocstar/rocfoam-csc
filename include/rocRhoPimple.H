@@ -25,7 +25,7 @@ public:
     //--------------------------------------
 
 private:
-    int initSet();
+    //int initSet();
 
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^
     pimpleControl *pimplePtr;

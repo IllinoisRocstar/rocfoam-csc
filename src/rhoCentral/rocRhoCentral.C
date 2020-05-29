@@ -3,28 +3,28 @@
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoCentral::rhoCentral()
 {
-    initSet();
+    //initSet();
     solverType = const_cast<char *>("rocRhoCentral");
 };
 
 rhoCentral::rhoCentral(int argc, char *argv[])
 {
-    initSet();
+    //initSet();
     solverType = const_cast<char *>("rocRhoCentral");
-    initialize(argc, argv);
+    //initialize(argc, argv);
 }
 
-int rhoCentral::initSet()
+/*int rhoCentral::initSet()
 {
-    posPtr = NULL;
-    negPtr = NULL;
-    amaxSfPtr = NULL;
-    pThermoPtr = NULL;
+    posPtr = nullptr;
+    negPtr = nullptr;
+    amaxSfPtr = nullptr;
+    pThermoPtr = nullptr;
     fluxScheme = "";
     inviscid = false;
 
     return 0;
-}
+} */
 
 
 //=========================================================
@@ -96,7 +96,7 @@ void rhoCentral::unload(const char *name)
     Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
                << name << "." << Foam::endl;
 
-    comFoam *comFoamPtr = NULL;
+    comFoam *comFoamPtr = nullptr;
 
     std::string volName = name+std::string("VOL");
     std::string objectName(volName+".object");
@@ -163,17 +163,17 @@ int rhoCentral::initialize(int argc, char *argv[])
     //   solver runs step-by-step.
     Foam::Time &runTime(*runTimePtr);
     
-    if (ca_runStat == NULL)
+    if (ca_runStat == nullptr)
         ca_runStat = new int(static_cast<int>(runTime.run()));
-    if (ca_time == NULL)
+    if (ca_time == nullptr)
         ca_time = new double(runTime.value());
-    if (ca_deltaT == NULL)
+    if (ca_deltaT == nullptr)
         ca_deltaT = new double(runTime.deltaTValue());
-    if (ca_deltaT0 == NULL)
+    if (ca_deltaT0 == nullptr)
         ca_deltaT0 = new double(runTime.deltaT0Value());
-    if (ca_timeIndex == NULL)
+    if (ca_timeIndex == nullptr)
         ca_timeIndex = new int(runTime.timeIndex());
-    if (ca_timeName == NULL)
+    if (ca_timeName == nullptr)
     {
         ca_timeName = new char[genCharSize];
 
@@ -301,7 +301,7 @@ int rhoCentral::loop()
         );
 
         // surfaceScalarField amaxSf("amaxSf", max(mag(am), mag(ap)));
-        if (amaxSfPtr == NULL)
+        if (amaxSfPtr == nullptr)
         {
             amaxSfPtr = new surfaceScalarField("amaxSf", max(mag(am), mag(ap)));
         }
@@ -553,7 +553,7 @@ int rhoCentral::step()
         );
 
         // surfaceScalarField amaxSf("amaxSf", max(mag(am), mag(ap)));
-        if (amaxSfPtr == NULL)
+        if (amaxSfPtr == nullptr)
         {
             amaxSfPtr = new surfaceScalarField("amaxSf", max(mag(am), mag(ap)));
         }
@@ -721,11 +721,11 @@ int rhoCentral::step()
     
     // This garanties that the updates are called
     //  if the pointers are allocated
-    if (ca_nCells != NULL)
+    if (ca_nCells != nullptr)
         updateVolumeData();
-    if (ca_nFaces != NULL)
+    if (ca_nFaces != nullptr)
         updateFaceData();
-    if (ca_nPatches != NULL)
+    if (ca_nPatches != nullptr)
         updateSurfaceData();
     //-------------------------------------------
 
@@ -967,14 +967,14 @@ rhoCentral::~rhoCentral()
 int rhoCentral::finalize()
 {
     // Delete thing that are allocated here
-    if (posPtr != NULL) {delete posPtr; posPtr = NULL;}
-    if (negPtr != NULL) {delete negPtr; negPtr = NULL;}
-    if (amaxSfPtr != NULL) {delete amaxSfPtr; amaxSfPtr = NULL;}
-    if (UPtr != NULL) {delete UPtr; UPtr=NULL;}
-    if (rhoPtr != NULL) {delete rhoPtr; rhoPtr=NULL;}
-    if (rhoUPtr != NULL) {delete rhoUPtr; rhoUPtr=NULL;}
-    if (rhoEPtr != NULL) {delete rhoEPtr; rhoEPtr=NULL;}
-    if (phiPtr != NULL) {delete phiPtr; phiPtr=NULL;}
+    if (posPtr != nullptr) {delete posPtr; posPtr = nullptr;}
+    if (negPtr != nullptr) {delete negPtr; negPtr = nullptr;}
+    if (amaxSfPtr != nullptr) {delete amaxSfPtr; amaxSfPtr = nullptr;}
+    if (UPtr != nullptr) {delete UPtr; UPtr=nullptr;}
+    if (rhoPtr != nullptr) {delete rhoPtr; rhoPtr=nullptr;}
+    if (rhoUPtr != nullptr) {delete rhoUPtr; rhoUPtr=nullptr;}
+    if (rhoEPtr != nullptr) {delete rhoEPtr; rhoEPtr=nullptr;}
+    if (phiPtr != nullptr) {delete phiPtr; phiPtr=nullptr;}
 
     //delete argsPtr; Let it be the last thing to delete in the
     //                parrent class:rocFoam

@@ -10,10 +10,14 @@
 
 class rocFoam
 {
+private:
+    //int initSet();
+    // char *solverType{};
+    
 public:
     //  Initializations ^^^^^^^^^^^^^^
-    Foam::argList *argsPtr;
-    Foam::Time *runTimePtr;
+    Foam::argList *argsPtr{nullptr};
+    Foam::Time *runTimePtr{nullptr};
     //--------------------------------
 
     //  Constructor/deconstructor ^^^^
@@ -22,52 +26,47 @@ public:
     //--------------------------------
 
     //  Methods status ^^^^^^^^^^^^^^^^^^^^^
-    int initializeStat;
-    int loopStat;
-    int stepStat;
-    int finalizeStat;
+    int initializeStat{0};
+    int loopStat{0};
+    int stepStat{0};
+    int finalizeStat{0};
     
     double testStat;
     virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
     //--------------------------------------
 
-
-private:
-    int initSet();
-
-    char *solverType;
 protected:
     //  Control variables ^^^^^^^^^^^^
     // static scalar constexpr small=1.0e-10;
     // static scalar constexpr great=1.0e+10;
 
-    bool listOptions;
-    bool LTS;
-    bool adjustTimeStep;
-    bool overrideTimeStep;
+    bool listOptions{false};
+    bool LTS{false};
+    bool adjustTimeStep{false};
+    bool overrideTimeStep{false};
 
-    scalar maxCo;
-    scalar maxDeltaT;
-    scalar overrideDeltaT;
-    scalar CoNum;
-    scalar meanCoNum;
+    scalar maxCo{0};
+    scalar maxDeltaT{0};
+    scalar overrideDeltaT{0};
+    scalar CoNum{0};
+    scalar meanCoNum{0};
     //--------------------------------
 
     //  Solver pointers ^^^^^^^^^^^^^^
-    volScalarField *pPtr;
-    const volScalarField *TPtr;
-    const volScalarField *psiPtr;
+    volScalarField *pPtr{nullptr};
+    const volScalarField *TPtr{nullptr};
+    const volScalarField *psiPtr{nullptr};
 
-    volScalarField *ePtr;
-    volScalarField *rhoPtr;
-    volVectorField *UPtr;
-    volVectorField *rhoUPtr;
-    volScalarField *rhoEPtr;
-    surfaceScalarField *phiPtr;
+    volScalarField *ePtr{nullptr};
+    volScalarField *rhoPtr{nullptr};
+    volVectorField *UPtr{nullptr};
+    volVectorField *rhoUPtr{nullptr};
+    volScalarField *rhoEPtr{nullptr};
+    surfaceScalarField *phiPtr{nullptr};
 
-    autoPtr<dynamicFvMesh> meshPtr;
-    autoPtr<compressible::turbulenceModel> turbulencePtr;
-    tmp<volScalarField> trDeltaT;
+    autoPtr<dynamicFvMesh> meshPtr{nullptr};
+    autoPtr<compressible::turbulenceModel> turbulencePtr{nullptr};
+    tmp<volScalarField> trDeltaT{nullptr};
     //--------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
