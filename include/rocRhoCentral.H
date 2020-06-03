@@ -55,7 +55,7 @@ public:
     //  Main methods ^^^^^^^^^^^^^^^^^^^^^^^
     int initialize(int argc, char *argv[]);
     int loop();
-    int step();
+    int step(double* newDeltaT = nullptr);
     int finalize();
     //--------------------------------------
 };

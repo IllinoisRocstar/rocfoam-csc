@@ -3,30 +3,14 @@
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoCentral::rhoCentral()
 {
-    //initSet();
     solverType = const_cast<char *>("rocRhoCentral");
 };
 
 rhoCentral::rhoCentral(int argc, char *argv[])
 {
-    //initSet();
     solverType = const_cast<char *>("rocRhoCentral");
-    //initialize(argc, argv);
+    initialize(argc, argv);
 }
-
-/*int rhoCentral::initSet()
-{
-    posPtr = nullptr;
-    negPtr = nullptr;
-    amaxSfPtr = nullptr;
-    pThermoPtr = nullptr;
-    fluxScheme = "";
-    inviscid = false;
-
-    return 0;
-} */
-
-
 //=========================================================
 
 
@@ -71,7 +55,7 @@ void rhoCentral::load(const char *name)
     std::string objectName = volName + std::string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(volName.c_str());
+    COM_window_init_done(volName);
     //-------------------------------------------
 
     // Register Surface Window ^^^^^^^^^^^^^^^^^^
@@ -449,7 +433,7 @@ int rhoCentral::loop()
 }
 
 
-int rhoCentral::step()
+int rhoCentral::step(double* newDeltaT)
 {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);
@@ -483,7 +467,14 @@ int rhoCentral::step()
         if (!LTS)
         {
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^
-            setDeltaT();
+            if (newDeltaT != nullptr)
+            {
+                setDeltaT(newDeltaT);
+            }
+            else
+            {
+                setDeltaT();
+            }
             // ----------------------------------
             runTime++;
 

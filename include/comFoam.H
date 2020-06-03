@@ -10,13 +10,9 @@
 class comFoam : public COM_Object, public rocFoam
 {
 private:
-    //int initSet();
-
-    //const int cellToPointTypeSize=8;
     const int faceToPointTypeSize{4};
     const int panePadding{100};
     const int IODigits{10};
-    
     const std::string tmpFluidDir{"./fluidTmp"};
 protected:
     const int nComponents{3};
@@ -25,8 +21,11 @@ protected:
 public:
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam();
-    comFoam(int *pargc, void **pargv, const char *name);
+    //comFoam(int *pargc, void **pargv, const char *name);
     ~comFoam();
+    
+protected:
+    virtual int finalize();
 
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 protected:
@@ -214,16 +213,39 @@ protected:
     
     
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    
-    // Solver
+    // rocFoam driver methods
     int flowInit(int *pargc, void **pargv, const char *name);
-    int flowLoop(const char *name);
-    int flowStep(const char *name);
+    int flowLoop();
+    int flowStep();
 
     // COM-specific
     int registerFunctions(const char *name);
     int reconstCaData(int* pargc, void** pargv, const char* name);
-public: 
+    //-------------------------------------------
+
+public:
+
+    // RocStar-specific methods ^^^^^^^^^^^^^^^^^
+    void flowInitRocStar
+    (
+        const double& initTime,
+        const MPI_Comm& flowComm,
+        const int& manInitHandle,
+        const std::string& volName,
+        const std::string& surfName,
+        const int& obtainHandle
+    );
+
+    void flowUpdateRocStar
+    (
+        double& currentTime,
+        double& timeStep,
+        int& handles
+    );
+
+    void flowFinRocStar();
+    //-------------------------------------------
+
     static void copyWindow(const char *name1, const char *name2);
     int findGlobalIndex(int* arr, const int& size,  const int& elem);
     static std::string removeTrailZero(std::string in);

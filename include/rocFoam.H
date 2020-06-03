@@ -43,11 +43,11 @@ protected:
     bool listOptions{false};
     bool LTS{false};
     bool adjustTimeStep{false};
-    bool overrideTimeStep{false};
+    //bool overrideTimeStep{false};
 
     scalar maxCo{0};
     scalar maxDeltaT{0};
-    scalar overrideDeltaT{0};
+    //scalar overrideDeltaT{0};
     scalar CoNum{0};
     scalar meanCoNum{0};
     //--------------------------------
@@ -73,7 +73,7 @@ protected:
     virtual int initialize() { return 0; };
     virtual int initialize(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
-    virtual int step() { return 0; };
+    virtual int step(double* newDeltaT = nullptr) { return 0; };
     virtual int finalize();
     //--------------------------------------
 
@@ -100,8 +100,8 @@ protected:
     int createTimeControls();
     int readTimeControls();
 
-    int setDeltaT();
-    int setDeltaT(scalar &overrideDeltaT);
+    //int setDeltaT();
+    int setDeltaT(double* newDeltaT = nullptr);
 
     // int createMesh();
     int createDynamicFvMesh();

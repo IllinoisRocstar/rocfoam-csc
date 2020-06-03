@@ -1,42 +1,16 @@
 #include "rocRhoPimple.H"
 
-using namespace COM;
-
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoPimple::rhoPimple()
 {
-    //initSet();
     solverType = const_cast<char *>("rocRhoPimple");
 }
 
 rhoPimple::rhoPimple(int argc, char *argv[])
 {
-    //initSet();
     solverType = const_cast<char *>("rocRhoPimple");
     initialize(argc, argv);
 }
-
-/* int rhoPimple::initSet()
-{
-    pimplePtr = nullptr;
-    pressureControlPtr = nullptr;
-    dpdtPtr = nullptr;
-    KPtr = nullptr;
-    fvOptionsPtr = nullptr;
-    MRFPtr = nullptr;
-    UEqnPtr = nullptr;
-    pThermoPtr = nullptr;
-    rhoUfPtr = nullptr;
-    divrhoUPtr = nullptr;
-    //tUEqnPtr = nullptr;
-    correctPhi = false;
-    checkMeshCourantNo = false;
-    moveMeshOuterCorrectors = false;
-    cumulativeContErr = 0.0;
-
-    return 0;
-} */
-
 //=========================================================
 
 
@@ -81,7 +55,7 @@ void rhoPimple::load(const char *name)
     std::string objectName = volName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(volName.c_str());
+    COM_window_init_done(volName);
     //-------------------------------------------
 
     // Register Surface Window ^^^^^^^^^^^^^^^^^^
@@ -668,7 +642,7 @@ int rhoPimple::loop()
 }
 
 
-int rhoPimple::step()
+int rhoPimple::step(double* newDeltaT)
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -712,7 +686,14 @@ int rhoPimple::step()
             // ---------------------------------------------
 
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            setDeltaT();
+            if (newDeltaT != nullptr)
+            {
+                setDeltaT(newDeltaT);
+            }
+            else
+            {
+                setDeltaT();
+            }
             // ---------------------------------------------
         }
 

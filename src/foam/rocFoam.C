@@ -2,44 +2,7 @@
 #include <vector>
 
 rocFoam::rocFoam()
-{ //initSet();
-}
-
-/* int rocFoam::initSet()
-{
-    solverType = NULL;
-    argsPtr = NULL;
-    runTimePtr = NULL;
-    listOptions = false;
-    LTS = false;
-    adjustTimeStep = false;
-    overrideTimeStep = false;
-    maxCo = 0.0;
-    maxDeltaT = 0.0;
-    overrideDeltaT = small;
-    CoNum = 0.0;
-    meanCoNum = 0.0;
-    pPtr = NULL;
-    TPtr = NULL;
-    psiPtr = NULL;
-    ePtr = NULL;
-    rhoPtr = NULL;
-    UPtr = NULL;
-    rhoUPtr = NULL;
-    rhoEPtr = NULL;
-    phiPtr = NULL;
-    //meshPtr = NULL;
-    //turbulencePtr = NULL;
-    //trDeltaT = NULL;
-    initializeStat = -1;
-    loopStat = -1;
-    stepStat = -1;
-    finalizeStat = -1;
-    testStat = -1.0;
-    
-    return 0;
-} */
-
+{}
 
 rocFoam::~rocFoam()
 {
@@ -523,11 +486,11 @@ int rocFoam::readTimeControls()
 }
 //-----------------------------------------------
 
-int rocFoam::setDeltaT()
+int rocFoam::setDeltaT(double* newDeltaT)
 {
     Foam::Time &runTime(*runTimePtr);
 
-    if (adjustTimeStep && !overrideTimeStep)
+    if (adjustTimeStep || newDeltaT != nullptr)
     {
         scalar maxDeltaTFact = maxCo / (CoNum + small);
         scalar deltaTFact = min
@@ -536,74 +499,19 @@ int rocFoam::setDeltaT()
             1.2
         );
 
-        runTime.setDeltaT(min(deltaTFact * runTime.deltaTValue(), maxDeltaT));
-
-        Info << "deltaT = " << runTime.deltaTValue() << endl;
-    }
-    /* else if (overrideTimeStep && !adjustTimeStep)
-    {
-        FatalErrorInFunction
-            << "AdjustTimeStep should be set in control dictionary"
-            << Foam::endl;    
-    } */
-    else if (overrideTimeStep)
-    {
-        scalar maxDeltaTFact = maxCo / (CoNum + small);
-        scalar deltaTFact = min
-        (
-            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
-            1.2
-        );
-
-        scalar mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
-        if (overrideDeltaT > mainDeltaT)
+        double mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
+        if (newDeltaT != nullptr)
         {
-            Info << "Warning: deltaT = " << mainDeltaT 
-                 << ", overrideDeltaT = " << overrideDeltaT << endl;
+            mainDeltaT = min(mainDeltaT, *newDeltaT);
+            Info << "Suppressin deltaT to = " << mainDeltaT << endl;
         }
-
-        runTime.setDeltaT(overrideDeltaT);
-
-        Info << "deltaT = " << runTime.deltaTValue() << endl;
-    }
-    
-    return 0;
-}
-
-/*
-int rocFoam::setDeltaT(scalar &overrideDeltaT)
-{
-    Foam::Time &runTime(*runTimePtr);
-
-    if (!adjustTimeStep)
-    {
-        FatalErrorInFunction
-            << "AdjustTimeStep should be set in control dictionary"
-            << Foam::endl;
-    }
-    else
-    {
-        scalar maxDeltaTFact = maxCo / (CoNum + small);
-        scalar deltaTFact = min
-        (
-            min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
-            1.2
-        );
-
-        scalar mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
-        if (overrideDeltaT > mainDeltaT)
-        {
-            Info << "Warning: deltaT = " << mainDeltaT 
-                 << ", overrideDeltaT = " << overrideDeltaT << endl;
-        }
-
-        runTime.setDeltaT(overrideDeltaT);
+        
+        runTime.setDeltaT(mainDeltaT);
 
         Info << "deltaT = " << runTime.deltaTValue() << endl;
     }
     return 0;
 }
-*/
 
 int rocFoam::createRDeltaT()
 {
