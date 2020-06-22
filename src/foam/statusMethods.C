@@ -168,6 +168,8 @@ int comFoam::registerStatusData(const char *name)
     COM_set_array(    dataName, 0, ca_dynamicFvMesh);
     Info << dataName << " registered." << endl;
 
+    COM_window_init_done(volName);
+
     return 0;
 }
 

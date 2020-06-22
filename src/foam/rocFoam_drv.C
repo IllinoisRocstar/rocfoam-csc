@@ -227,7 +227,7 @@ COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
 int OUT_write = COM_get_function_handle("OUT.write_dataitem");
 
 lookUpWindow1 = winNames[0]+string("VOL");
-std::string whatToWrite = lookUpWindow1+std::string(".mesh");
+std::string whatToWrite = lookUpWindow1+std::string(".all");
 int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
 char* outputPath = new char[40]{' '};

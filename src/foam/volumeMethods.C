@@ -257,19 +257,23 @@ int comFoam::registerVolumeData(const char *name)
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nPoints);
+    
     Info << "  " << dataName.c_str() << " registered." << endl;
+
 
 std::cout << "HERE0 " << "ca_nPoints = " << ca_nPoints << std::endl;
 
 std::cout << "HERE1 " << "*ca_nPoints = " << *ca_nPoints << std::endl;
 
 
-/*
+
     dataName = volName+std::string(".nCells");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nCells);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+
 
     dataName = volName+std::string(".cellToPointConn_types");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
@@ -289,16 +293,14 @@ std::cout << "HERE1 " << "*ca_nPoints = " << *ca_nPoints << std::endl;
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_cellToPointConn_size);
     Info << "  " << dataName.c_str() << " registered." << endl;
-*/
 
-/*
+
+
     // points
     dataName = volName+std::string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Info << "  " << dataName.c_str() << " registered." << endl;
-
-int ntypes = *ca_cellToPointConn_types;
 
 std::cout << "HERE0 " << "nPoints = " << *ca_nPoints << std::endl;
 
@@ -349,8 +351,7 @@ std::cout << "HERE3 " << "typeSize = " << typeSize << std::endl;
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
-*/
-/*        
+
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
@@ -431,7 +432,7 @@ std::cout << "HERE3 " << "typeSize = " << typeSize << std::endl;
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
     //-------------------------------------------
-*/
+
     COM_window_init_done(volName); 
 
     return 0;

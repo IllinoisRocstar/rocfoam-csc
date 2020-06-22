@@ -1604,6 +1604,8 @@ int comFoam::registerFilesData(const char *name)
     std::cout << "----------------------------------------------------"
               << std::endl;
 
+    COM_window_init_done(volName);
+
     return 0;
 }
 

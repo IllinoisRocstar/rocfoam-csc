@@ -248,6 +248,8 @@ int comFoam::registerFaceData(const char *name)
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
+
+/*
     
     dataName = volName+std::string(".faceToFaceMap");
     COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
@@ -286,6 +288,7 @@ int comFoam::registerFaceData(const char *name)
         COM_set_array(    dataName, paneID, ca_RhoUf, nComponents);
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
+*/
 
     COM_window_init_done(volName);
 
