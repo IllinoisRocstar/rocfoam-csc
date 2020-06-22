@@ -53,10 +53,10 @@ private:
 
 public:
     //  Main methods ^^^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[]);
+    int initFOAM(int argc, char *argv[]);
     int loop();
     int step(double* newDeltaT = nullptr);
-    int finalize();
+    int finalizeFoam();
     //--------------------------------------
 };
 

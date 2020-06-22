@@ -1,5 +1,9 @@
 #include "comLoadUnload.H"
 
+COM_EXTERN_MODULE(Rocout);
+COM_EXTERN_MODULE(Rocin);
+
+
 MPI_Comm masterComm;
 MPI_Comm newComm;
 
@@ -28,7 +32,7 @@ std::vector<int> flowStatHandle;
 std::vector<int> flowLoopHandle;
 std::vector<int> flowStepHandle;
 std::vector<int> flowFinHandle;
-std::vector<int> flowReconstCaDataHandle;
+std::vector<int> flowRestartInitHandle;
 
 // Registered veriables with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
 int *fluidRun;
@@ -73,8 +77,8 @@ std::cin.get();
 
     //comDrvFin(winNames[0].c_str());
 
-    comfoam_unload_module(winNames[0].c_str(), solverType);
-    comfoam_unload_module(winNames[1].c_str(), solverType);
+    rocfoam_unload_module(winNames[0].c_str(), solverType);
+    rocfoam_unload_module(winNames[1].c_str(), solverType);
 
 
     return 0;
@@ -182,7 +186,7 @@ int comDrvInit(int argc, char *argv[])
 
     winNames.push_back("ROCFOAM");
     
-    comfoam_load_module(winNames[0].c_str(), solverType);
+    rocfoam_load_module(winNames[0].c_str(), solverType);
     comGetFunctionHandles(winNames[0].c_str());
 
     //  Make a dummy argc/argv for OpenFOAM. ^^^^
@@ -192,7 +196,7 @@ int comDrvInit(int argc, char *argv[])
     int myArgc = 1;
     char *myArgv[2];
     myArgv[0] = argv[0];
-    myArgv[1] = NULL;
+    myArgv[1] = nullptr;
 
     if (runParallel)
     {
@@ -216,31 +220,66 @@ int comDrvInit(int argc, char *argv[])
     //lookUpWindow1 = winNames[0]+string("SURF");
     //comGetVolDataItems(lookUpWindow1.c_str());
 
-    lookUpWindow1 = winNames[0]+string("VOL");
+
+std::cout << "Writing the window" << std::endl;
+
+COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
+int OUT_write = COM_get_function_handle("OUT.write_dataitem");
+
+lookUpWindow1 = winNames[0]+string("VOL");
+std::string whatToWrite = lookUpWindow1+std::string(".mesh");
+int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
+
+char* outputPath = new char[40]{' '};
+std::string strTmp = std::string("./")
+                   + winNames[0]+"/"
+                    +lookUpWindow1+std::string("_");
+std::strcpy(outputPath, strTmp.c_str());
+
+char* material = new char[40]{' '};
+std::strcpy(material, lookUpWindow1.c_str());
+
+char* timeName = new char[40]{' '};
+
+COM_call_function
+(
+    OUT_write,
+    outputPath,
+    &whatToWriteHandle,
+    material,
+    timeName
+);
+
+
+
+delete [] outputPath;
+outputPath = nullptr;
+
+delete [] material;
+material = nullptr;
+
+delete [] timeName;
+timeName = nullptr;
+
+std::cout << "Finished writting surface window" << std::endl;
+COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
+std::cout << "Unloaded SIMOUT" << std::endl;
+
+std::cin.get();
+
+
     lookUpWindow2 = "ROCFOAM1";
     winNames.push_back(lookUpWindow2);
-    comfoam_load_module(lookUpWindow2.c_str(), solverType);
+    rocfoam_load_module(lookUpWindow2.c_str(), solverType);
     comGetFunctionHandles(lookUpWindow2.c_str());
 
-    lookUpWindow1 = winNames[0]+string("VOL");
-    lookUpWindow2 = winNames[1]+string("VOL");
+    lookUpWindow1 = winNames[0];
+    lookUpWindow2 = winNames[1];
     comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
 
-    lookUpWindow1 = winNames[0]+string("SURF");
-    lookUpWindow2 = winNames[1]+string("SURF");
-    comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
-
-    //lookUpWindow2 = winNames[1]+string("VOL");
-    //comGetVolDataItems(lookUpWindow2.c_str());
-    //lookUpWindow2 = winNames[1]+string("SURF");
-    //comGetVolDataItems(lookUpWindow2.c_str());
-
-    //comfoam_unload_module(winNames[0].c_str(), solverType);
-
-    COM_call_function(flowReconstCaDataHandle[1],
+    COM_call_function(flowRestartInitHandle[1],
                       &myArgc, &myArgv,
                       winNames[1].c_str());
-
     return 0;
 }
 
@@ -250,9 +289,9 @@ int comGetFunctionHandles(const char *name)
     std::vector<std::string>::iterator location = std::find(
             winNames.begin(), winNames.end(), string(name));
     int index = std::distance(winNames.begin(), location);
-    std::string volName = winNames[index]+string("VOL");
+    std::string winName = winNames[index];
 
-    std::string functionName = volName+string(".flowInit");
+    std::string functionName = winName+string(".flowInit");
     int intTmp = COM_get_function_handle(functionName.c_str());
     flowInitHandle.push_back(intTmp);
     if (intTmp <= 0)
@@ -273,7 +312,7 @@ int comGetFunctionHandles(const char *name)
     }
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
-    functionName = volName+string(".flowLoop");
+    functionName = winName+string(".flowLoop");
     intTmp = COM_get_function_handle(functionName.c_str());
     flowLoopHandle.push_back(intTmp);
     if (intTmp <= 0)
@@ -294,7 +333,7 @@ int comGetFunctionHandles(const char *name)
     }
 
     //  Get the handle for the step function ^^^^^^^^^^^^^^
-    functionName = volName+string(".flowStep");
+    functionName = winName+string(".flowStep");
     intTmp = COM_get_function_handle(functionName.c_str());
     flowStepHandle.push_back(intTmp);
     if (intTmp <= 0)
@@ -314,11 +353,10 @@ int comGetFunctionHandles(const char *name)
         }
     }
 
-
     //  Get the handle for the step function ^^^^^^^^^^^^^^
-    functionName = volName+string(".flowReconstCaData");
+    functionName = winName+string(".flowRestartInit");
     intTmp = COM_get_function_handle(functionName.c_str());
-    flowReconstCaDataHandle.push_back(intTmp);
+    flowRestartInitHandle.push_back(intTmp);
 
     if (intTmp <= 0)
     { // fail
@@ -1105,7 +1143,7 @@ int flowReconst(const char* name)
     int index = std::distance(winNames.begin(), location);
     //std::string volName = winNames[index]+string("VOL");
 
-    COM_call_function(flowReconstCaDataHandle[index], name);
+    COM_call_function(flowReconstDataHandle[index], name);
     
     return 0;
 }
@@ -1137,7 +1175,7 @@ int comDrvStep(const char* name)
 
     while (*fluidRun)
     {
-        COM_call_function(flowStepHandle[index], name);
+        COM_call_function(flowStepHandle[index]);
     }
 
     Info << "End\n" << endl;
@@ -1160,8 +1198,8 @@ int comDrvStep(const char* name)
 int comDrvFin(const char* name)
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
-    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(comfoam, "ROCFOAM");
-    comfoam_unload_module(name, solverType);
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, "ROCFOAM");
+    rocfoam_unload_module(name, solverType);
 
     COM_set_default_communicator(masterComm);
     
@@ -1173,119 +1211,3 @@ int comDrvFin(const char* name)
     return 0;
 }    
 
-//int comDrvStat()
-//{
-//    //  Get information about what was ^^^^^^^^^^
-//    //  registered in this window  
-//    std::string name = "ROCFOAM"+string("VOL");
-
-//    std::string output;
-//    COM_get_dataitems(name.c_str(), &numDataItems, output);
-//    std::istringstream Istr(output);
-
-//    std::cout << "rocFoam.main: numDataItems "
-//              << numDataItems << std::endl;
-
-//    for (int i=0; i<numDataItems; ++i)
-//    {
-//        std::string name;
-//        Istr >> name;
-//        dataItemNames.push_back(name);
-//        std::cout << "rocFoam.main: DataItem # "
-//                  << i << ": " << name << std::endl;
-//    }
-
-//    //  List of panes in this window ^^^^^^^^^^^^
-//    COM_get_panes(name.c_str(), &numPanes, &paneList);
-//    std::cout << "rocFoam.main: Number of Panes "
-//              << numPanes << std::endl;
-
-//    for (int i=0; i<numPanes; ++i) 
-//    {
-//        std::cout << "rocFoam.main: Pane ID # "
-//                  << i+1 << "="<< paneList[i] << std::endl;
-//    }
-
-//    //  Only one pane for serial runs ^^^^^^^^^^^
-//    int pane = paneList[0];
-
-//    //  Get for grid volCoordinates ^^^^^^^^^^^^^^^^
-//    std::string dataName = name+string(".nc");
-//    COM_get_array(dataName.c_str(), pane, &volCoord);
-
-//    //  Check for expected number of nodes ^^^^^^
-//    COM_get_size(dataName.c_str(), pane, &volNumNodes);
-
-//    //  Get connectivity tables for panes ^^^^^^^
-//    std::string stringNames;
-//    COM_get_connectivities(name.c_str(), pane, &numConn, stringNames);
-//    std::istringstream ConnISS(stringNames);
-
-//    for (int i=0; i<numConn; ++i)
-//    {
-//        std::string nameTmp;
-//        ConnISS >> nameTmp;
-//        //connNames.push_back(nameTmp);
-//        std::cout << "rocFoam.main: Connectivity Table # "
-//                  << i+1 << ": " << nameTmp << std::endl;
-//    }
-
-//    //  Number of nodes per element ^^^^^^^^^^^^^
-//    //dataName = name+connNames[0];
-//    std::string fullConnName = dataName.c_str();
-//    COM_get_dataitem
-//    (
-//        fullConnName,
-//        &getDataItemLoc,
-//        &getDataItemType, 
-//        &numElementNodes,
-//        &getDataItemUnits
-//    );
-
-//    std::cout << "rocFoam.main: getDataItemLoc "
-//              << getDataItemLoc << std::endl;
-
-//    std::cout << "rocFoam.main: getDataItemType "
-//              << getDataItemType << std::endl;
-
-//    std::cout << "rocFoam.main: numElementNodes "
-//              << numElementNodes << std::endl;
-
-//    std::cout << "rocFoam.main: getDataItemUnits "
-//              << getDataItemUnits << std::endl;
-//    
-//    COM_get_array(fullConnName.c_str(), pane, &Conn);
-//    COM_get_size(fullConnName, pane, &numElem);
-
-
-//    std::cout << "rocFoam.main: Conn numElem "
-//              << numElem << std::endl;
-
-//    //  Put elements into a vector so we can ^^^^
-//    //  build the solver agent 
-//    std::vector<unsigned int> connVector;
-//    for (int i=0; i<numElem; ++i)
-//    {
-//        for (int j=0; j<numElementNodes; ++j)
-//        {
-//            connVector.push_back((Conn[i*numElementNodes+j]));
-//        }
-//    }
-
-//    //  Get non-mesh data items ^^^^^^^^^^^^^^^^^
-//    dataName = name+string(".time");
-//    
-//    COM_get_dataitem
-//    (
-//        dataName,
-//        &getDataItemLoc,
-//        &getDataItemType, 
-//        &timeArrayLength,
-//        &getDataItemUnits
-//    );
-
-//    std::cout << "rocFoam.main: timeArrayLength "
-//              << timeArrayLength << std::endl;
-
-//    return 0;
-//}

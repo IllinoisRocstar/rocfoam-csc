@@ -53,28 +53,30 @@ protected:
     //--------------------------------
 
     //  Solver pointers ^^^^^^^^^^^^^^
-    volScalarField *pPtr{nullptr};
-    const volScalarField *TPtr{nullptr};
-    const volScalarField *psiPtr{nullptr};
+    volScalarField* pPtr{nullptr};
+    const volScalarField* TPtr{nullptr};
+    const volScalarField* psiPtr{nullptr};
 
-    volScalarField *ePtr{nullptr};
-    volScalarField *rhoPtr{nullptr};
-    volVectorField *UPtr{nullptr};
-    volVectorField *rhoUPtr{nullptr};
-    volScalarField *rhoEPtr{nullptr};
-    surfaceScalarField *phiPtr{nullptr};
+    volScalarField* ePtr{nullptr};
+    volScalarField* rhoPtr{nullptr};
+    volVectorField* UPtr{nullptr};
+    volVectorField* rhoUPtr{nullptr};
+    volScalarField* rhoEPtr{nullptr};
+    surfaceScalarField* phiPtr{nullptr};
+    autoPtr<surfaceVectorField> rhoUfPtr{nullptr};
 
+    
     autoPtr<dynamicFvMesh> meshPtr{nullptr};
     autoPtr<compressible::turbulenceModel> turbulencePtr{nullptr};
     tmp<volScalarField> trDeltaT{nullptr};
     //--------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    virtual int initialize() { return 0; };
-    virtual int initialize(int argc, char *argv[]) { return 0; };
+    virtual int initFOAM() { return 0; };
+    virtual int initFOAM(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
     virtual int step(double* newDeltaT = nullptr) { return 0; };
-    virtual int finalize();
+    virtual int finalizeFoam();
     //--------------------------------------
 
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^

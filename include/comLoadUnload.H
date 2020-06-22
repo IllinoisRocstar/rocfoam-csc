@@ -6,11 +6,11 @@
 
 using namespace COM;
 
-COM_EXTERN_MODULE(comfoam);
+COM_EXTERN_MODULE(rocfoam);
 
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
-extern "C" void comfoam_load_module(const char *name, char *solverType)
+extern "C" void rocfoam_load_module(const char *name, char *solverType)
 {
     if (solverType == const_cast<char *>("rocRhoCentral"))
     {
@@ -28,7 +28,7 @@ extern "C" void comfoam_load_module(const char *name, char *solverType)
 }
 
 // C/C++ bindings to unload rocFoam
-extern "C" void comfoam_unload_module(const char *name, const char *solverType)
+extern "C" void rocfoam_unload_module(const char *name, const char *solverType)
 {
     if (solverType == const_cast<char *>("rocRhoCentral"))
     {
@@ -43,7 +43,8 @@ extern "C" void comfoam_unload_module(const char *name, const char *solverType)
         std::cout << "comFoam.load: Undefined solverType " << solverType << std::endl;
         throw -4;
     }
-}//===================================================================
+}
+//===================================================================
 
 
 #endif

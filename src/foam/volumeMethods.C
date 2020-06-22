@@ -28,11 +28,10 @@ int comFoam::createVolumeConnectivities()
     ca_cellToCellMap_inverse = new int[*ca_nCells];
 
     int sortedCellIndex = 0;
-    for(auto it=mapCellToCellMap.begin(); it!=mapCellToCellMap.end(); it++)
+    for(auto it: mapCellToCellMap)
     {
-        const auto& vecCells = it->second;
+        const auto& vecCells = it.second;
         int nCells = vecCells.size();
-
         for(int icell=0; icell<nCells; icell++)
         {
             ca_cellToCellMap[sortedCellIndex] = vecCells[icell];
@@ -42,6 +41,7 @@ int comFoam::createVolumeConnectivities()
         }
     }
     //-------------------------------------------
+
     if (sortedCellIndex != *ca_nCells)
     {
         Info << "========== WARNNING ===============" << endl
@@ -58,7 +58,7 @@ int comFoam::createVolumeConnectivities()
     ca_cellToPointConn = new int*[nTypes];
 
     sortedCellIndex = 0;
-    for(auto it=mapCellToCellMap.begin(); it!=mapCellToCellMap.end(); it++)
+    for(auto it = mapCellToCellMap.begin(); it != mapCellToCellMap.end(); it++)
     {
         const auto& nPoints = it->first;
         const auto& vecCells = it->second;
@@ -93,28 +93,67 @@ int comFoam::createVolumeConnectivities()
 int comFoam::createVolumeData()
 {
     int nTotal = *ca_nPoints * nComponents;
-    ca_Points = new double[nTotal];
+    ca_Points = new double[nTotal]{0};
+    ca_Disp   = new double[nTotal]{0};
 
     // Field-data
     nTotal = *ca_nCells * nComponents;
-    ca_Vel = new double[nTotal];
-
-    ca_P   = new double[*ca_nCells];
+    ca_Vel = new double[nTotal]{0};
+    ca_P   = new double[*ca_nCells]{0};
     
     if (TPtr != nullptr)
-        ca_T   = new double[*ca_nCells];
+        ca_T = new double[*ca_nCells]{0};
 
     if (rhoPtr != nullptr)
-        ca_Rho = new double[*ca_nCells];
+        ca_Rho = new double[*ca_nCells]{0};
+
+    const volVectorField& U(*UPtr);
+    IOdictionary turbProperties
+    (
+        IOobject
+        (
+            turbulenceModel::propertiesName,
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+
+    word simulationType = turbProperties.lookup("simulationType");
+    if (simulationType == "RAS")
+    {
+        const dictionary& subDict = turbProperties.subDict("RAS");
+        word RASModel = subDict.lookup("RASModel");
+
+        if (RASModel == "kEpsilon")
+        {
+            ca_AlphaT = new double[*ca_nCells]{0};
+            ca_Epsilon = new double[*ca_nCells]{0};
+            ca_K = new double[*ca_nCells]{0};
+            ca_NuT = new double[*ca_nCells]{0};
+        }
+    }
 
     return 0;
 }
 
-int comFoam::updateVolumeData()
+int comFoam::updateVolumeData_outgoing()
 {
     // Point data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     const dynamicFvMesh& mesh(*meshPtr);
     const pointField&    points = mesh.points();
+
+    /*
+    //if (mesh.moving())
+        pointVectorField& pointDisplacement = const_cast<pointVectorField&>
+        (
+            mesh().objectRegistry::lookupObject<pointVectorField>
+            (
+                "pointDisplacement"
+            )
+        );
+    */
 
     forAll(points, ipoint)
     {
@@ -122,14 +161,22 @@ int comFoam::updateVolumeData()
         {
             ca_Points[ipoint*nComponents+jcomp]
                 = points[ipoint][jcomp];
+
+            /*
+            if (mesh.moving())
+                ca_Disp[ipoint*nComponents+jcomp]
+                = pointDisplacement[ipoint][jcomp];
+            */
         }
     }
+    
     
     // Cell-centered data ^^^^^^^^^^^^^^^^^^^^^^^
     const volScalarField& p(*pPtr);
     const volVectorField& U(*UPtr);
     const volScalarField& T(*TPtr);
     const volScalarField& rho(*rhoPtr);
+    compressible::turbulenceModel &turbulence(*turbulencePtr);
 
     int cellIndex = 0;
     for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
@@ -154,6 +201,32 @@ int comFoam::updateVolumeData()
             if (ca_Rho != nullptr)
                 ca_Rho[cellIndex] = rho[cellID];
 
+            // Turbulence data ^^^^^^^^^^^^^^^^^^
+            if (ca_AlphaT != nullptr)
+            {
+                const tmp<volScalarField>& alphat = turbulence.alphat();
+                ca_AlphaT[cellIndex] = alphat()[cellID];
+            }
+
+            if (ca_Epsilon != nullptr)
+            {
+                const tmp<volScalarField>& epsilon = turbulence.epsilon();
+                ca_Epsilon[cellIndex] = epsilon()[cellID];
+            }
+
+            if (ca_K != nullptr)
+            {
+                const tmp<volScalarField>& k = turbulence.k();
+                ca_K[cellIndex] = k()[cellID];
+            }
+
+            if (ca_NuT != nullptr)
+            {
+                const tmp<volScalarField>& nut = turbulence.nut();
+                ca_NuT[cellIndex] = nut()[cellID];
+            }
+            //-----------------------------------
+
             cellIndex++;
         }
     }
@@ -163,50 +236,13 @@ int comFoam::updateVolumeData()
 
 int comFoam::registerVolumeData(const char *name)
 {
-    Info << "rocFoam.registerVolumeData: "
-         << "Registering flow data with name "
-         << name
-         << endl;
-
     std::string volName = name+std::string("VOL");
-
-    // Genral data registered with window
-    // Solver data    
-    std::string dataName = volName+std::string(".time");
-    COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_time);
-    Info << dataName << " registered." << endl;
-
-    dataName = volName+std::string(".timeName");
-    COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
-    COM_set_size(     dataName, 0, genCharSize);
-    COM_set_array(    dataName, 0, ca_timeName);
-    Info << dataName << " registered." << endl;
-
-    dataName = volName+std::string(".deltaT");
-    COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_deltaT);
-    Info << dataName << " registered." << endl;
-
-    dataName = volName+std::string(".deltaT0");
-    COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_deltaT0);
-    Info << dataName << " registered." << endl;
-
-    dataName = volName+std::string(".timeIndex");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_timeIndex);
-    Info << dataName << " registered." << endl;
-
-    dataName = volName+std::string(".runStat");
-    COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
-    COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_runStat);
-    Info << dataName << " registered." << endl;
+    
+    Info << endl
+         << "rocFoam.registerVolumeData: "
+         << "Registering flow data with name "
+         << volName
+         << endl;
 
     // grid and field data
     int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
@@ -215,12 +251,13 @@ int comFoam::registerVolumeData(const char *name)
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
-    dataName = volName+std::string(".nPoints");
+    std::string dataName = volName+std::string(".nPoints");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nPoints);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
+/*
     dataName = volName+std::string(".nCells");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
@@ -245,12 +282,15 @@ int comFoam::registerVolumeData(const char *name)
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_cellToPointConn_size);
     Info << "  " << dataName.c_str() << " registered." << endl;
+*/
 
     // points
     dataName = volName+std::string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+int ntypes = *ca_cellToPointConn_types;
 
     // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for(int itype=0; itype<ntypes; itype++)
@@ -293,7 +333,8 @@ int comFoam::registerVolumeData(const char *name)
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
-        
+
+/*        
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
@@ -333,17 +374,59 @@ int comFoam::registerVolumeData(const char *name)
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
+    if (ca_Disp != nullptr)
+    {
+        dataName = volName+std::string(".disp");
+        COM_new_dataitem( dataName, 'n', COM_DOUBLE, nComponents, "m");
+        COM_set_array(    dataName, paneID, ca_Disp, nComponents);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+
+    // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    if (ca_AlphaT != nullptr)
+    {
+        dataName = volName+std::string(".alphaT");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m/s");
+        COM_set_array(    dataName, paneID, ca_AlphaT, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+
+    if (ca_Epsilon != nullptr)
+    {
+        dataName = volName+std::string(".epsilon");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^3");
+        COM_set_array(    dataName, paneID, ca_Epsilon, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+
+    if (ca_K != nullptr)
+    {
+        dataName = volName+std::string(".k");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
+        COM_set_array(    dataName, paneID, ca_K, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+
+    if (ca_NuT != nullptr)
+    {
+        dataName = volName+std::string(".nuT");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s");
+        COM_set_array(    dataName, paneID, ca_NuT, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+    //-------------------------------------------
+*/
     COM_window_init_done(volName); 
 
     return 0;
 }
 
 
-int comFoam::reconstCaVolumeData(const char *name)
+int comFoam::reconstVolumeData(const char *name)
 {
     std::string volName = name+std::string("VOL");
 
-    std::cout << "rocFoam.reconstCaVolumeData, proID = "
+    std::cout << "rocFoam.reconstCaVolumeData, procID = "
               << Pstream::myProcNo()
               << ", Retreiving surface data form window "
               << volName << "."
@@ -352,7 +435,7 @@ int comFoam::reconstCaVolumeData(const char *name)
     std::string regNames;
     int numDataItems=0;
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-    std::cout << "  numDataItems = " << numDataItems << std::endl;
+    //std::cout << "  numDataItems = " << numDataItems << std::endl;
 
     std::vector<std::string> dataItemNames;
     dataItemNames.clear();
@@ -362,64 +445,40 @@ int comFoam::reconstCaVolumeData(const char *name)
         std::string nameTmp;
         Istr >> nameTmp;
 
-        std::string subName = nameTmp.substr(0,4);
-        if (subName != "file" && subName != "nFil")
+        if (nameTmp == "nPoints" ||
+            nameTmp == "nCells" ||
+            nameTmp == "cellToPointConn_types" ||
+            nameTmp == "cellToPointConn_map" ||
+            nameTmp == "cellToPointConn_size" ||
+            nameTmp == "nc" ||
+            nameTmp == "cellToCellMap" ||
+            nameTmp == "cellToCellMap_inverse" ||
+            nameTmp == "vel" ||
+            nameTmp == "pres" ||
+            nameTmp == "temp" ||
+            nameTmp == "rho" ||
+            nameTmp == "alphaT" ||
+            nameTmp == "epsilon" ||
+            nameTmp == "k" ||
+            nameTmp == "nuT"
+            )
         {
             dataItemNames.push_back(nameTmp);
             std::cout << "  DataItem[" << i << "] = " << nameTmp << std::endl;
         }
     }
-    std::cout << std::endl;
+    std::cout << "  Number of items = " << dataItemNames.size()
+              << std::endl << std::endl;
 
-    // Flow stat data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string dataName = std::string("time");
-    nameExists(dataItemNames, dataName);
-    std::string regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_time);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_time << std::endl;
-
-    dataName = std::string("timeIndex");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_timeIndex);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_timeIndex << std::endl;
-
-    dataName = std::string("deltaT");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_deltaT);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_deltaT << std::endl;
-
-    dataName = std::string("deltaT0");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_deltaT0);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_deltaT0 << std::endl;
-
-    int nComp;
-    dataName = std::string("timeName");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_timeName);
-    COM_get_size(regName.c_str(), 0, &nComp);
-    std::cout << "  " << dataName.c_str() << " = " << ca_timeName << std::endl;
-
-    dataName = std::string("runStat");
-    nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_runStat);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_runStat << std::endl;
-    //-------------------------------------------
-    
     // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
     std::cout << "  procID = " << Pstream::myProcNo()
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
 
-    dataName = std::string("nPoints");
+    std::string dataName = std::string("nPoints");
     nameExists(dataItemNames, dataName);
-    regName = volName+std::string(".")+dataName;
+    std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_nPoints);
     std::cout << "  " << dataName.c_str() << " = " << *ca_nPoints << std::endl;
     
@@ -438,6 +497,7 @@ int comFoam::reconstCaVolumeData(const char *name)
     dataName = std::string("cellToPointConn_map");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
+    int nComp;
     COM_get_array(regName.c_str(), paneID, &ca_cellToPointConn_map);
     COM_get_size(regName.c_str(), paneID, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
@@ -467,20 +527,10 @@ int comFoam::reconstCaVolumeData(const char *name)
     //nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     int nPoints;
-    
     COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
     COM_get_size(regName.c_str(), paneID, &nPoints);
-/*    std::cout << "    " << dataName.c_str() << " points = " << *ca_nPoints*/
-/*         << ", components = " << nComp << std::endl;*/
-/*    for(int ipoint=0; ipoint<*ca_nPoints; ipoint++)*/
-/*    {*/
-/*        std::cout << "Node " << ipoint << " ca_Points = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*          std::cout << *(ca_Points+ipoint*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
+    std::cout << "  " << dataName.c_str() << " nPoints = " << nPoints
+              << ", components = " << nComp << std::endl;
 
     int nConn;
     int numElem;
@@ -499,17 +549,8 @@ int comFoam::reconstCaVolumeData(const char *name)
         COM_get_size(dataName.c_str(), paneID, &numElem);
 
         std::cout << "    Connectivity[" << icon << "] = " << connName
-             << ", elements = " << numElem
-             << ", components =" << nComp << std::endl;
-/*        for(int icell=0; icell<numCells; icell++)*/
-/*        {*/
-/*            std::cout << "Cell " << icell << " velocity = ";*/
-/*            for(int icomp=0; icomp<nComp; icomp++)*/
-/*            {*/
-/*                std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
-/*            }*/
-/*            std::cout << std::endl;*/
-/*        }*/
+                  << ", elements = " << numElem
+                  << ", components =" << nComp << std::endl;
     }
     //---------------------------------------
 
@@ -517,97 +558,104 @@ int comFoam::reconstCaVolumeData(const char *name)
     dataName = std::string("cellToCellMap");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    
     COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
     std::cout << "    " << dataName.c_str() << " elements = " << numElem
          << ", components = " << nComp << std::endl;
-/*    for(int icell=0; icell<numCells; icell++)*/
-/*    {*/
-/*        std::cout << "Cell " << icell << " velocity = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*            std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
 
     dataName = std::string("cellToCellMap_inverse");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    
     COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap_inverse, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
     std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
+              << ", components = " << nComp << std::endl;
     //---------------------------------------
 
     // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     dataName = std::string("vel");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-
     COM_get_array(regName.c_str(), paneID, &ca_Vel, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
     std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
-/*    for(int icell=0; icell<numCells; icell++)*/
-/*    {*/
-/*        std::cout << "Cell " << icell << " velocity = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*            std::cout << *(cellVel+icell*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
+              << ", components = " << nComp << std::endl;
     
     dataName = std::string("pres");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-
     COM_get_array(regName.c_str(), paneID, &ca_P, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
     std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
-/*    for(int icell=0; icell<numCells; icell++)*/
-/*    {*/
-/*        std::cout << "Cell " << icell << " pressure = ";*/
-/*        for(int icomp=0; icomp<nComp; icomp++)*/
-/*        {*/
-/*            std::cout << *(cellPres+icell*nComp+icomp) << " ";*/
-/*        }*/
-/*        std::cout << std::endl;*/
-/*    }*/
+              << ", components = " << nComp << std::endl;
 
     dataName = std::string("temp");
     if (nameExists(dataItemNames, dataName))
     {
         regName = volName+std::string(".")+dataName;
-
         COM_get_array(regName.c_str(), paneID, &ca_T, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
         std::cout << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << std::endl;
+                  << ", components = " << nComp << std::endl;
     }
 
     dataName = std::string("rho");
     if (nameExists(dataItemNames, dataName))
     {
         regName = volName+std::string(".")+dataName;
-
         COM_get_array(regName.c_str(), paneID, &ca_Rho, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
         std::cout << "    " << dataName.c_str() << " elements = " << numElem
-             << ", components = " << nComp << std::endl;
+                  << ", components = " << nComp << std::endl;
     }
 
+    // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    dataName = std::string("alphaT");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_AlphaT, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }
+
+    dataName = std::string("epsilon");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_Epsilon, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }
+
+    dataName = std::string("k");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_K, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }    
+
+    dataName = std::string("nuT");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_NuT, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }
+    //-------------------------------------------
+    
     std::cout << "  --------------------------------------------------"
          << std::endl;
 
     return 0;
 }
-
-
 
 int comFoam::deleteVolumeData()
 {
@@ -656,49 +704,80 @@ int comFoam::deleteVolumeData()
         ca_cellToPointConn_types = nullptr;
     }
 
-    
     if (ca_Points != nullptr)
     {
-        delete[] ca_Points;
+        delete [] ca_Points;
         ca_Points = nullptr;
+    }
+
+    if (ca_Disp != nullptr)
+    {
+        delete [] ca_Disp;
+        ca_Disp = nullptr;
     }
 
     if (ca_Vel != nullptr)
     {
-        delete[] ca_Vel;
+        delete [] ca_Vel;
         ca_Vel = nullptr;
     }
 
     if (ca_P != nullptr)
     {
-        delete[] ca_P;
+        delete [] ca_P;
         ca_P = nullptr;
     }
 
     if (ca_T != nullptr)
     {
-        delete[] ca_T;
+        delete [] ca_T;
         ca_T = nullptr;
     }
 
     if (ca_Rho != nullptr)
     {
-        delete[] ca_Rho;
+        delete [] ca_Rho;
         ca_Rho = nullptr;
     }
 
     if (ca_nPoints!= nullptr)
     {
-        delete[] ca_nPoints;
+        delete ca_nPoints;
         ca_nPoints = nullptr;
     }
 
     if (ca_nCells != nullptr)
     {
-        delete[] ca_nCells;
+        delete ca_nCells;
         ca_nCells = nullptr;
     }
 
+    // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    if (ca_AlphaT != nullptr)
+    {
+        delete [] ca_AlphaT;
+        ca_AlphaT = nullptr;
+    }
+
+    if (ca_Epsilon != nullptr)
+    {
+        delete [] ca_Epsilon;
+        ca_Epsilon = nullptr;
+    }
+
+    if (ca_K != nullptr)
+    {
+        delete [] ca_K;
+        ca_K = nullptr;
+    }
+
+    if (ca_NuT != nullptr)
+    {
+        delete [] ca_NuT;
+        ca_NuT = nullptr;
+    }
+    //-------------------------------------------
+    
     return 0;
 }
 

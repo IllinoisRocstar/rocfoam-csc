@@ -6,10 +6,10 @@ rocFoam::rocFoam()
 
 rocFoam::~rocFoam()
 {
-    finalize();
+    finalizeFoam();
 }
 
-int rocFoam::finalize()
+int rocFoam::finalizeFoam()
 {
     // Delete thing that are allocated here
     if (runTimePtr != nullptr)
@@ -115,11 +115,11 @@ int rocFoam::PostProcess(int argc, char *argv[])
                 INCLUDE_FILE(CREATE_FIELDS)
 
 #ifdef CREATE_FIELDS_2
-#include INCLUDE_FILE(CREATE_FIELDS_2)
+            INCLUDE_FILE(CREATE_FIELDS_2)
 #endif
 
 #ifdef CREATE_FIELDS_3
-#include INCLUDE_FILE(CREATE_FIELDS_3)
+            INCLUDE_FILE(CREATE_FIELDS_3)
 #endif
 
                 // Externally stored dictionary for functionObjectList

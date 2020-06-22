@@ -28,26 +28,25 @@ private:
     //int initSet();
 
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^
-    pimpleControl *pimplePtr;
-    pressureControl *pressureControlPtr;
-    volScalarField *dpdtPtr;
-    volScalarField *KPtr;
-    fv::options *fvOptionsPtr;
-    IOMRFZoneList *MRFPtr;
-    fvVectorMatrix *UEqnPtr;
+    pimpleControl* pimplePtr{nullptr};
+    pressureControl* pressureControlPtr{nullptr};
+    volScalarField* dpdtPtr{nullptr};
+    volScalarField* KPtr{nullptr};
+    fv::options* fvOptionsPtr{nullptr};
+    IOMRFZoneList* MRFPtr{nullptr};
+    fvVectorMatrix* UEqnPtr{nullptr};
 
-    autoPtr<fluidThermo> pThermoPtr;
-    autoPtr<surfaceVectorField> rhoUfPtr;
-    autoPtr<volScalarField> divrhoUPtr;
-    tmp<fvVectorMatrix> tUEqnPtr;
+    autoPtr<fluidThermo> pThermoPtr{nullptr};
+    autoPtr<volScalarField> divrhoUPtr{nullptr};
+    tmp<fvVectorMatrix> tUEqnPtr{nullptr};
     //--------------------------------------
 
     //  Control variables ^^^^^^^^^^^^^^^^^^
-    bool correctPhi;
-    bool checkMeshCourantNo;
-    bool moveMeshOuterCorrectors;
+    bool correctPhi{false};
+    bool checkMeshCourantNo{false};
+    bool moveMeshOuterCorrectors{false};
 
-    scalar cumulativeContErr;
+    scalar cumulativeContErr{0};
     //--------------------------------------
 
     //  Solver methods  ^^^^^^^^^^^^^^^^^^^^
@@ -82,10 +81,10 @@ private:
     
 public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
-    int initialize(int argc, char *argv[]);
+    int initFOAM(int argc, char *argv[]);
     int loop();
     int step(double* newDeltaT = nullptr);
-    int finalize();
+    int finalizeFoam();
     //--------------------------------------
 };
 

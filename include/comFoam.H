@@ -16,7 +16,7 @@ private:
     const std::string tmpFluidDir{"./fluidTmp"};
 protected:
     const int nComponents{3};
-    const int genCharSize{15};
+    const int genCharSize{20};
 
 public:
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,36 +24,58 @@ public:
     //comFoam(int *pargc, void **pargv, const char *name);
     ~comFoam();
     
-protected:
-    virtual int finalize();
+    virtual int finalizeFoam();
 
-    // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-protected:
+private:
+    // CSC collective methods
+    int createCSCdata();
+    int updateCSCdata();
+    int registerCSCdata(const char *name);
+    int deleteCSCdata();
+    int reconstCSCdata(const char *name);
+    
+
+    // CSC status methods
+    int createStatusData();
+    int updateStatusData();
+    int registerStatusData(const char *name);
+    int reconstStatusData(const char *name);
+    int deleteStatusData();
+
+    // CSC volume methods
     int createVolumeConnectivities();
     int createVolumeData();
     int deleteVolumeData();
-    int updateVolumeData();
+    int updateVolumeData_outgoing();
     int registerVolumeData(const char *name);
-    int reconstCaVolumeData(const char *name);
+    int reconstVolumeData(const char *name);
 
+    // CSC face methods
     int createFaceConnectivities();
     int createFaceData();
     int deleteFaceData();
-    int updateFaceData();
+    int updateFaceData_outgoing();
     int registerFaceData(const char *name);
-    int reconstCaFaceData(const char *name);
+    int reconstFaceData(const char *name);
 
+    // CSC surface methods
     int createSurfaceConnectivities();
     int createSurfaceData();
     int deleteSurfaceData();
-    int updateSurfaceData();
+    int updateSurfaceData_incoming();
+    int updateSurfaceData_outgoing();
     int registerSurfaceData(const char *name);
-    int reconstCaSurfaceData(const char *name);
+    int reconstSurfaceData(const char *name);
 
-private:
-    // tempFiles-specific
-    int readInitFiles(const std::string& rootAddr);
-    int createInitFiles(const std::string& rootAddr);
+    // CSC files methods
+    int readFilesData(const std::string& rootAddr);
+    int createFilesData();
+    int deleteFilesData();
+    int registerFilesData(const char *name);
+    int reconstFilesData(const char *name);
+
+    int deleteTempFiles(const std::string& addr);
+
     int createSysConstFiles
     (
         const std::string& rootAddr,
@@ -80,11 +102,15 @@ private:
     int createNeighborFile(const std::string& rootAddr);
     int createFacesFile(const std::string& rootAddr);
     int deleteInitFiles(const std::string& addr);
-    int deleteFilesData();
-    int registerInitFiles(const char *name);
-    int reconstCaInitFiles(const char *name, const std::string& rootAddr);
+
     
-    std::string createBaseScalar(std::string name);
+    std::string createBaseFile
+    (
+        std::string name,
+        std::string loc,
+        std::string type,
+        std::string dim
+    );
 
     bool fileShouldBeRead
     (
@@ -103,7 +129,7 @@ private:
                           const std::string& dataName);
     int reconstMesh();
 
-protected:
+
     // Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     int* ca_nPoints{nullptr};  //single value
     int* ca_nCells{nullptr};   //single value
@@ -124,11 +150,20 @@ protected:
 
     // Field Data
     double* ca_Points{nullptr};
+    double* ca_Disp{nullptr};
+
     double* ca_Vel{nullptr};
     double* ca_P{nullptr};
     double* ca_T{nullptr};
     double* ca_Rho{nullptr};
     double* ca_Phi{nullptr};
+    double* ca_RhoUf{nullptr};
+
+    // Turbulence data
+    double* ca_AlphaT{nullptr};
+    double* ca_Epsilon{nullptr};
+    double* ca_K{nullptr};
+    double* ca_NuT{nullptr};
     //-------------------------------------------
     
     // COM Face Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -180,8 +215,22 @@ protected:
     double** ca_patchT{nullptr};
     double** ca_patchRho{nullptr};
     double** ca_patchPhi{nullptr};
+    double** ca_patchRhoUf{nullptr};
+
+    // Turbulence data
+    double** ca_patchAlphaT{nullptr};
+    double** ca_patchEpsilon{nullptr};
+    double** ca_patchK{nullptr};
+    double** ca_patchNuT{nullptr};
     
+    // Agent data
+    int**    ca_bcflag{nullptr}; //single value for the last
+    double** ca_patchNf{nullptr};
     double** ca_patchSf{nullptr};
+    double** ca_patchTrac{nullptr};
+    double** ca_patchDisp{nullptr}; //Displacement
+    double** ca_patchMassFlux{nullptr}; //Mass flux (scalar)
+    double** ca_patchMomentum{nullptr}; //Momentum flux (vector)
     //-------------------------------------------
     
     // Files
@@ -193,17 +242,7 @@ protected:
 
     //-------------------------------------------
 
-    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    //std::string winVolName; /// Tracks *this* volume window name.
-    //std::string winSurfName; /// Tracks *this* volume window name.
-
-    std::string solverType{""};
-    MPI_Comm winComm{};
-    
-    int ca_nProc{0};
-    int ca_myRank{0};
-
-    // registered data set during the simulation
+    // Status data
     int*    ca_runStat{nullptr};
     int*    ca_timeIndex{nullptr};
     double* ca_time{nullptr};
@@ -211,6 +250,20 @@ protected:
     double* ca_deltaT{nullptr};
     double* ca_deltaT0{nullptr};
     
+    int* ca_movingMesh{nullptr};
+    char* ca_dynamicFvMesh{nullptr};
+    
+
+protected:
+
+    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //std::string winVolName; /// Tracks *this* volume window name.
+    //std::string winSurfName; /// Tracks *this* volume window name.
+    std::string solverType{""};
+    MPI_Comm winComm{};
+    
+    int ca_nProc{0};
+    int ca_myRank{0};
     
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // rocFoam driver methods
@@ -220,13 +273,13 @@ protected:
 
     // COM-specific
     int registerFunctions(const char *name);
-    int reconstCaData(int* pargc, void** pargv, const char* name);
+    int restartInit(int* pargc, void** pargv, const char* name);
     //-------------------------------------------
 
 public:
 
     // RocStar-specific methods ^^^^^^^^^^^^^^^^^
-    void flowInitRocStar
+    void initialize
     (
         const double& initTime,
         const MPI_Comm& flowComm,
@@ -236,14 +289,14 @@ public:
         const int& obtainHandle
     );
 
-    void flowUpdateRocStar
+    void update_solution
     (
         double& currentTime,
         double& timeStep,
         int& handles
     );
 
-    void flowFinRocStar();
+    void finalize();
     //-------------------------------------------
 
     static void copyWindow(const char *name1, const char *name2);
@@ -268,7 +321,7 @@ public:
     );
 
 
-    size_t findOnlyLoc
+/*    size_t findOnlyLoc
     (
         const std::string& fullAddr,
         const std::string& content,
@@ -282,14 +335,14 @@ public:
         const std::string& exp,
         size_t start
     );
-
+*/
     size_t findOnlyLoc
     (
         const std::string& fullAddr,
         const std::string& content,
         const std::string& exp,
-        size_t start,
-        size_t end
+        size_t start=0,
+        size_t end=std::string::npos
     );
 
 };

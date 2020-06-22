@@ -9,7 +9,7 @@ rhoPimple::rhoPimple()
 rhoPimple::rhoPimple(int argc, char *argv[])
 {
     solverType = const_cast<char *>("rocRhoPimple");
-    initialize(argc, argv);
+    initFOAM(argc, argv);
 }
 //=========================================================
 
@@ -49,22 +49,25 @@ void rhoPimple::load(const char *name)
     MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
     MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
 
-    //COM_new_window(name, MPI_COMM_NULL);
-    std::string volName = name+string("VOL");
-    COM_new_window(volName, tmpComm);
-    std::string objectName = volName + string(".object");
+    // Base window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::string winName = name;
+    COM_new_window(winName, tmpComm);
+    std::string objectName = winName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(volName);
+    COM_window_init_done(winName);
     //-------------------------------------------
 
-    // Register Surface Window ^^^^^^^^^^^^^^^^^^
-    std::string surfName = name+string("SURF");
-    COM_new_window(surfName, tmpComm);
-    objectName = surfName + string(".object");
-    COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
-    COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(surfName);
+    // Vol window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    winName = name+string("VOL");
+    COM_new_window(winName, tmpComm);
+    COM_window_init_done(winName);
+    //-------------------------------------------
+
+    // Surf window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    winName = name+string("SURF");
+    COM_new_window(winName, tmpComm);
+    COM_window_init_done(winName);
     //-------------------------------------------
 
     comFoamPtr->registerFunctions(name);
@@ -80,23 +83,27 @@ void rhoPimple::unload(const char *name)
                << name << "." << Foam::endl;
 
     comFoam *comFoamPtr = nullptr;
-
-    std::string volName = name+string("VOL");
-    std::string objectName(volName+".object");
+    std::string winName = std::string(name);
+    std::string objectName(winName+".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     //comFoamPtr->finalize();
     delete comFoamPtr;
-    COM_delete_window(std::string(volName));
 
-    std::string surfName = name+string("SURF");
-    COM_delete_window(std::string(surfName));
+    winName = name+std::string("VOL");
+    COM_delete_window(winName);
+
+    winName = name+std::string("SURF");
+    COM_delete_window(winName);
+
+    winName = std::string(name);
+    COM_delete_window(winName);
 }
 //-----------------------------------------------
 //=========================================================
 
 //^^^ Solver-specific methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-int rhoPimple::initialize(int argc, char *argv[])
+int rhoPimple::initFOAM(int argc, char *argv[])
 {
     // Not quite sure where this line should be
     createArgs(argc, argv);
@@ -153,39 +160,6 @@ int rhoPimple::initialize(int argc, char *argv[])
     }
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
-
-    // Setting comFoam variables that will be registered ^^
-    //   with COM. This are needed for flow control when
-    //   solver runs step-by-step.
-    Foam::Time &runTime(*runTimePtr);
-
-    if (ca_runStat == nullptr)
-        ca_runStat = new int(static_cast<int>(runTime.run()));
-    if (ca_time == nullptr)
-        ca_time = new double(runTime.value());
-    if (ca_deltaT == nullptr)
-        ca_deltaT = new double(runTime.deltaTValue());
-    if (ca_deltaT0 == nullptr)
-        ca_deltaT0 = new double(runTime.deltaT0Value());
-    if (ca_timeIndex == nullptr)
-        ca_timeIndex = new int(runTime.timeIndex());
-    if (ca_timeName == nullptr)
-    {
-        ca_timeName = new char[genCharSize];
-
-        std::string timeNameStr = runTime.timeName();
-        int length = timeNameStr.length()+1;
-        if (length > genCharSize)
-        {
-            std::cout << "Warning:: genCharSize is not big enough,"
-                      << " genCharSize = " << genCharSize
-                      << " timeName.size = "
-                      << timeNameStr.length()+1
-                      << std::endl;
-        }
-        std::strcpy(ca_timeName, timeNameStr.c_str());
-    }
-    //-------------------------------------------
 
     initializeStat = 0;
     return initializeStat;
@@ -521,7 +495,6 @@ int rhoPimple::loop()
                 "divrhoU",
                 fvc::div(fvc::absolute(phi, rho, U))
             );
-
         }
 
         if (LTS)
@@ -670,7 +643,6 @@ int rhoPimple::step(double* newDeltaT)
                 "divrhoU",
                 fvc::div(fvc::absolute(phi, rho, U))
             );
-
         }
 
         if (LTS)
@@ -712,7 +684,6 @@ int rhoPimple::step(double* newDeltaT)
                 {
                     rhoU = new volVectorField("rhoU", rho * U);
                 }
-
                 // Do any mesh changes
                 mesh.update();
 
@@ -790,45 +761,9 @@ int rhoPimple::step(double* newDeltaT)
              << endl;
     }
 
-    // Setting comFoam variables that will be registered ^^
-    //   with COM. These are needed for flow control when
-    //   solver runs step-by-step.
-    *ca_runStat = static_cast<int>(runTime.run());
-    *ca_time = runTime.value();
-    *ca_deltaT = runTime.deltaTValue();
-    *ca_deltaT0 = runTime.deltaT0Value();
-    *ca_timeIndex = runTime.timeIndex();
-
-    std::string timeNameStr = "";
-    std::strcpy(ca_timeName, timeNameStr.c_str());
-
-    timeNameStr = runTime.timeName();
-    int length = timeNameStr.length()+1;
-    if (length > genCharSize)
-    {
-        std::cout << "Warning:: genCharSize is not big enough,"
-                  << " genCharSize = " << genCharSize
-                  << " timeName.size = "
-                  << timeNameStr.length()+1
-                  << std::endl;
-    }
-    std::strcpy(ca_timeName, timeNameStr.c_str());
-
-    // This garanties that the updates are called
-    //  if the pointers are allocated
-    if (ca_nCells != nullptr)
-        updateVolumeData();
-    if (ca_nFaces != nullptr)
-        updateFaceData();
-    if (ca_nPatches != nullptr)
-        updateSurfaceData();
-    //-------------------------------------------
-
     stepStat = 0;
     return stepStat;
 }
-
-
 
 
 int rhoPimple::readDyMControls()
@@ -1428,10 +1363,11 @@ int rhoPimple::pEqn_()
 
 rhoPimple::~rhoPimple()
 {
-   finalize();
+   finalizeFoam();
+
 }
 
-int rhoPimple::finalize()
+int rhoPimple::finalizeFoam()
 {
     //delete argsPtr;
     //delete runTimePtr;
@@ -1440,32 +1376,87 @@ int rhoPimple::finalize()
     //delete psiPtr;
     //delete ePtr;
 
-    if (rhoPtr != nullptr) {delete rhoPtr; rhoPtr = nullptr;}
-    if (UPtr != nullptr) {delete UPtr; UPtr = nullptr;}
-    if (rhoUPtr != nullptr) {delete rhoUPtr; rhoUPtr = nullptr;}
-    if (rhoEPtr != nullptr) {delete rhoEPtr; rhoEPtr = nullptr;}
-    if (phiPtr != nullptr) {delete phiPtr; phiPtr = nullptr;}
+    if (rhoPtr != nullptr)
+    {
+        delete rhoPtr;
+        rhoPtr = nullptr;
+    }
+    
+    if (UPtr != nullptr)
+    {
+        delete UPtr;
+        UPtr = nullptr;
+    }
+
+    if (rhoUPtr != nullptr)
+    {
+        delete rhoUPtr;
+        rhoUPtr = nullptr;
+    }
+
+    if (rhoEPtr != nullptr)
+    {
+        delete rhoEPtr;
+        rhoEPtr = nullptr;
+    }
+
+    if (phiPtr != nullptr)
+    {
+        delete phiPtr;
+        phiPtr = nullptr;
+    }
+
+    if (pimplePtr != nullptr)
+    {
+        delete pimplePtr;
+        pimplePtr = nullptr;
+    }
+
+    if (pressureControlPtr != nullptr)
+    {
+        delete pressureControlPtr;
+        pressureControlPtr = nullptr;
+    }
+
+    if (dpdtPtr != nullptr)
+    {
+        delete dpdtPtr;
+        dpdtPtr = nullptr;
+    }
+
+    if (KPtr != nullptr) 
+    {
+        delete KPtr;
+        KPtr = nullptr;
+    }
+
+    if (fvOptionsPtr != nullptr) 
+    {
+        delete fvOptionsPtr;
+        fvOptionsPtr = nullptr;
+    }
+
+    if (MRFPtr != nullptr)
+    {
+        delete MRFPtr;
+        MRFPtr = nullptr;
+    }
 
     // delete meshPtr;
     // delete turbulencePtr;
     // delete trDeltaT;
-
-    if (pimplePtr != nullptr) {delete pimplePtr; pimplePtr = nullptr;}
-    if (pressureControlPtr != nullptr) {delete pressureControlPtr; pressureControlPtr = nullptr;}
-    if (dpdtPtr != nullptr) {delete dpdtPtr; dpdtPtr = nullptr;}
-    if (KPtr != nullptr) {delete KPtr; KPtr = nullptr;}
-    if (fvOptionsPtr != nullptr) {delete fvOptionsPtr; fvOptionsPtr = nullptr;}
-    if (MRFPtr != nullptr) {delete MRFPtr; MRFPtr = nullptr;}
-
+    //if (rhoUfPtr != nullptr)
+    //{
+    //    delete [] rhoUfPtr;
+    //    rhoUfPtr = nullptr;
+    //}
     //delete UEqnPtr;
-
     // delete pThermoPtr;
     // delete rhoUfPtr;
     // delete divrhoUPtr;
     // delete tUEqnPtr;
 
     finalizeStat = 0;
-
     return finalizeStat;
 }
 

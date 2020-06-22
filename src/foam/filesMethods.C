@@ -1,4 +1,4 @@
-int comFoam::readInitFiles(const std::string& rootAddr)
+int comFoam::readFilesData(const std::string& rootAddr)
 {
     std::string fullAddr=rootAddr;
     std::string locaParAddr = "";
@@ -43,7 +43,7 @@ int comFoam::readInitFiles(const std::string& rootAddr)
     return 0;
 }
 
-int comFoam::createInitFiles(const std::string& rootAddr)
+int comFoam::createFilesData()
 {
     std::vector<fileContainer> vecFile;
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
@@ -57,17 +57,15 @@ int comFoam::createInitFiles(const std::string& rootAddr)
         vecFile.push_back(tmpFile);
     }
 
-    std::cout << std::endl;
-    
-    createSysConstFiles(rootAddr, vecFile);
-    createFieldFiles(rootAddr, vecFile);
-    createUniformTimeFile(rootAddr);
-    createPointsFile(rootAddr);
-    createOwnerFile(rootAddr);
-    createNeighborFile(rootAddr);
-    createFacesFile(rootAddr);
-    createBoundaryFile(rootAddr, vecFile);
-    createConnectivityFiles(rootAddr, vecFile);
+    createSysConstFiles(tmpFluidDir, vecFile);
+    createFieldFiles(tmpFluidDir, vecFile);
+    createUniformTimeFile(tmpFluidDir);
+    createPointsFile(tmpFluidDir);
+    createOwnerFile(tmpFluidDir);
+    createNeighborFile(tmpFluidDir);
+    createFacesFile(tmpFluidDir);
+    createBoundaryFile(tmpFluidDir, vecFile);
+    createConnectivityFiles(tmpFluidDir, vecFile);
 
     return 0;
 }
@@ -103,6 +101,8 @@ int comFoam::createSysConstFiles
                       << " created." << std::endl;
         }
     }
+    
+    
 
     return 0;
 }
@@ -118,8 +118,9 @@ int comFoam::createFieldFiles
     int nTotal=*ca_nFiles;
     if (ca_Rho != nullptr) nTotal++;
     if (ca_Phi != nullptr) nTotal++;
+    if (ca_RhoUf != nullptr) nTotal++;
     
-    for(int ifile=0; ifile<nTotal; ifile++)
+    for (int ifile=0; ifile<nTotal; ifile++)
     {
         // rho: ifile == *ca_nFiles
         // phi: ifile == *ca_nFiles+1
@@ -143,13 +144,37 @@ int comFoam::createFieldFiles
         {
             fileName = "rho";
             localDir = locaParAddr+"0";
-            content = createBaseScalar("rho");
+            content = createBaseFile
+                      (
+                        "rho",
+                        "vol",
+                        "Scalar",
+                        "[1 -3 0 0 0 0 0]"
+                      );
         }
         else if (ifile==*ca_nFiles+1)
         {
             fileName = "phi";
             localDir = locaParAddr+"0";
-            content = createBaseScalar("phi");
+            content = createBaseFile
+                      (
+                        "phi",
+                        "surface",
+                        "Scalar",
+                        "[1 0 -1 0 0 0 0]"
+                      );
+        }
+        else if (ifile==*ca_nFiles+2)
+        {
+            fileName = "rhoUf";
+            localDir = locaParAddr+"0";
+            content = createBaseFile
+                      (
+                        "rhoUf",
+                        "surface",
+                        "Vector",
+                        "[1 -2 -1 0 0 0 0]"
+                      );
         }
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
@@ -171,166 +196,269 @@ int comFoam::createFieldFiles
                 content.insert(locationStart, newStr);
             }
 
-            // Modify the internalField
-            std::string intFieldStr = "internalField";
-            std::string scStr = ";";
-            size_t intFieldStart= findOnlyLoc(fullAddr, content, intFieldStr);
-            size_t intFieldEnd  = findLoc(fullAddr, content, scStr, intFieldStart);
-            size_t length = intFieldEnd-intFieldStart;
-            content.erase(intFieldStart, length);
-            
-            std::string newStr = "internalField   nonuniform List";
-            if (fileName == "U")
-            {
-                newStr += "<vector>\n";
-                int ncells = *ca_nCells;
-                newStr += std::to_string(ncells);
-                newStr += "\n(\n";
-
-                for(int icell=0; icell<ncells; icell++)
+            if (fileName == "U" ||
+                fileName == "p" ||
+                fileName == "T" ||
+                fileName == "rho" ||
+                fileName == "phi" ||
+                fileName == "rhoUf" ||
+                fileName == "alphat" ||
+                fileName == "epsilon" ||
+                fileName == "k" ||
+                fileName == "nut"
+               )
+            {   
+                // Modify the internalField
+                std::string intFieldStr = "internalField";
+                std::string scStr = ";";
+                size_t intFieldStart= findOnlyLoc(fullAddr, content, intFieldStr);
+                size_t intFieldEnd  = findLoc(fullAddr, content, scStr, intFieldStart);
+                size_t length = intFieldEnd-intFieldStart;
+                content.erase(intFieldStart, length);
+                
+                std::string newStr = "internalField   nonuniform List";
+                if (fileName == "U")
                 {
-                    /*
-                    int cellIndex = findGlobalIndex
-                                    (
-                                        ca_cellToCellMap,
-                                        ncells,
-                                        icell
-                                    );
-                    */
-                    
-                    int cellIndex = ca_cellToCellMap_inverse[icell];
-                    newStr += "(";
-                    for(int jcomp=0; jcomp<nComponents; jcomp++)
-                    {
-                        int localComp = jcomp + cellIndex*nComponents;
-                        
-                        std::ostringstream doubleToOs;
-                        doubleToOs << std::scientific << std::setprecision(IODigits);
-                        doubleToOs << ca_Vel[localComp];
+                    newStr += "<vector>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
 
-                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
-                        if (jcomp<nComponents-1)
-                            newStr += " ";
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+                        newStr += "(";
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localComp = jcomp + cellIndex*nComponents;
+                            
+                            std::ostringstream doubleToOs;
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_Vel[localComp];
+
+                            newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                            if (jcomp<nComponents-1)
+                                newStr += " ";
+                        }
+                        newStr += ")\n";
                     }
                     newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
                 }
-                newStr += ")\n";
-                
-                content.insert(intFieldStart, newStr);
-            }
-            else if (fileName == "p")
-            {
-                newStr += "<scalar>\n";
-                int ncells = *ca_nCells;
-                newStr += std::to_string(ncells);
-                newStr += "\n(\n";
-                
-                for(int icell=0; icell<ncells; icell++)
+                else if (fileName == "p")
                 {
-                    /*
-                    int cellIndex = findGlobalIndex
-                                    (
-                                        ca_cellToCellMap,
-                                        ncells,
-                                        icell
-                                    );
-                    */
-                    int cellIndex = ca_cellToCellMap_inverse[icell];
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
 
-                    std::ostringstream doubleToOs;                            
-                    doubleToOs << std::scientific << std::setprecision(IODigits);
-                    doubleToOs << ca_P[cellIndex];
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_P[cellIndex];
 
-                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
-                    newStr += "\n";
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
                 }
-                newStr += ")\n";
-                
-                content.insert(intFieldStart, newStr);
-            }
-            else if (fileName == "T")
-            {
-                newStr += "<scalar>\n";
-                int ncells = *ca_nCells;
-                newStr += std::to_string(ncells);
-                newStr += "\n(\n";
-                
-                for(int icell=0; icell<ncells; icell++)
+                else if (fileName == "T")
                 {
-                    /*
-                    int cellIndex = findGlobalIndex
-                                    (
-                                        ca_cellToCellMap,
-                                        ncells,
-                                        icell
-                                    );
-                    */
-                    int cellIndex = ca_cellToCellMap_inverse[icell];
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
 
-                    std::ostringstream doubleToOs;                            
-                    doubleToOs << std::scientific << std::setprecision(IODigits);
-                    doubleToOs << ca_T[cellIndex];
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_T[cellIndex];
 
-                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
-                    newStr += "\n";
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
                 }
-                newStr += ")\n";
-                
-                content.insert(intFieldStart, newStr);
-            }
-            else if (fileName == "rho")
-            {
-                newStr += "<scalar>\n";
-                int ncells = *ca_nCells;
-                newStr += std::to_string(ncells);
-                newStr += "\n(\n";
-                
-                for(int icell=0; icell<ncells; icell++)
+                else if (fileName == "rho")
                 {
-                    /*
-                    int cellIndex = findGlobalIndex
-                                    (
-                                        ca_cellToCellMap,
-                                        ncells,
-                                        icell
-                                    );
-                    */
-                    int cellIndex = ca_cellToCellMap_inverse[icell];
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
 
-                    std::ostringstream doubleToOs;                            
-                    doubleToOs << std::scientific << std::setprecision(IODigits);
-                    doubleToOs << ca_Rho[cellIndex];
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_Rho[cellIndex];
 
-                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
-                    newStr += "\n";
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
                 }
-                newStr += ")\n";
-                
-                content.insert(intFieldStart, newStr);
-            }
-            else if (fileName == "phi")
-            {
-                newStr += "<scalar>\n";
-                int nfaces = *ca_patchStart[0];
-                newStr += std::to_string(nfaces);
-                newStr += "\n(\n";
-
-                for(int iface=0; iface<nfaces; iface++)
+                else if (fileName == "phi")
                 {
-                    int faceIndex = ca_faceToFaceMap_inverse[iface];
+                    newStr += "<scalar>\n";
+                    int nfaces = *ca_patchStart[0];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
 
-                    std::ostringstream doubleToOs;                            
-                    doubleToOs << std::scientific << std::setprecision(IODigits);
-                    doubleToOs << ca_Phi[faceIndex];
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        int faceIndex = ca_faceToFaceMap_inverse[iface];
 
-                    newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
-                    newStr += "\n";
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_Phi[faceIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
                 }
-                newStr += ")\n";
-                
-                content.insert(intFieldStart, newStr);
-            }
+                else if (fileName == "rhoUf")
+                {
+                    newStr += "<vector>\n";
+                    int nfaces = *ca_patchStart[0];
+                    newStr += std::to_string(nfaces);
+                    newStr += "\n(\n";
 
+                    for(int iface=0; iface<nfaces; iface++)
+                    {
+                        int faceIndex = ca_faceToFaceMap_inverse[iface];
+                        newStr += "(";
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localComp = jcomp + faceIndex*nComponents;
+                            
+                            std::ostringstream doubleToOs;
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_RhoUf[localComp];
+
+                            newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                            if (jcomp<nComponents-1)
+                                newStr += " ";
+                        }
+                        newStr += ")\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
+                // Turbulence data ^^^^^^^^^^^^^^^^^^
+                else if (fileName == "alphat")
+                {
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_AlphaT[cellIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
+                else if (fileName == "epsilon")
+                {
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_Epsilon[cellIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
+                else if (fileName == "k")
+                {
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_K[cellIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
+                else if (fileName == "nut")
+                {
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_NuT[cellIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
+                //-----------------------------------
+            }
+            // Files that are the in folder "0"" and
+            // not being taken care of yet. Need to revisit this later
+            else if (fileName == "cellToRegion")
+            {}
+            //-----------------------------------
             else
             {
                 std::cout << "========== WARNING ===============" << std::endl
@@ -340,162 +468,285 @@ int comFoam::createFieldFiles
             
             for(int ipatch=0; ipatch<ca_nPatches[ca_myRank]; ipatch++)
             {
-                int nfaces = *ca_patchSize[ipatch];
-                if (nfaces<=0)
+
+
+                if (fileName == "U" ||
+                    fileName == "p" ||
+                    fileName == "T" ||
+                    fileName == "rho" ||
+                    fileName == "phi" ||
+                    fileName == "rhoUf" ||
+                    fileName == "alphat" ||
+                    fileName == "epsilon" ||
+                    fileName == "k" ||
+                    fileName == "nut"
+                   )
                 {
-                    continue;
-                }
-                
-                std::string patchName = patchNameStr[ipatch];
-                size_t patchStart = findOnlyLoc(fullAddr, content, patchName);
-                
-                std::string brckOpen = "{";
-                std::string brckClose = "}";
-                size_t brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
-                size_t brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
-                
-                std::string typeStr = "type";
-                scStr = ";";
-                size_t typeStart = findOnlyLoc(fullAddr, content, typeStr, brckStart, brckEnd);
-                size_t typeEnd   = findLoc(fullAddr, content, scStr, typeStart);
-
-                length = typeEnd-typeStart;
-                std::string subType = content.substr(typeStart, length);
-                std::stringstream iStr(subType);
-
-                std::string typeName;
-                while(iStr >> typeName)
-                {
-                }
-                if (typeName=="fixedValue"       ||
-                    typeName=="symmetryPlane"    ||
-                    typeName=="slip"             ||
-                    typeName=="noSlip"           ||
-                    typeName=="zeroGradient"     ||
-                    typeName=="totalTemperature" ||
-                    typeName=="totalPressure"    ||
-                    typeName=="empty"
-                   ) continue;
-                
-                std::string valueStr = "value";
-                scStr = ";";
-                size_t valueStart = findOnlyLoc(fullAddr, content, valueStr, brckStart, brckEnd);
-                size_t valueEnd   = findLoc(fullAddr, content, scStr, valueStart);
-
-                length = valueEnd-valueStart;
-                content.erase(valueStart, length);
-
-                newStr.clear();
-                newStr = "value           nonuniform List";
-                if (fileName == "U")
-                {
-                    newStr += "<vector>\n";
-                    newStr += std::to_string(nfaces);
-                    newStr += "\n(\n";
-
-                    for(int iface=0; iface<nfaces; iface++)
+                    int nfaces = *ca_patchSize[ipatch];
+                    if (nfaces<=0)
                     {
-                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+                        continue;
+                    }
+                    
+                    std::string patchName = patchNameStr[ipatch];
+                    size_t patchStart = findOnlyLoc(fullAddr, content, patchName);
+                    
+                    std::string brckOpen = "{";
+                    std::string brckClose = "}";
+                    size_t brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
+                    size_t brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
+                    
+                    std::string typeStr = "type";
+                    std::string scStr = ";";
+                    size_t typeStart = findOnlyLoc(fullAddr, content, typeStr, brckStart, brckEnd);
+                    size_t typeEnd   = findLoc(fullAddr, content, scStr, typeStart);
 
-                        newStr += "(";
-                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                    size_t length = typeEnd-typeStart;
+                    std::string subType = content.substr(typeStart, length);
+                    std::stringstream iStr(subType);
+
+                    std::string typeName;
+                    while(iStr >> typeName)
+                    {
+                    }
+                    if (typeName=="fixedValue"       ||
+                        typeName=="symmetryPlane"    ||
+                        typeName=="slip"             ||
+                        typeName=="noSlip"           ||
+                        typeName=="zeroGradient"     ||
+                        typeName=="totalTemperature" ||
+                        typeName=="totalPressure"    ||
+                        typeName=="empty"
+                       ) continue;
+                    
+                    std::string valueStr = "value";
+                    scStr = ";";
+                    size_t valueStart = findOnlyLoc(fullAddr, content, valueStr, brckStart, brckEnd);
+                    size_t valueEnd   = findLoc(fullAddr, content, scStr, valueStart);
+
+                    length = valueEnd-valueStart;
+                    content.erase(valueStart, length);
+
+                    std::string newStr = "value           nonuniform List";
+                    if (fileName == "U")
+                    {
+                        newStr += "<vector>\n";
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
                         {
-                            int localComp = jcomp + faceIndex*nComponents;
-                            
-                            std::ostringstream doubleToOs;                            
-                            doubleToOs << std::scientific << std::setprecision(IODigits);
-                            doubleToOs << ca_patchVel[ipatch][localComp];
-                            newStr += removeTrailZero(doubleToOs.str());
-                            if (jcomp<nComponents-1)
-                                newStr += " ";
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            newStr += "(";
+                            for(int jcomp=0; jcomp<nComponents; jcomp++)
+                            {
+                                int localComp = jcomp + faceIndex*nComponents;
+                                
+                                std::ostringstream doubleToOs;                            
+                                doubleToOs << std::scientific << std::setprecision(IODigits);
+                                doubleToOs << ca_patchVel[ipatch][localComp];
+                                newStr += removeTrailZero(doubleToOs.str());
+                                if (jcomp<nComponents-1)
+                                    newStr += " ";
+                            }
+                            newStr += ")\n";
                         }
                         newStr += ")\n";
                     }
-                    newStr += ")\n";
-                }
-                else if (fileName == "p")
-                {
-                    newStr += "<scalar>\n";
-                    int nfaces = *ca_patchSize[ipatch];
-                    newStr += std::to_string(nfaces);
-                    newStr += "\n(\n";
-
-                    for(int iface=0; iface<nfaces; iface++)
+                    else if (fileName == "p")
                     {
-                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
 
-                        std::ostringstream doubleToOs;                            
-                        doubleToOs << std::scientific << std::setprecision(IODigits);
-                        doubleToOs << ca_patchP[ipatch][faceIndex];
-                        newStr += removeTrailZero(doubleToOs.str());
-                        newStr += "\n";
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchP[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
                     }
-                    newStr += ")\n";
-                }
-                else if (fileName == "T")
-                {
-                    newStr += "<scalar>\n";
-                    int nfaces = *ca_patchSize[ipatch];
-                    newStr += std::to_string(nfaces);
-                    newStr += "\n(\n";
-
-                    for(int iface=0; iface<nfaces; iface++)
+                    else if (fileName == "T")
                     {
-                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
 
-                        std::ostringstream doubleToOs;                            
-                        doubleToOs << std::scientific << std::setprecision(IODigits);
-                        doubleToOs << ca_patchT[ipatch][faceIndex];
-                        newStr += removeTrailZero(doubleToOs.str());
-                        newStr += "\n";
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchT[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
                     }
-                    newStr += ")\n";
-                }
-                else if (fileName == "rho")
-                {
-                    newStr += "<scalar>\n";
-                    int nfaces = *ca_patchSize[ipatch];
-                    newStr += std::to_string(nfaces);
-                    newStr += "\n(\n";
-
-                    for(int iface=0; iface<nfaces; iface++)
+                    else if (fileName == "rho")
                     {
-                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
 
-                        std::ostringstream doubleToOs;                            
-                        doubleToOs << std::scientific << std::setprecision(IODigits);
-                        doubleToOs << ca_patchRho[ipatch][faceIndex];
-                        newStr += removeTrailZero(doubleToOs.str());
-                        newStr += "\n";
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchRho[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
                     }
-                    newStr += ")\n";
-                }
-                else if (fileName == "phi")
-                {
-                    newStr += "<scalar>\n";
-                    int nfaces = *ca_patchSize[ipatch];
-                    newStr += std::to_string(nfaces);
-                    newStr += "\n(\n";
-
-                    for(int iface=0; iface<nfaces; iface++)
+                    else if (fileName == "phi")
                     {
-                        int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
 
-                        std::ostringstream doubleToOs;                            
-                        doubleToOs << std::scientific << std::setprecision(IODigits);
-                        doubleToOs << ca_patchPhi[ipatch][faceIndex];
-                        newStr += removeTrailZero(doubleToOs.str());
-                        newStr += "\n";
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchPhi[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
                     }
-                    newStr += ")\n";
+                    else if (fileName == "rhoUf")
+                    {
+                        newStr += "<vector>\n";
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            newStr += "(";
+                            for(int jcomp=0; jcomp<nComponents; jcomp++)
+                            {
+                                int localComp = jcomp + faceIndex*nComponents;
+                                
+                                std::ostringstream doubleToOs;                            
+                                doubleToOs << std::scientific << std::setprecision(IODigits);
+                                doubleToOs << ca_patchRhoUf[ipatch][localComp];
+                                newStr += removeTrailZero(doubleToOs.str());
+                                if (jcomp<nComponents-1)
+                                    newStr += " ";
+                            }
+                            newStr += ")\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    // Turbulence data ^^^^^^^^^^^^^^
+                    else if (fileName == "alphat")
+                    {
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchAlphaT[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    else if (fileName == "epsilon")
+                    {
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchEpsilon[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    else if (fileName == "k")
+                    {
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchK[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    else if (fileName == "nut")
+                    {
+                        newStr += "<scalar>\n";
+                        int nfaces = *ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchNuT[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    //-------------------------------
+                    
+                    content.insert(valueStart, newStr);
                 }
+                // Files that are the in folder "0"" and
+                // not being taken care of yet. Need to revisit this later
+                else if (fileName == "cellToRegion")
+                {}
                 else
                 {
                     std::cout << "========== WARNING ===============" << std::endl
                               << "Boundary field for file " 
                               << fileName << " is not found." << std::endl;
                 }
-                content.insert(valueStart, newStr);
             }
 
             std::string newLocalDir = locaParAddr+std::string(ca_timeName);
@@ -657,6 +908,51 @@ int comFoam::createPointsFile(const std::string& rootAddr)
 
     std::cout << "    " << fullAddr
               << " created." << std::endl;
+
+
+    if
+    (
+        *ca_movingMesh ||
+        std::string(ca_dynamicFvMesh) == "dynamicMotionSolverFvMesh"
+    )
+    {
+        std::string timeNameStr = std::string(ca_timeName);
+        //std::string
+        localDir = timeNameStr+"/polymesh";
+
+        //std::string
+        fullDir  = rootAddr+"/"+locaParAddr+localDir;
+        //std::string
+        fullAddr = fullDir+"/points";
+
+        std::string locationStr = "location";
+        size_t locationStart = findLoc(fullAddr, content, locationStr);
+        if (locationStart != std::string::npos)
+        {
+            std::string scStr = ";";
+            size_t locationEnd = findLoc(fullAddr, content, scStr, locationStart);
+            size_t length = locationEnd-locationStart;
+            content.erase(locationStart, length);
+
+            std::string newStr  = "location    \"";
+            newStr += std::string(localDir);
+            newStr += "\"";
+            content.insert(locationStart, newStr);
+        }
+
+        //BF::path
+        fullPath = fullDir;
+        BF::create_directories(fullPath);
+
+        //std::ofstream outpuFile;
+        outpuFile.open(fullAddr);
+        
+        outpuFile << content;
+        outpuFile.close();
+
+        std::cout << "    " << fullAddr
+                  << " created." << std::endl;
+    }
 
     return 0;
 }
@@ -1103,16 +1399,31 @@ int comFoam::createConnectivityFiles
     return 0;
 }
 
-std::string comFoam::createBaseScalar(std::string name)
+std::string comFoam::createBaseFile
+(
+    std::string name,
+    std::string loc,
+    std::string type,
+    std::string dim
+)
 {
 
-    if (name!="rho" && name!="phi")
+    if (type!="Scalar" && type!="Vector")
     {
-        std::cout << "Watning: Invalid scalar name \""
-                  << name << "\" sent to createBaseScalar"
+        std::cout << "Watning: Invalid type \""
+                  << type << "\" sent to createBaseFile"
                   << std::endl;
         exit(-1);
     }
+
+    if (loc!="vol" && loc!="surface")
+    {
+        std::cout << "Watning: Invalid location \""
+                  << loc << "\" sent to createBaseFile"
+                  << std::endl;
+        exit(-1);
+    }
+
 
     std::string content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
     content += "  =========                 |\n";
@@ -1125,26 +1436,13 @@ std::string comFoam::createBaseScalar(std::string name)
     content += "    version     2.0;\n";
     content += "    format      ascii;\n";
 
-    if (name=="rho")
-    {
-        content += "    class       volScalarField;\n";
-    }
-    else if (name=="phi")
-    {
-        content += "    class       surfaceScalarField;\n";
-    }
+    content += "    class       " + loc + type + "Field;\n";
 
     content += "    location    \""+std::string("0")+"\";\n";
     content += "    object      "+name+";\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\n";
-    if (name=="rho")
-    {
-        content += "dimensions      [1 -3 0 0 0 0 0];\n\n";
-    }
-    else if (name=="phi")
-    {
-        content += "dimensions      [1 0 -1 0 0 0 0];\n\n";
-    }
+
+    content += "dimensions      "+dim+";\n\n";
 
     content += "internalField   uniform 1;\n\n";
     content += "boundaryField\n";
@@ -1163,47 +1461,58 @@ std::string comFoam::createBaseScalar(std::string name)
         {
             content += "        type            "+patchType+";\n";
         }
-        else if (
-            patchType=="processor"      ||
-            patchType=="cyclic"         ||
-            patchType=="cyclicAMI"      ||
-            patchType=="cyclicSlip"     ||
-            patchType=="symmetry"       ||
-            patchType=="basicSymmetry"  ||
-            patchType=="symmetryPlane"  ||
-            patchType=="wedge")
-        {
-            content += "        type            "+patchType+";\n";
-            if (nFaces>0)
-            {
-                content += "        value           uniform 1;\n";
-            }
-            else
-            {
-                content += "        value           nonuniform 0();\n";
-            }
-        }
         else
         {
-            content += "        type            calculated;\n";
-            if (nFaces>0)
+            if (
+                patchType=="processor"      ||
+                patchType=="cyclic"         ||
+                patchType=="cyclicAMI"      ||
+                patchType=="cyclicSlip"     ||
+                patchType=="symmetry"       ||
+                patchType=="basicSymmetry"  ||
+                patchType=="symmetryPlane"  ||
+                patchType=="wedge")
             {
-                content += "        value           uniform 1;\n";
+                content += "        type            "+patchType+";\n";
             }
             else
             {
-                content += "        value           nonuniform 0();\n";
+                content += "        type            calculated;\n";
+            }
+
+            if (nFaces>0)
+            {
+                if (type == "Scalar")
+                {
+                    content += "        value           uniform 1;\n";
+                }
+                else if (type == "Vector")
+                {
+                    content += "        value           uniform (1 1 1);\n";
+                }
+            }
+            else
+            {
+                if (type == "Scalar")
+                {
+                    content += "        value           nonuniform 0();\n";
+                }
+                else if (type == "Vector")
+                {
+                    content += "        value           nonuniform 0();\n";
+                }
             }
         }
         content += "    }\n";
     }
     content += "}\n\n";
-        content += "// ************************************************************************* //";
+    content += "// ******************************";
+    content += "******************************************* //";
     
     return content;
 }
 
-int comFoam::deleteInitFiles(const std::string& addr)
+int comFoam::deleteTempFiles(const std::string& addr)
 {
     namespace BF = boost::filesystem;
 
@@ -1213,19 +1522,21 @@ int comFoam::deleteInitFiles(const std::string& addr)
     return 0;
 }
 
-int comFoam::registerInitFiles(const char *name)
+int comFoam::registerFilesData(const char *name)
 {
-    std::cout << "rocFoam.registerInitFiles: "
+    std::string volName = name+std::string("VOL");
+    
+    std::cout << "rocFoam.registerFilesData: "
                << "Registering flow data with name "
-               << name
+               << volName
                << std::endl;
 
-    std::cout << "Files^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-              << std::endl;
+    int paneID = Pstream::myProcNo()+1;// Use this paneID for file data
 
-    std::string volName = name+std::string("VOL");
+    Info << "procID = " << Pstream::myProcNo()
+         << ", paneID = " << paneID
+         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
-    int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
 
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = volName+std::string(".nFiles");
@@ -1241,7 +1552,7 @@ int comFoam::registerInitFiles(const char *name)
     //std::cout << dataName << " registered." << std::endl;
 
     // Register file paths
-    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
         std::string charToStr = std::string(ca_filePath[ifile]);
         int charSize = charToStr.length()+1;
@@ -1254,7 +1565,7 @@ int comFoam::registerInitFiles(const char *name)
     }
 
     // Register file names
-    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
         std::string charToStr = std::string(ca_fileName[ifile]);
         int charSize = charToStr.length()+1;
@@ -1270,7 +1581,7 @@ int comFoam::registerInitFiles(const char *name)
     }
 
     // Register file contents
-    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
         std::string charToStr = std::string(ca_fileContent[ifile]);
         int charSize = charToStr.length()+1;
@@ -1282,7 +1593,7 @@ int comFoam::registerInitFiles(const char *name)
         //std::cout << dataName << " registered." << std::endl;
     }
 
-    for(int ifile=0; ifile<*ca_nFiles; ifile++)
+    for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
         std::cout << "  procID = " << Pstream::myProcNo()
                   << ", " << ca_filePath[ifile]
@@ -1296,7 +1607,7 @@ int comFoam::registerInitFiles(const char *name)
     return 0;
 }
 
-int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
+int comFoam::reconstFilesData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     std::cout << "rocFoam.reconstructInitFiles, proID = "
@@ -1328,6 +1639,8 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
             //Info << "  DataItem[" << i << "] = " << nameTmp << endl;
         }
     }
+    std::cout << "  Number of items = " << dataItemNames.size()
+              << std::endl << std::endl;
 
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("nFiles");
@@ -1403,7 +1716,7 @@ int comFoam::reconstCaInitFiles(const char *name, const std::string& rootAddr)
     }
     //-------------------------------------------
 
-    createInitFiles(rootAddr);
+    createFilesData();
 
     return 0;
 }
@@ -1488,6 +1801,12 @@ int comFoam::readRecursive
                         //std::cout << vecFile[fileCount].size << std::endl;
                         //std::cout << vecFile[fileCount].content << std::endl;
 
+                        if (content != NULL)
+                        {
+                            delete [] content;
+                            content = NULL;
+                        }
+
                         fileCount++;
                     }
                 }
@@ -1543,7 +1862,11 @@ bool comFoam::fileShouldBeRead
             fileName  == "boundaryProcAddressing" ||
             fileName  == "cellProcAddressing" ||
             fileName  == "faceProcAddressing" ||
-            fileName  == "pointProcAddressing"
+            fileName  == "pointProcAddressing" ||
+            
+            fileName  == "cellZones" || //should be directly generated
+            fileName  == "faceZones" || //should be directly generated
+            fileName  == "pointZones"   //should be directly generated
             ) addFile = true;
 
     }
@@ -1565,7 +1888,11 @@ bool comFoam::fileShouldBeRead
                 fileName  == "boundaryProcAddressing" ||
                 fileName  == "cellProcAddressing" ||
                 fileName  == "faceProcAddressing" ||
-                fileName  == "pointProcAddressing"
+                fileName  == "pointProcAddressing" ||
+                
+                fileName  == "cellZones" || //should be directly generated
+                fileName  == "faceZones" || //should be directly generated
+                fileName  == "pointZones"   //should be directly generated
                 ) addFile = true;
         }
     }
@@ -1623,7 +1950,7 @@ int comFoam::deleteFilesData()
 
     if (ca_nFiles != nullptr)
     {
-        delete [] ca_nFiles;
+        delete ca_nFiles;
         ca_nFiles = nullptr;
     }
 
@@ -1657,15 +1984,15 @@ size_t comFoam::findLoc
     size_t start
 )
 {
-    size_t intFieldStart = content.find(exp, start);
-    if (intFieldStart==std::string::npos)
+    size_t expStart = content.find(exp, start);
+    if (expStart==std::string::npos)
     {
         std::cout << "Warning: Cannot find \""
                   << exp+"\" keyword in file"
                   << fullAddr << std::endl;
     }
 
-    return intFieldStart;
+    return expStart;
 }
 
 size_t comFoam::findLoc
@@ -1677,8 +2004,8 @@ size_t comFoam::findLoc
     size_t end
 )
 {
-    size_t intFieldStart = content.find(exp, start);
-    if (intFieldStart==std::string::npos || intFieldStart>end)
+    size_t expStart = content.find(exp, start);
+    if (expStart==std::string::npos || expStart>end)
     {
         std::cout << "Warning: Cannot find \""
                   << exp+"\" keyword"
@@ -1688,116 +2015,49 @@ size_t comFoam::findLoc
                   << fullAddr << std::endl;
     }
 
-    return intFieldStart;
+    return expStart;
 }
 
-size_t comFoam::findOnlyLoc
-(
-    const std::string& fullAddr,
-    const std::string& content,
-    const std::string& exp
-)
-{
-    size_t firstLoc=0;
-
-    int count=0;
-    size_t start=0;
-    size_t intFieldStart=0;
-    while (intFieldStart!=std::string::npos)
-    {
-        intFieldStart = content.find(exp, start);
-
-        if (intFieldStart != std::string::npos)
-        {
-            count++;
-            if (count == 1) firstLoc = intFieldStart;
-
-            start = intFieldStart+exp.length();
-        }
-    }
-    if (count == 0)
-    {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file"
-                 << fullAddr << std::endl;
-         exit(-1);
-    }
-    else if (count > 1)
-    {
-        std::cout << "Warning: Found more than one \""
-                  << exp+"\" keyword in file"
-                    << fullAddr << std::endl;
-        exit(-1);
-    }
-
-    return firstLoc;
-}
 
 size_t comFoam::findOnlyLoc
 (
     const std::string& fullAddr,
     const std::string& content,
     const std::string& exp,
-    size_t start
+    size_t startPos,
+    size_t endPos
 )
 {
     size_t firstLoc=0;
     int count=0;
-    size_t intFieldStart=0;
-    while (intFieldStart!=std::string::npos)
-    {
-        intFieldStart = content.find(exp, start);
+    size_t expStart=0;
 
-        if (intFieldStart != std::string::npos)
+    while (expStart!=std::string::npos && expStart<endPos)
+    {
+        expStart = min( content.find(exp, startPos), endPos);
+
+        if (expStart != std::string::npos)
         {
-            count++;
-            if (count == 1) firstLoc = intFieldStart;
+            size_t startTmp  = std::max(static_cast<size_t>(0),
+                                        expStart-exp.length());
+            size_t endTmp    = std::min(expStart+2*exp.length(),
+                                        std::string::npos);
+            size_t lengthTmp = endTmp-startTmp+1;
 
-            start = intFieldStart+exp.length();
+            std::stringstream iStr(content.substr(startTmp, lengthTmp));
+            std::string lookUp;
+
+            while(iStr >> lookUp)
+            {
+                if (lookUp == exp)
+                {
+                    count++;
+                    if (count == 1) firstLoc = expStart;
+                    break;
+                }
+            }
         }
-    }
-    if (count == 0)
-    {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file"
-                 << fullAddr << std::endl;
-         exit(-1);
-    }
-    else if (count > 1)
-    {
-        std::cout << "Warning: Found more than one \""
-                  << exp+"\" keyword in file"
-                    << fullAddr << std::endl;
-        exit(-1);
-    }
-
-    return firstLoc;
-}
-
-size_t comFoam::findOnlyLoc
-(
-    const std::string& fullAddr,
-    const std::string& content,
-    const std::string& exp,
-    size_t start,
-    size_t end
-)
-{
-    size_t firstLoc=0;
-    int count=0;
-    size_t intFieldStart=0;
-
-    while (intFieldStart!=std::string::npos && intFieldStart<=end)
-    {
-        intFieldStart = content.find(exp, start);
-
-        if (intFieldStart != std::string::npos && intFieldStart<=end)
-        {
-            count++;
-            if (count == 1) firstLoc = intFieldStart;
-        
-            start = intFieldStart+exp.length();
-        }
+        startPos = expStart+exp.length();
     }
 
     if (count == 0)
