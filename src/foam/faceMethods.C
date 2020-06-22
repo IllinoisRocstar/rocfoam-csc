@@ -216,8 +216,47 @@ int comFoam::registerFaceData(const char *name)
     COM_set_array(dataName, paneID, ca_faceToPointConn_size);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
+    // points, same as the one for the cell connectivity
+    dataName = volName+std::string(".nc");
+    COM_set_size( dataName, paneID, *ca_nPoints);
+    COM_set_array(dataName, paneID, ca_Points, nComponents);
+    Info << "  " << dataName.c_str() << " registered." << endl;
+
+
+    // Cell connectivity size should be set to  zero ^^^^^^
+    int cellNtypes = *ca_cellToPointConn_types;
+    for (int itype=0; itype<cellNtypes; itype++)
+    {
+        int typeID = ca_cellToPointConn_map[itype];
+        int typeSize = ca_cellToPointConn_size[itype];
+
+        if (typeID == 4)
+        { // Tet
+            dataName = volName+std::string(".:T4");
+        }
+        else if (typeID == 6)
+        { // Prism
+            dataName = volName+std::string(".:P6");
+        }
+        else if (typeID == 8)
+        { //Hex
+            dataName = volName+std::string(".:H8");
+        }
+        else
+        { // Type not identified
+
+            Info << "=================== WARNING ==================="
+                 << " Cell typeID " << typeID << " with size = "
+                 << typeSize << " not identified!"
+                 << endl;
+            exit(-1);
+        }
+        COM_set_size( dataName, paneID, 0);
+    }
+    //-----------------------------------------------------
+
     // Connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    for(int itype=0; itype<ntypes; itype++)
+    for (int itype=0; itype<ntypes; itype++)
     {
         int typeID = ca_faceToPointConn_map[itype];
         int nfaces = ca_faceToPointConn_size[itype];
@@ -237,20 +276,18 @@ int comFoam::registerFaceData(const char *name)
                        << " Face typeID " << typeID << " with size = "
                        << nfaces << " not identified!"
                        << endl;
-            return -1;
+            exit(-1);
         }
 
         COM_set_size( dataName, paneID, nfaces);
-        COM_set_array( dataName,
-                       paneID,
-                       ca_faceToPointConn[itype],
-                       typeID
+        COM_set_array(dataName,
+                      paneID,
+                      ca_faceToPointConn[itype],
+                      typeID
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
-/*
-    
     dataName = volName+std::string(".faceToFaceMap");
     COM_new_dataitem(dataName, 'e', COM_INT, 1, "");
     COM_set_array(dataName, paneID, ca_faceToFaceMap, 1);
@@ -288,7 +325,6 @@ int comFoam::registerFaceData(const char *name)
         COM_set_array(    dataName, paneID, ca_RhoUf, nComponents);
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
-*/
 
     COM_window_init_done(volName);
 

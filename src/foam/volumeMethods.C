@@ -251,29 +251,17 @@ int comFoam::registerVolumeData(const char *name)
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
-
-
     std::string dataName = volName+std::string(".nPoints");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nPoints);
-    
     Info << "  " << dataName.c_str() << " registered." << endl;
-
-
-std::cout << "HERE0 " << "ca_nPoints = " << ca_nPoints << std::endl;
-
-std::cout << "HERE1 " << "*ca_nPoints = " << *ca_nPoints << std::endl;
-
-
 
     dataName = volName+std::string(".nCells");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nCells);
     Info << "  " << dataName.c_str() << " registered." << endl;
-
-
 
     dataName = volName+std::string(".cellToPointConn_types");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
@@ -294,27 +282,17 @@ std::cout << "HERE1 " << "*ca_nPoints = " << *ca_nPoints << std::endl;
     COM_set_array(dataName, paneID, ca_cellToPointConn_size);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-
-
     // points
     dataName = volName+std::string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-std::cout << "HERE0 " << "nPoints = " << *ca_nPoints << std::endl;
-
-std::cout << "HERE1 " << "ntypes = " << ntypes << std::endl;
-
-
-    // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    for(int itype=0; itype<ntypes; itype++)
+    // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    for (int itype=0; itype<ntypes; itype++)
     {
         int typeID = ca_cellToPointConn_map[itype];
         int typeSize = ca_cellToPointConn_size[itype];
-
-std::cout << "HERE2 " << "typeID = " << typeID << std::endl;
-std::cout << "HERE3 " << "typeSize = " << typeSize << std::endl;
 
         if (typeID == 4)
         { // Tet
@@ -345,12 +323,41 @@ std::cout << "HERE3 " << "typeSize = " << typeSize << std::endl;
         }
 
         COM_set_size( dataName, paneID, typeSize);
-        COM_set_array(dataName, paneID,
+        COM_set_array(dataName,
+                      paneID,
                       ca_cellToPointConn[itype],
                       typeID
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
+
+    // Face connectivity size should be set to  zero ^^^^^^
+    int faceNtypes = *ca_faceToPointConn_types;
+    for (int itype=0; itype<faceNtypes; itype++)
+    {
+        int typeID = ca_faceToPointConn_map[itype];
+        int nfaces = ca_faceToPointConn_size[itype];
+
+        if (typeID == 3)
+        { // Triangle
+            dataName = volName+std::string(".:t3");
+        }
+        else if (typeID == 4)
+        { // Quad
+            dataName = volName+std::string(".:q4");
+        }
+        else
+        { // Type not identified
+
+            Foam::Info << "=================== WARNING ==================="
+                       << " Face typeID " << typeID << " with size = "
+                       << nfaces << " not identified!"
+                       << endl;
+            exit(-1);
+        }
+        COM_set_size( dataName, paneID, 0);
+    }
+    //-----------------------------------------------------
 
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");

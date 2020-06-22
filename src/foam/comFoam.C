@@ -41,7 +41,7 @@ int comFoam::registerCSCdata(const char *name)
     registerFilesData(name);
     registerVolumeData(name);
     registerFaceData(name);
-    registerSurfaceData(name);
+    //registerSurfaceData(name);
 
     if (true)
     {
@@ -60,6 +60,7 @@ int comFoam::registerCSCdata(const char *name)
             {
                 volName = name+std::string("SURF");
             }
+
             std::string regNames;
             int numDataItems=0;
             COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
@@ -72,26 +73,111 @@ int comFoam::registerCSCdata(const char *name)
             {
                 std::string nameTmp;
                 Istr >> nameTmp;
-
-                char loc[50];
-                COM_Type type;
-                int ncomp;
-                std::string unit;
-
-                std::string regName = volName+std::string(".")+nameTmp;
-                COM_get_dataitem(regName.c_str(), loc, &type, &ncomp, &unit);
-
                 dataItemNames.push_back(nameTmp);
-                std::cout << "  DataItem[" << i << "] = " << nameTmp
-                          << ", loc = " << *loc
-                          << ", type = " << type
-                          << ", ncomp = " << ncomp
-                          << ", unit = " << unit
-                          << std::endl;
             }
-            std::cout << "  Number of items = " << dataItemNames.size()
-                      << std::endl << std::endl;
 
+            dataItemNames.push_back("nc");
+            numDataItems++;
+
+
+            int nPanes;
+            int* paneList;
+            COM_get_panes(volName.c_str(), &nPanes, &paneList);
+            std::cout << "  Number of Panes = " << nPanes << std::endl;
+
+            for (int ipane=0; ipane<=nPanes; ipane++)
+            {
+                int paneID;
+                if ( ipane == 0 )
+                {
+                    paneID = 0;
+                }
+                else
+                {
+                    paneID = paneList[ipane-1];
+                }
+                
+                std::cout << "WindoName = " << volName
+                          << ", Pane[" << ipane << "], paneID = " << paneID
+                          << " ^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
+                for (int i=0; i<numDataItems; i++)
+                {
+                
+                    std::string nameTmp = dataItemNames[i];
+
+                    char loc[50];
+                    COM_Type type;
+                    int ncomp;
+                    std::string unit;
+                    int size{0};
+
+
+                    std::string regName = volName+std::string(".")+nameTmp;
+                    if (ipane == 0)
+                    {
+                        COM_get_dataitem(regName.c_str(), loc, &type, &ncomp, &unit);
+                    }
+                    else
+                    {
+                        COM_get_dataitem(regName.c_str(), loc, &type, &ncomp, &unit);
+                    }
+
+                    if 
+                    (
+                        (*loc == 'w' && ipane == 0) ||
+                        (*loc == 'p' && ipane != 0)
+                    )
+                    {
+                        COM_get_size(regName.c_str(), paneID, &size);
+                        if (size>0)
+                        {
+                            std::cout << "  DataItem[" << i << "] = " << nameTmp
+                                      << ", loc = " << *loc
+                                      << ", type = " << type
+                                      << ", paneID = " << paneID
+                                      << ", size = " << size
+                                      << ", ncomp = " << ncomp
+                                      << ", unit = " << unit
+                                      << std::endl;
+                        }
+                    }
+                }
+                
+                if (ipane != 0)
+                {
+                    std::string  dataName = std::string("nc");
+                    std::string regName = volName+std::string(".")+dataName;
+                    int nPoints;
+                    int nComp;
+                    COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
+                    COM_get_size(regName.c_str(), paneID, &nPoints);
+                    std::cout << "  " << dataName.c_str() << " nPoints = " << nPoints
+                              << ", components = " << nComp << std::endl;                
+
+                    int nConn;
+                    int numElem;
+                    std::string connNames;
+                    COM_get_connectivities(volName.c_str(), paneID, &nConn, connNames);
+                    std::istringstream connISS(connNames);
+                    for (int icon=0; icon<nConn; ++icon)
+                    {
+                        std::string connName;
+                        connISS >> connName;
+                        //connNames.push_back(connName);
+
+                        dataName = volName+std::string(".")+connName;
+                        //nameExists(dataItemNames, dataName);
+                        COM_get_array(dataName.c_str(), paneID, &ca_cellToPointConn[icon], &nComp);
+                        COM_get_size(dataName.c_str(), paneID, &numElem);
+
+                        std::cout << "    Connectivity[" << icon << "] = " << connName
+                                  << ", elements = " << numElem
+                                  << ", components =" << nComp << std::endl;
+                    }
+
+                }
+            }
 //std::cin.get();
         }
 
