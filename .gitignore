@@ -9,5 +9,5 @@
 */*/*.dep
 */*/*/*.o
 */*/*/*.dep
+build*
 build
-build/*

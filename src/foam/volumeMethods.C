@@ -251,11 +251,18 @@ int comFoam::registerVolumeData(const char *name)
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
+
+
     std::string dataName = volName+std::string(".nPoints");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nPoints);
     Info << "  " << dataName.c_str() << " registered." << endl;
+
+std::cout << "HERE0 " << "ca_nPoints = " << ca_nPoints << std::endl;
+
+std::cout << "HERE1 " << "*ca_nPoints = " << *ca_nPoints << std::endl;
+
 
 /*
     dataName = volName+std::string(".nCells");
@@ -284,6 +291,7 @@ int comFoam::registerVolumeData(const char *name)
     Info << "  " << dataName.c_str() << " registered." << endl;
 */
 
+/*
     // points
     dataName = volName+std::string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
@@ -292,11 +300,19 @@ int comFoam::registerVolumeData(const char *name)
 
 int ntypes = *ca_cellToPointConn_types;
 
+std::cout << "HERE0 " << "nPoints = " << *ca_nPoints << std::endl;
+
+std::cout << "HERE1 " << "ntypes = " << ntypes << std::endl;
+
+
     // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for(int itype=0; itype<ntypes; itype++)
     {
         int typeID = ca_cellToPointConn_map[itype];
         int typeSize = ca_cellToPointConn_size[itype];
+
+std::cout << "HERE2 " << "typeID = " << typeID << std::endl;
+std::cout << "HERE3 " << "typeSize = " << typeSize << std::endl;
 
         if (typeID == 4)
         { // Tet
@@ -323,7 +339,7 @@ int ntypes = *ca_cellToPointConn_types;
                  << " Cell typeID " << typeID << " with size = "
                  << typeSize << " not identified!"
                  << endl;
-            return -1;
+            exit(-1);
         }
 
         COM_set_size( dataName, paneID, typeSize);
@@ -333,7 +349,7 @@ int ntypes = *ca_cellToPointConn_types;
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
-
+*/
 /*        
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");

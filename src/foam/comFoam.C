@@ -92,7 +92,7 @@ int comFoam::registerCSCdata(const char *name)
             std::cout << "  Number of items = " << dataItemNames.size()
                       << std::endl << std::endl;
 
-std::cin.get();
+//std::cin.get();
         }
 
       }
