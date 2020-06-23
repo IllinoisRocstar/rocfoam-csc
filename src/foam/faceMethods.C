@@ -151,7 +151,7 @@ int comFoam::updateFaceData_outgoing()
     int nInternalFaces = *ca_nFaces;
     if (nPatches>0)
     {
-        nInternalFaces = patches[0].start()-1;
+        nInternalFaces = patches[0].start();
     }
 
     int ntypes    = *ca_faceToPointConn_types;

@@ -12,6 +12,7 @@ int masterNProc;
 bool runParallel;
 
 char *solverType;
+std::string status;
 
 //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // volume window
@@ -50,43 +51,44 @@ int comDrvLoop(const char *name);
 int comDrvStep(const char *name);
 int comDrvFin(const char *name);
 
+int comDrvStart(int argc, char *argv[]);
+int comDrvRestart(int argc, char *argv[]);
+
 int main(int argc, char *argv[])
 {
-
-/*
-for (;;)
-{
-std::string strTmp;
-std::cin >> strTmp;
-std::cout << "strTmp1 = " << strTmp << std::endl;
-strTmp = comFoam::removeTrailZero(strTmp);
-std::cout << "strTmp2 = " << strTmp << std::endl;
-std::cin.get();
-}
-*/
-
-
 
     comDrvInit(argc, argv);
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);
     
-    std::string lookUpWindow1 = winNames[1]+string("VOL");
-    comGetRunStatItems(lookUpWindow1.c_str());
-    comDrvStep(winNames[1].c_str());
 
-    //comDrvFin(winNames[0].c_str());
+    if (status == "preprocess")
+    {
+        comDrvStart(argc, argv);
+    }
+    else if (status == "production")
+    {
+        comDrvRestart(argc, argv);
 
-    rocfoam_unload_module(winNames[0].c_str(), solverType);
-    rocfoam_unload_module(winNames[1].c_str(), solverType);
+        std::string lookUpWindow = winNames[0]+string("VOL");
+        comGetRunStatItems(lookUpWindow.c_str());
+        comDrvStep(winNames[0].c_str());
 
+        //rocfoam_unload_module(winNames[0].c_str(), solverType);
+    }
+    else
+    {
+        std::cout << " Warning: stat = " << status
+                  << " unknown." << std::endl;
+    }
+
+    comDrvFin(winNames[0].c_str());
 
     return 0;
 }
 
 int comDrvInit(int argc, char *argv[])
 {
-
     MPI_Init(&argc, &argv);
     masterComm = MPI_COMM_WORLD;
 
@@ -115,7 +117,7 @@ int comDrvInit(int argc, char *argv[])
 
     // Run in parallel mode?
     runParallel = false;
-    solverType = const_cast<char *>("rocRhoCentral");
+    //solverType = const_cast<char *>("rocRhoCentral");
     
     std::string arg;
     std::stringstream ss;
@@ -139,6 +141,14 @@ int comDrvInit(int argc, char *argv[])
             {
                 solverType = const_cast<char *>("rocRhoPimple");
             }
+            else if (ss.str() == "-preprocess")
+            {
+                status = "preprocess";
+            }
+            else if (ss.str() == "-production")
+            {
+                status = "production";
+            }
             /* else
             {
                 if (masterRank==0)
@@ -150,6 +160,21 @@ int comDrvInit(int argc, char *argv[])
             } */
         }
     }
+
+    if (status != "preprocess" &&
+        status != "production")
+    {
+        std::cout << "WARNING: simulation status unknown." << std::endl;
+        exit(-1);
+    }
+
+    if (solverType != const_cast<char *>("rocRhoCentral") &&
+        solverType != const_cast<char *>("rocRhoPimple"))
+    {
+        std::cout << "WARNING: solverType unknown." << std::endl;
+        exit(-1);
+    }
+
 
     if (runParallel && masterNProc > 1)
     {
@@ -181,17 +206,16 @@ int comDrvInit(int argc, char *argv[])
     }
     if (masterRank==0) std::cout << std::endl;
 
-    //  Setting the defual communicator. Is it needed?
-    COM_set_default_communicator(newComm);
+    return 0;
+}
 
+int comDrvStart(int argc, char *argv[])
+{
+    COM_set_default_communicator(newComm);
     winNames.push_back("ROCFOAM");
     
     rocfoam_load_module(winNames[0].c_str(), solverType);
     comGetFunctionHandles(winNames[0].c_str());
-
-    //  Make a dummy argc/argv for OpenFOAM. ^^^^
-    //  No options passed from the command
-    //  line will be used by the driver
 
     int myArgc = 1;
     char *myArgv[2];
@@ -204,22 +228,10 @@ int comDrvInit(int argc, char *argv[])
         myArgv[1] = const_cast<char *>("-parallel");
     }
 
-    //int verb=3;
-
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle[0],
                       &myArgc, &myArgv,
                       winNames[0].c_str());
-
-    std::string lookUpWindow1 = "";
-    std::string lookUpWindow2 = "";
-
-
-    //lookUpWindow1 = winNames[0]+string("VOL");
-    //comGetVolDataItems(lookUpWindow1.c_str());
-    //lookUpWindow1 = winNames[0]+string("SURF");
-    //comGetVolDataItems(lookUpWindow1.c_str());
-
 
     std::cout << "Writing data windows" << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
@@ -236,7 +248,7 @@ int comDrvInit(int argc, char *argv[])
             strTmp = "SURF";
         }
 
-        lookUpWindow1 = winNames[0]+strTmp;
+        std::string lookUpWindow1 = winNames[0]+strTmp;
         std::string whatToWrite = lookUpWindow1+std::string(".all");
         int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
@@ -277,20 +289,83 @@ int comDrvInit(int argc, char *argv[])
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     std::cout << "Unloaded SIMOUT" << std::endl;
 
-    lookUpWindow2 = "ROCFOAM1";
-    winNames.push_back(lookUpWindow2);
-    rocfoam_load_module(lookUpWindow2.c_str(), solverType);
-    comGetFunctionHandles(lookUpWindow2.c_str());
+    //rocfoam_unload_module(winNames[0].c_str(), solverType);
 
-    lookUpWindow1 = winNames[0];
-    lookUpWindow2 = winNames[1];
-    comFoam::copyWindow(lookUpWindow1.c_str(), lookUpWindow2.c_str());
-
-    COM_call_function(flowRestartInitHandle[1],
-                      &myArgc, &myArgv,
-                      winNames[1].c_str());
     return 0;
 }
+
+int comDrvRestart(int argc, char *argv[])
+{
+    COM_set_default_communicator(newComm);
+
+    std::string winNameOld = "ROCFOAM0";
+    std::string winName = "ROCFOAM";
+    //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
+    std::cout << "Reading data windows" << std::endl;
+    COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
+    int IN_read = COM_get_function_handle("IN.read_window");
+    for (int count=0; count<2; count++)
+    {
+        std::string strTmp;
+        if (count == 0 )
+        {
+            strTmp = "VOL";
+        }
+        else if (count == 1 )
+        {
+            strTmp = "SURF";
+        }
+        
+        
+        std::string lookUpWindow = winNameOld+strTmp;
+
+        std::string pathTmp = std::string("./")
+                            + winName+"/"
+                            + winName+strTmp+std::string("_");
+
+        std::cout << "Reading file " << pathTmp << std::endl;
+
+        std::string whatToRead = pathTmp+"*";
+
+        COM_call_function
+        (
+            IN_read,
+            whatToRead.c_str(),
+            lookUpWindow.c_str()
+        );
+
+        std::cout << "Finished reading "
+                  << pathTmp << " window."
+                  << std::endl;
+    }
+    COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
+    std::cout << "Unloaded SimIN" << std::endl;
+
+    winNames.push_back(winName);
+    rocfoam_load_module(winName.c_str(), solverType);
+    comGetFunctionHandles(winName.c_str());
+
+    comFoam::copyWindow(winNameOld.c_str(), winName.c_str());
+    
+    rocfoam_unload_module(winNameOld.c_str(), solverType);
+
+    int myArgc = 1;
+    char *myArgv[2];
+    myArgv[0] = argv[0];
+    myArgv[1] = nullptr;
+
+    if (runParallel)
+    {
+        myArgc = 2;
+        myArgv[1] = const_cast<char *>("-parallel");
+    }
+
+    COM_call_function(flowRestartInitHandle[0],
+                      &myArgc, &myArgv,
+                      winNames[0].c_str());
+    return 0;
+}
+
 
 int comGetFunctionHandles(const char *name)
 {

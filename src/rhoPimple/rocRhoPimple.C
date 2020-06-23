@@ -51,26 +51,58 @@ void rhoPimple::load(const char *name)
 
     // Base window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string winName = name;
-    COM_new_window(winName, tmpComm);
-    std::string objectName = winName + string(".object");
-    COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
-    COM_set_object(objectName.c_str(), 0, comFoamPtr);
-    COM_window_init_done(winName);
+    int winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "WARNING: Window " << winName << " already exists."
+                  << " CSC must create this window name."
+                  << std::endl;
+        exit(-1);
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+
+        std::string objectName = winName + string(".object");
+        COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
+        COM_set_object(objectName.c_str(), 0, comFoamPtr);
+        COM_window_init_done(winName);
+        
+        comFoamPtr->registerFunctions(winName.c_str());
+    }
     //-------------------------------------------
 
     // Vol window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     winName = name+string("VOL");
-    COM_new_window(winName, tmpComm);
-    COM_window_init_done(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "Window " << winName << " already exists."
+                  << " Assure that there is nothing wrong with it."
+                  << std::endl;
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+        COM_window_init_done(winName);
+    }
     //-------------------------------------------
 
     // Surf window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     winName = name+string("SURF");
-    COM_new_window(winName, tmpComm);
-    COM_window_init_done(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "Window " << winName << " already exists."
+                  << " Assure that there is nothing wrong with it."
+                  << std::endl;
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+        COM_window_init_done(winName);
+    }
     //-------------------------------------------
-
-    comFoamPtr->registerFunctions(name);
 
     return;
 }
@@ -82,22 +114,30 @@ void rhoPimple::unload(const char *name)
     Foam::Info << "rocFoam.unload: Unloading rocRhoPimple with name "
                << name << "." << Foam::endl;
 
-    comFoam *comFoamPtr = nullptr;
-    std::string winName = std::string(name);
-    std::string objectName(winName+".object");
-    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
-
-    //comFoamPtr->finalize();
-    delete comFoamPtr;
-
-    winName = name+std::string("VOL");
-    COM_delete_window(winName);
+    std::string winName = name+std::string("VOL");
+    int winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+        COM_delete_window(winName);
 
     winName = name+std::string("SURF");
-    COM_delete_window(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+        COM_delete_window(winName);
 
     winName = std::string(name);
-    COM_delete_window(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        comFoam *comFoamPtr = nullptr;
+        std::string objectName(winName+".object");
+        COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+
+        //comFoamPtr->finalize();
+        if (comFoamPtr != nullptr)
+            delete comFoamPtr;
+        
+        COM_delete_window(winName);
+    }
 }
 //-----------------------------------------------
 //=========================================================
