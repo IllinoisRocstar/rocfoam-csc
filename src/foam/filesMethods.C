@@ -1138,13 +1138,14 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     for(int iface=0; iface<nfaces; iface++)
     {
         int faceIndex = ca_faceToFaceMap_inverse[iface];
-
-        int ntypes = *ca_faceToPointConn_types;
+        int ntypesCell = *ca_cellToPointConn_types;
+        int ntypes     = *ca_faceToPointConn_types;
         int typeSelect = -1;
         int faceCountFloor = 0;
+
         for(int itype=0; itype<ntypes; itype++) 
         {
-            if (faceIndex< faceCountFloor+ca_faceToPointConn_size[itype])
+            if (faceIndex < faceCountFloor+ca_faceToPointConn_size[itype])
             {
                 typeSelect = itype;
                 break;
@@ -1154,21 +1155,23 @@ int comFoam::createFacesFile(const std::string& rootAddr)
                 faceCountFloor += ca_faceToPointConn_size[itype];
             }
         }
+
         if (typeSelect == -1)
         {
             std::cout << "========== WARNING ===============" << std::endl
                       << "Face type not found." << std::endl;
         }
         int localFaceIndex = faceIndex - faceCountFloor;
-
         int npoints = ca_faceToPointConn_map[typeSelect];
+
         content += std::to_string(npoints);
         content += "(";
         for(int ipoint=0; ipoint<npoints; ipoint++)
         {
             int index = ipoint+localFaceIndex*npoints;
-            
-            content += std::to_string(ca_faceToPointConn[typeSelect][index]);
+            int typeSelect_ = typeSelect + ntypesCell;
+
+            content += std::to_string(ca_faceToPointConn[typeSelect_][index]);
             if (ipoint<npoints-1)
                 content += " ";
         }
@@ -1183,7 +1186,7 @@ int comFoam::createFacesFile(const std::string& rootAddr)
 
     std::ofstream outpuFile;
     outpuFile.open(fullAddr);
-    
+
     outpuFile << content;
     outpuFile.close();
 

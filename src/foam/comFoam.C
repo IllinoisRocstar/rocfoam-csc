@@ -41,9 +41,9 @@ int comFoam::registerCSCdata(const char *name)
     registerFilesData(name);
     registerVolumeData(name);
     registerFaceData(name);
-    //registerSurfaceData(name);
+    registerSurfaceData(name);
 
-    if (true)
+    if (false)
     {
         for (int count=0; count<3; count++)
         {
@@ -175,24 +175,21 @@ int comFoam::registerCSCdata(const char *name)
                                   << ", elements = " << numElem
                                   << ", components =" << nComp << std::endl;
                     }
-
                 }
             }
-//std::cin.get();
         }
-
-      }
+    }
 
     return 0;
 }
 
 int comFoam::deleteCSCdata()
 {
-    deleteStatusData();
-    deleteVolumeData();
-    deleteFaceData();
-    deleteSurfaceData();
     deleteFilesData();
+    deleteSurfaceData();
+    deleteFaceData();
+    deleteVolumeData();
+    deleteStatusData();
 
     return 0;
 }

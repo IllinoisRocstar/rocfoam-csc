@@ -1090,6 +1090,9 @@ int comFoam::registerSurfaceData(const char *name)
         COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_size[ipatch]);
         Info << "  " << dataName.c_str() << " registered." << endl;
 
+
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// Should fix this later
         for(int itype=0; itype<ntypes; itype++)
         {
             int typeID = ca_patchFaceToPointConn_map[ipatch][itype];
@@ -1121,6 +1124,7 @@ int comFoam::registerSurfaceData(const char *name)
                          );
             Info << "  " << dataName.c_str() << " registered." << endl;
         }
+//---------------------------------------------------------
 
         dataName = surfName+std::string(".patchFaceToFaceMap");
         COM_set_array(dataName, paneID, ca_patchFaceToFaceMap[ipatch], 1);

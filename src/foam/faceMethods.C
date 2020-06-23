@@ -60,13 +60,25 @@ int comFoam::createFaceConnectivities()
     }
     //-------------------------------------------
 
-    //  Create faceToPoint connectivity arrays ^^    
-    int nTypes = mapFaceToFaceMap.size();
-    ca_faceToPointConn_types = new int(nTypes);
-    ca_faceToPointConn_map   = new int[nTypes];
-    ca_faceToPointConn_size  = new int[nTypes];
-    ca_faceToPointConn = new int*[nTypes];
-
+    // Create faceToPoint connectivity arrays ^^^
+    // Note that the number of ca_cellToPointConn_types
+    // should be added to the beginning of the list with
+    // zero size.
+    int ntypesCell  = *ca_cellToPointConn_types;
+    int ntypes      = mapFaceToFaceMap.size();
+    int ntypesTotal = ntypesCell + ntypes;
+    
+    ca_faceToPointConn = new int*[ntypesTotal];
+    for (int itype=0; itype<ntypesCell; itype++)
+    {
+        int nTypeConn = 0;
+        ca_faceToPointConn[itype] = new int[nTypeConn];
+        //ca_faceToPointConn[itype] = nullptr;
+    }
+    
+    ca_faceToPointConn_types = new int(ntypes);
+    ca_faceToPointConn_map   = new int[ntypes];
+    ca_faceToPointConn_size  = new int[ntypes];
     for (auto it=mapFaceToPointConn.begin(); it!=mapFaceToPointConn.end(); it++)
     {
         const auto& nPoints = it->first;
@@ -78,7 +90,9 @@ int comFoam::createFaceConnectivities()
         ca_faceToPointConn_size[itype] = nFaces;
 
         int nTypeConn = nPoints * nFaces;
-        ca_faceToPointConn[itype] = new int[nTypeConn];
+
+        int itypeTotal = itype + ntypesCell;
+        ca_faceToPointConn[itypeTotal] = new int[nTypeConn];
         
         for(int iface=0; iface<nFaces; iface++)
         {
@@ -86,7 +100,7 @@ int comFoam::createFaceConnectivities()
             {
                 int index = ipoint+iface*nPoints;
                 
-                ca_faceToPointConn[itype][index] =
+                ca_faceToPointConn[itypeTotal][index] =
                     vecFaceToPointConn[iface][ipoint];
             }
         }
@@ -140,7 +154,7 @@ int comFoam::updateFaceData_outgoing()
         nInternalFaces = patches[0].start()-1;
     }
 
-    int ntypes = *ca_faceToPointConn_types;
+    int ntypes    = *ca_faceToPointConn_types;
     int faceIndex = 0;
     for (int itype=0; itype<ntypes; itype++)
     {
@@ -222,13 +236,12 @@ int comFoam::registerFaceData(const char *name)
     COM_set_array(dataName, paneID, ca_Points, nComponents);
     Info << "  " << dataName.c_str() << " registered." << endl;
 
-
     // Cell connectivity size should be set to  zero ^^^^^^
-    int cellNtypes = *ca_cellToPointConn_types;
-    for (int itype=0; itype<cellNtypes; itype++)
+    int ntypesCell  = *ca_cellToPointConn_types;
+    for (int itype=0; itype<ntypesCell; itype++)
     {
         int typeID = ca_cellToPointConn_map[itype];
-        int typeSize = ca_cellToPointConn_size[itype];
+        int nfaces = 0;
 
         if (typeID == 4)
         { // Tet
@@ -247,11 +260,18 @@ int comFoam::registerFaceData(const char *name)
 
             Info << "=================== WARNING ==================="
                  << " Cell typeID " << typeID << " with size = "
-                 << typeSize << " not identified!"
+                 << nfaces << " not identified!"
                  << endl;
             exit(-1);
         }
-        COM_set_size( dataName, paneID, 0);
+        
+        COM_set_size( dataName, paneID, nfaces);
+        COM_set_array(dataName,
+                      paneID,
+                      ca_faceToPointConn[itype],
+                      typeID
+                     );
+        Info << "  " << dataName.c_str() << " registered." << endl;
     }
     //-----------------------------------------------------
 
@@ -279,10 +299,12 @@ int comFoam::registerFaceData(const char *name)
             exit(-1);
         }
 
+        int itypeTotal = itype + ntypesCell;
+
         COM_set_size( dataName, paneID, nfaces);
         COM_set_array(dataName,
                       paneID,
-                      ca_faceToPointConn[itype],
+                      ca_faceToPointConn[itypeTotal],
                       typeID
                      );
         Info << "  " << dataName.c_str() << " registered." << endl;
@@ -427,7 +449,11 @@ int comFoam::reconstFaceData(const char *name)
     //-------------------------------------------
 
     // Primary allocation ^^^^^^^^^^^^^^^^^^^^^^^
-    ca_faceToPointConn = new int*[*ca_faceToPointConn_types];
+    int ntypesCell  = *ca_cellToPointConn_types;
+    int ntypes      = *ca_faceToPointConn_types;
+    int ntypesTotal = ntypesCell + ntypes;
+    
+    ca_faceToPointConn = new int*[ntypesTotal];
     //-------------------------------------------
     
     // connectivity stuff ^^^^^^^^^^^^^^^^^^^^^^^
@@ -534,11 +560,13 @@ int comFoam::deleteFaceData()
     
     if (ca_faceToPointConn_types != nullptr)
     {
-        int ntypes = *ca_faceToPointConn_types;
-
         if (ca_faceToPointConn != nullptr)
         {
-            for(int itype=0; itype<ntypes; itype++)
+            int ntypes = *ca_faceToPointConn_types;
+            int ntypesCell  = *ca_cellToPointConn_types;
+            int ntypesTotal = ntypesCell + ntypes;
+
+            for(int itype=0; itype<ntypesTotal; itype++)
             {
                 if (ca_faceToPointConn[itype] != nullptr)
                 {

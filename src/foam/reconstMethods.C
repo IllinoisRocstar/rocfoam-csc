@@ -97,14 +97,14 @@ void comFoam::copyWindow(const char *name1, const char *name2)
                          << ", skipped " << endl;
              }
              */
-            
-            if (fileCount>0)
-            {
-                std::cout << "rocFoam.copyWindow: Total number of "
-                << fileCount << " file-related items copied from "
-                << winName1.c_str()
-                << " to " << winName2.c_str() << std::endl;
-            }
+        }
+
+        if (fileCount>0)
+        {
+            std::cout << "rocFoam.copyWindow: Total number of "
+            << fileCount << " file-related items copied from "
+            << winName1.c_str()
+            << " to " << winName2.c_str() << std::endl;
         }
         
         Info << endl;

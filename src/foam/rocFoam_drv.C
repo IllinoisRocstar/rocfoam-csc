@@ -221,52 +221,61 @@ int comDrvInit(int argc, char *argv[])
     //comGetVolDataItems(lookUpWindow1.c_str());
 
 
-std::cout << "Writing the window" << std::endl;
+    std::cout << "Writing data windows" << std::endl;
+    COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
+    int OUT_write = COM_get_function_handle("OUT.write_dataitem");
+    for (int count=0; count<2; count++)
+    {
+        std::string strTmp;
+        if (count == 0 )
+        {
+            strTmp = "VOL";
+        }
+        else if (count == 1 )
+        {
+            strTmp = "SURF";
+        }
 
-COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
-int OUT_write = COM_get_function_handle("OUT.write_dataitem");
+        lookUpWindow1 = winNames[0]+strTmp;
+        std::string whatToWrite = lookUpWindow1+std::string(".all");
+        int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
-lookUpWindow1 = winNames[0]+string("VOL");
-std::string whatToWrite = lookUpWindow1+std::string(".all");
-int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
+        std::string pathTmp = std::string("./")
+                            + winNames[0]+"/"
+                            + lookUpWindow1+std::string("_");
 
-char* outputPath = new char[40]{' '};
-std::string strTmp = std::string("./")
-                   + winNames[0]+"/"
-                    +lookUpWindow1+std::string("_");
-std::strcpy(outputPath, strTmp.c_str());
+        char* outputPath = new char[40]{' '};
+        std::strcpy(outputPath, pathTmp.c_str());
 
-char* material = new char[40]{' '};
-std::strcpy(material, lookUpWindow1.c_str());
+        char* material = new char[40]{' '};
+        std::strcpy(material, lookUpWindow1.c_str());
 
-char* timeName = new char[40]{' '};
+        char* timeName = new char[40]{' '};
 
-COM_call_function
-(
-    OUT_write,
-    outputPath,
-    &whatToWriteHandle,
-    material,
-    timeName
-);
+        COM_call_function
+        (
+            OUT_write,
+            outputPath,
+            &whatToWriteHandle,
+            material,
+            timeName
+        );
 
+        delete [] outputPath;
+        outputPath = nullptr;
 
+        delete [] material;
+        material = nullptr;
 
-delete [] outputPath;
-outputPath = nullptr;
+        delete [] timeName;
+        timeName = nullptr;
 
-delete [] material;
-material = nullptr;
-
-delete [] timeName;
-timeName = nullptr;
-
-std::cout << "Finished writting surface window" << std::endl;
-COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
-std::cout << "Unloaded SIMOUT" << std::endl;
-
-std::cin.get();
-
+        std::cout << "Finished writting "
+                  << strTmp << " window."
+                  << std::endl;
+    }
+    COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
+    std::cout << "Unloaded SIMOUT" << std::endl;
 
     lookUpWindow2 = "ROCFOAM1";
     winNames.push_back(lookUpWindow2);
