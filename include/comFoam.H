@@ -274,6 +274,8 @@ protected:
     // COM-specific
     int registerFunctions(const char *name);
     int restartInit(int* pargc, void** pargv, const char* name);
+
+    virtual int loadInternal(const char* name) {return 0;}
     //-------------------------------------------
 
 public:
@@ -299,7 +301,7 @@ public:
     void finalize();
     //-------------------------------------------
 
-    static void copyWindow(const char *name1, const char *name2);
+    static void copyWindow(const string& name1, const string& name2);
     int findGlobalIndex(int* arr, const int& size,  const int& elem);
     static std::string removeTrailZero(std::string in);
 
@@ -320,22 +322,6 @@ public:
         size_t end
     );
 
-
-/*    size_t findOnlyLoc
-    (
-        const std::string& fullAddr,
-        const std::string& content,
-        const std::string& exp
-    );
-
-    size_t findOnlyLoc
-    (
-        const std::string& fullAddr,
-        const std::string& content,
-        const std::string& exp,
-        size_t start
-    );
-*/
     size_t findOnlyLoc
     (
         const std::string& fullAddr,

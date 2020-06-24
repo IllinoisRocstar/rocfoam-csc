@@ -3,12 +3,12 @@
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoPimple::rhoPimple()
 {
-    solverType = const_cast<char *>("rocRhoPimple");
+    solverType = "rocRhoPimple";
 }
 
 rhoPimple::rhoPimple(int argc, char *argv[])
 {
-    solverType = const_cast<char *>("rocRhoPimple");
+    solverType = "rocRhoPimple";
     initFOAM(argc, argv);
 }
 //=========================================================
@@ -16,6 +16,12 @@ rhoPimple::rhoPimple(int argc, char *argv[])
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+int rhoPimple::loadInternal(const char* name)
+{
+    load(name);
+    return 0;
+}
+
 void rhoPimple::load(const char *name)
 {
     //  Anouncing default communicator  ^^^^^^^^^
@@ -655,7 +661,7 @@ int rhoPimple::loop()
 }
 
 
-int rhoPimple::step(double* newDeltaT)
+int rhoPimple::step(double* incomingDeltaT)
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -668,7 +674,18 @@ int rhoPimple::step(double* newDeltaT)
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
+    int count{0};
+    int nCycle{1};
+    while
+    (
+        runTime.run() && 
+        count<nCycle
+    )
     {
+        count++;
+        Info << ">>MultiPhysics outer iteration "
+             << count << "<<" << endl;
+
         //  readDyMControls.H  ^^^^^^^^^^^
         readDyMControls();
         // -------------------------------
@@ -685,28 +702,49 @@ int rhoPimple::step(double* newDeltaT)
             );
         }
 
-        if (LTS)
+        if (LTS && count==1)
         {
             //  setRDeltaT.H  ^^^^^^^^^^^^^^^
             setRDeltaT();
             // -------------------------------
         }
-        else
+        else if (count==1)
         {
             //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
             compressibleCourantNo();
             // ---------------------------------------------
 
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            if (newDeltaT != nullptr)
-            {
-                setDeltaT(newDeltaT);
-            }
-            else
-            {
-                setDeltaT();
-            }
+            setDeltaT();
             // ---------------------------------------------
+
+            if (incomingDeltaT != nullptr)
+            {
+                double flowDeltaT = runTime.deltaTValue();
+                if (*incomingDeltaT > flowDeltaT)
+                {
+                    nCycle = ceil( *incomingDeltaT/flowDeltaT );
+                    
+                    if (nCycle>1)
+                    {
+                        double newDeltaT = *incomingDeltaT/nCycle;
+                        runTime.setDeltaT(newDeltaT);
+                    }
+
+                    if ( ceil( *incomingDeltaT/flowDeltaT ) != 
+                         *incomingDeltaT/flowDeltaT
+                       )
+                        Info << "NewdeltaT = " << runTime.deltaTValue()
+                             << endl;
+                }
+                else if (flowDeltaT > *incomingDeltaT)
+                {
+                    double newDeltaT = min( flowDeltaT, *incomingDeltaT );
+                    runTime.setDeltaT(newDeltaT);
+                    Info << "NewdeltaT = " << runTime.deltaTValue()
+                         << endl;
+                }
+            }
         }
 
         runTime++;

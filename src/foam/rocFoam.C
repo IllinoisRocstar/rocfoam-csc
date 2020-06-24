@@ -486,11 +486,11 @@ int rocFoam::readTimeControls()
 }
 //-----------------------------------------------
 
-int rocFoam::setDeltaT(double* newDeltaT)
+int rocFoam::setDeltaT()
 {
     Foam::Time &runTime(*runTimePtr);
 
-    if (adjustTimeStep || newDeltaT != nullptr)
+    if (adjustTimeStep)
     {
         scalar maxDeltaTFact = maxCo / (CoNum + small);
         scalar deltaTFact = min
@@ -500,11 +500,6 @@ int rocFoam::setDeltaT(double* newDeltaT)
         );
 
         double mainDeltaT = min(deltaTFact * runTime.deltaTValue(), maxDeltaT);
-        if (newDeltaT != nullptr)
-        {
-            mainDeltaT = min(mainDeltaT, *newDeltaT);
-            Info << "Suppressin deltaT to = " << mainDeltaT << endl;
-        }
         
         runTime.setDeltaT(mainDeltaT);
 

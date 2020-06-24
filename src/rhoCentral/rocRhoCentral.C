@@ -3,12 +3,12 @@
 //^^^ DEFINITION OF CONSTRUCTORS ^^^^^^^^^^^^^^^^^^^^^^^^^^
 rhoCentral::rhoCentral()
 {
-    solverType = const_cast<char *>("rocRhoCentral");
+    solverType = "rocRhoCentral";
 };
 
 rhoCentral::rhoCentral(int argc, char *argv[])
 {
-    solverType = const_cast<char *>("rocRhoCentral");
+    solverType = "rocRhoCentral";
     initFOAM(argc, argv);
 }
 //=========================================================
@@ -16,6 +16,12 @@ rhoCentral::rhoCentral(int argc, char *argv[])
 
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^
 //^^^^^ LOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+int rhoCentral::loadInternal(const char* name)
+{
+    load(name);
+    return 0;
+}
+
 void rhoCentral::load(const char *name)
 {
     //  Anouncing default communicator  ^^^^^^^^^
@@ -441,14 +447,7 @@ int rhoCentral::step(double* newDeltaT)
         if (!LTS)
         {
             //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^
-            if (newDeltaT != nullptr)
-            {
-                setDeltaT(newDeltaT);
-            }
-            else
-            {
-                setDeltaT();
-            }
+            setDeltaT();
             // ----------------------------------
             runTime++;
 

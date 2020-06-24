@@ -10,9 +10,10 @@ using namespace COM;
 MPI_Comm masterComm;
 MPI_Comm newComm;
 
-int myRank;
-int nProcs;
-bool runParallel;
+int myRank{0};
+int nProcs{1};
+bool runParallel{false};
+bool rocstarStyle{false};
 
 char *solverType;
 std::string status;
@@ -60,32 +61,42 @@ int comDrvFin(const char *name);
 int comDrvStart(int argc, char *argv[]);
 int comDrvRestart(int argc, char *argv[]);
 
+int comDrvRestart_Rocstar();
+int comDrvStep_Rocstar(const char *name);
+
 int main(int argc, char *argv[])
 {
 
     comDrvInit(argc, argv);
-    //comDrvStat(const char *name);
-    //comDrvLoop(const char *name);
     
     if (status == "preprocess")
     {
         comDrvStart(argc, argv);
+        comDrvFin(winNames[0].c_str());
     }
     else if (status == "production")
     {
-        comDrvRestart(argc, argv);
-
-        std::string lookUpWindow = winNames[0]+string("VOL");
-        comGetRunStatItems(lookUpWindow.c_str());
-        comDrvStep(winNames[0].c_str());
+        if (!rocstarStyle)
+        {
+            comDrvRestart(argc, argv);
+            std::string lookUpWindow = winNames[0]+string("VOL");
+            comGetRunStatItems(lookUpWindow.c_str());
+            comDrvStep(winNames[0].c_str());
+            comDrvFin(winNames[0].c_str());
+        }
+        else
+        {
+            comDrvRestart_Rocstar();
+            std::string lookUpWindow = winNames[0]+string("VOL");
+            comGetRunStatItems(lookUpWindow.c_str());
+            comDrvStep_Rocstar(winNames[0].c_str());
+        }
     }
     else
     {
         std::cout << " Warning: status = " << status
                   << " is unknown." << std::endl;
     }
-
-    comDrvFin(winNames[0].c_str());
 
     return 0;
 }
@@ -97,7 +108,6 @@ int comDrvInit(int argc, char *argv[])
 
     MPI_Comm_rank(masterComm, &myRank);
     MPI_Comm_size(masterComm, &nProcs);
-
 
     if (myRank==0)
     {
@@ -152,6 +162,10 @@ int comDrvInit(int argc, char *argv[])
             else if (ss.str() == "-production")
             {
                 status = "production";
+            }
+            else if (ss.str() == "-rocstar")
+            {
+                rocstarStyle = true;
             }
             /* else
             {
@@ -347,7 +361,10 @@ int comDrvRestart(int argc, char *argv[])
     COM_LOAD_MODULE_STATIC_DYNAMIC(rocfoam, winName.c_str());
     comGetFunctionHandles(winName.c_str());
 
-    comFoam::copyWindow(winNameOld.c_str(), winName.c_str());
+    comFoam::copyWindow((winNameOld+"VOL").c_str(),
+                        (winName+"VOL").c_str());
+    comFoam::copyWindow((winNameOld+"SURF").c_str(),
+                        (winName+"SURF").c_str());
     
     //rocfoam_unload_module(winNameOld.c_str(), solverType);
     //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, winNameOld.c_str());
@@ -366,6 +383,77 @@ int comDrvRestart(int argc, char *argv[])
     COM_call_function(flowRestartInitHandle[0],
                       &myArgc, &myArgv,
                       winName.c_str());
+    return 0;
+}
+
+int comDrvRestart_Rocstar()
+{
+    std::string winNameOld = "ROCFOAM0";
+    std::string winName = "ROCFOAM";
+    //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
+    std::cout << "Reading data windows" << std::endl;
+    COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
+    int IN_read = COM_get_function_handle("IN.read_window");
+    for (int count=0; count<2; count++)
+    {
+        std::string strTmp;
+        if (count == 0 )
+        {
+            strTmp = "_vol";
+        }
+        else if (count == 1 )
+        {
+            strTmp = "_srf";
+        }
+        
+        
+        std::string lookUpWindow = winNameOld+strTmp;
+
+        std::string pathTmp = std::string("./")
+                            + winName+"/"
+                            + winName+strTmp+std::string("_");
+
+        std::cout << "Reading file " << pathTmp << std::endl;
+
+        std::string whatToRead = pathTmp+"*";
+
+        COM_call_function
+        (
+            IN_read,
+            whatToRead.c_str(),
+            lookUpWindow.c_str()
+        );
+
+        std::cout << "Finished reading "
+                  << pathTmp << " window."
+                  << std::endl;
+    }
+    COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
+    std::cout << "Unloaded SimIN" << std::endl;
+
+    winNames.push_back(winName);
+    
+    COM_LOAD_MODULE_STATIC_DYNAMIC(rocfoam, winName.c_str());
+    comGetFunctionHandles(winName.c_str());
+
+    double initTime = 0;
+    int initHndl = -1;
+    int obtHndl = -1;
+    std::string volName = winName+"_vol";
+    std::string surfName = winName+"_srf";
+
+
+    COM_call_function
+    (
+        initializeHandle[0],
+        initTime,
+        newComm,
+        initHndl,
+        surfName.c_str(),
+        volName.c_str(),
+        obtHndl
+    );
+
     return 0;
 }
 
@@ -1310,6 +1398,49 @@ int comDrvStep(const char* name)
     {
         COM_call_function(flowStepHandle[index]);
     }
+
+    Info << "End\n" << endl;
+
+    Info << "rocFoam.main: Stepping status = " 
+         << *fluidRun
+         << endl;
+
+    Info << "rocFoam.main: Simulation time = "
+         << *fluidTime
+         << endl;
+
+    Info << "rocFoam.main: Simulation Time step = "
+         << *fluidDeltaT
+         << endl;
+
+    return 0;
+}
+
+int comDrvStep_Rocstar(const char* name)
+{
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+    //std::string volName = winNames[index]+string("VOL");
+
+    //  Call the flow stepper ^^^^^^^^^^^^^^^^^^
+    Info << "\nStarting time loop\n" << endl;
+
+    while (*fluidRun)
+    {
+        double currentTime = *fluidRun;
+        double timeStep{10}; //*fluidDeltaT;
+        int handle{-1};
+
+        COM_call_function
+        (
+            update_solutionHandle[index],
+            currentTime,
+            timeStep,
+            handle
+        );
+    }
+
 
     Info << "End\n" << endl;
 

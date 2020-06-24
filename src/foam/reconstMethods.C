@@ -1,117 +1,91 @@
-void comFoam::copyWindow(const char *name1, const char *name2)
+void comFoam::copyWindow(const string& winName1, const string& winName2)
 {
+    std::cout << "rocFoam.copyWindow: window names "
+              << winName1.c_str() << " & "
+              << winName2.c_str() << std::endl;
 
-    for (int iwin=0; iwin<2; iwin++)
+    // Get window information ^^^^^^^^^^^^^^^^^^^
+    int nItemps;
+    std::string datNames;
+    COM_get_dataitems(winName1.c_str(), &nItemps, datNames);
+
+    std::cout << "rocFoam.copyWindow: nItemps in "
+              << "winName1 = "
+              << nItemps
+              << std::endl;
+    // ------------------------------------------
+
+    //  Copy pane nodes & connectivities ^^^^^^^^
+    int nPanes;
+    int* paneList;
+    COM_get_panes(winName1.c_str(), &nPanes, &paneList);
+    std::cout << "rocFoam.copyWindow: Number of Panes in window "
+              << winName1 << " = "
+              << nPanes << std::endl;
+
+    for(int ipane=0; ipane<nPanes; ipane++)
     {
-        std::string winTmp{""};
-        if (iwin == 0)
+        COM_clone_dataitem((winName2+".mesh").c_str(),
+                           (winName1+".mesh").c_str(),
+                           ipane);
+    }
+    // ------------------------------------------
+
+    //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    std::istringstream issDataNames(datNames);
+    std::vector<std::string> vecDataNames;
+    int fileCount = 0;
+    for (int item=0; item<nItemps; ++item)
+    {
+        std::string dataName="";
+
+        issDataNames >> dataName;
+
+        if (dataName == std::string("object"))
         {
-            winTmp = "VOL";
+            std::cout << "rocFoam.copyWindow: Cannot copy dataName" 
+                      << " \"object\" in window " << winName1
+                      << std::endl;
+            exit(-1);
         }
-        else if (iwin == 1)
+        else
         {
-            winTmp = "SURF";
-        }
+            vecDataNames.push_back(dataName);
 
-        std::string winName1 = name1 + winTmp;
-        std::string winName2 = name2 + winTmp;
+            std::string dataName1 = winName1+std::string(".")+dataName;
+            std::string dataName2 = winName2+std::string(".")+dataName;
 
-        Info << endl
-             << "rocFoam.copyWindow: window names "
-             << winName1.c_str() << " & "
-             << winName2.c_str() << endl;
+            COM_clone_dataitem(dataName2.c_str(),
+                               dataName1.c_str());
 
-
-        // Get window information ^^^^^^^^^^^^^^^^^^^
-        int nItemps;
-        std::string datNames;
-        COM_get_dataitems(winName1.c_str(), &nItemps, datNames);
-
-        Info << "rocFoam.copyWindow: nItemps in "
-             << "winName1 = "
-             << nItemps
-             << endl;
-        // ------------------------------------------
-
-        //  Copy pane nodes & connectivities ^^^^^^^^
-        int nPanes;
-        int* paneList;
-        COM_get_panes(winName1.c_str(), &nPanes, &paneList);
-        Info << "rocFoam.copyWindow: Number of Panes in window "
-             << winName1 << " = "
-             << nPanes << endl;
-
-        for(int ipane=0; ipane<nPanes; ipane++)
-        {
-            COM_clone_dataitem((winName2+".mesh").c_str(),
-                               (winName1+".mesh").c_str(),
-                               ipane);
-        }
-        // ------------------------------------------
-
-        //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        std::istringstream issDataNames(datNames);
-        std::vector<std::string> vecDataNames;
-        int fileCount = 0;
-        for (int item=0; item<nItemps; ++item)
-        {
-            std::string dataName="";
-
-            issDataNames >> dataName;
-
-            if (dataName == std::string("object"))
+            std::string subName = dataName.substr(0,4);
+            if (subName != "file")
             {
-                Info << "rocFoam.copyWindow: Cannot copy dataName \"object\" " 
-                     << "in window " << winName1
-                     << endl;
-                exit(-1);
+                std::cout << "rocFoam.copyWindow: dataName["
+                          << item << "] = " << dataName
+                          << " copied from " << winName1.c_str()
+                          << " to " << winName2.c_str()
+                          << std::endl;
             }
             else
             {
-                vecDataNames.push_back(dataName);
-
-                std::string dataName1 = winName1+std::string(".")+dataName;
-                std::string dataName2 = winName2+std::string(".")+dataName;
-
-                COM_clone_dataitem(dataName2.c_str(),
-                                   dataName1.c_str());
-
-                std::string subName = dataName.substr(0,4);
-                if (subName != "file")
-                {
-                    Info << "rocFoam.copyWindow: dataName["
-                         << item << "] = " << dataName
-                         << " copied from " << winName1.c_str()
-                         << " to " << winName2.c_str() << endl;
-                }
-                else
-                {
-                    fileCount++;
-                }
-             }
-             /*
-             else
-             {
-                    Info << "rocFoam.copyWindow: dataName["
-                         << item << "] = " << dataName
-                         << ", skipped " << endl;
-             }
-             */
-        }
-
-        if (fileCount>0)
-        {
-            std::cout << "rocFoam.copyWindow: Total number of "
-            << fileCount << " file-related items copied from "
-            << winName1.c_str()
-            << " to " << winName2.c_str() << std::endl;
-        }
-        
-        Info << endl;
-        // ------------------------------------------
-
-        COM_window_init_done(winName2); 
+                fileCount++;
+            }
+         }
     }
+
+    if (fileCount>0)
+    {
+        std::cout << "rocFoam.copyWindow: Total number of "
+        << fileCount << " file-related items copied from "
+        << winName1.c_str()
+        << " to " << winName2.c_str() << std::endl;
+    }
+    
+    std::cout << std::endl;
+    // ------------------------------------------
+
+    COM_window_init_done(winName2);
 }
 
 

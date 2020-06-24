@@ -336,8 +336,10 @@ int comFoam::flowStep()
 {
     Foam::Info << "rocFoam.flowStep: Stepping flow solver."
                << Foam::endl;
+
     step();
     updateCSCdata();
+
     return 0;
 }
 
@@ -352,14 +354,14 @@ void comFoam::initialize
     const int& obtainHandle
 )
 {
-    std::string volTmp = "VOL";
-    std::string surfTmp = "SURF";
+    std::string volTmp = "_vol";
+    std::string surfTmp = "_srf";
     size_t volStart = volName.find(volTmp);
     size_t surfStart = surfName.find(surfTmp);
     
     if (volStart != surfStart)
     {
-        std::cout << "WARNING: Volume and surface windows"
+        std::cout << "WARNING: temp volume and surface windows"
                   << " do not follow naming rule."
                   << std::endl;
         exit(-1);
@@ -373,7 +375,22 @@ void comFoam::initialize
         std::cout << "rocFoam.initialize: Initializing "
                   << "reconstructions of windows for "
                   << name << std::endl;
+
+        std::cout << "ManInitHandle is "
+                  << std::string((manInitHandle < 0) ? ("not set") : ("set"));
+        std::cout << "ObtainHandle is "
+                  << std::string((obtainHandle < 0) ? ("not set") : ("set"));
     }
+
+    loadInternal(name);
+
+    std::string newVolName = std::string(name)+"VOL";
+    std::string newSurfName = std::string(name)+"SURF";
+
+    copyWindow(volName.c_str(),
+               newVolName.c_str());
+    copyWindow(surfName.c_str(),
+               newSurfName.c_str());
 
     reconstCSCdata(name);
 
@@ -411,7 +428,6 @@ void comFoam::initialize
                   << std::endl;
     }
 
-    
     if (argv != nullptr)
     {
         for (int i=0; i<argc; i++)
@@ -425,6 +441,11 @@ void comFoam::initialize
         delete [] argv;
         argv = nullptr;
     }
+
+    if (manInitHandle > 0)
+        COM_call_function(manInitHandle,
+                          newSurfName.c_str(),
+                          newVolName.c_str());
 }
 
 void comFoam::update_solution
@@ -435,8 +456,18 @@ void comFoam::update_solution
 )
 {
 
-    Foam::Info << "rocFoam.flowStepRocStar: Stepping flow solver."
-               << Foam::endl;
+    Info << "rocFoam.flowStepRocStar: Stepping flow solver."
+         << endl;
+         
+    Info << "  Update_inbuff_handle is "
+         << std::string((handles < 0) ? ("not set") : ("set"))
+         << endl;
+
+    if (timeStep != *ca_time)
+        Info << "  Flow solver time and the input time"
+             << " are not the same " << *ca_time 
+             << " vs " << timeStep << endl;
+
     step(&timeStep);
     updateCSCdata();
 }

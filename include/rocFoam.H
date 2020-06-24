@@ -10,10 +10,6 @@
 
 class rocFoam
 {
-private:
-    //int initSet();
-    // char *solverType{};
-    
 public:
     //  Initializations ^^^^^^^^^^^^^^
     Foam::argList *argsPtr{nullptr};
@@ -25,7 +21,7 @@ public:
     virtual ~rocFoam();
     //--------------------------------
 
-    //  Methods status ^^^^^^^^^^^^^^^^^^^^^
+    //  Methods status ^^^^^^^^^^^^^^^
     int initializeStat{0};
     int loopStat{0};
     int stepStat{0};
@@ -33,7 +29,7 @@ public:
     
     double testStat;
     virtual double errorEvaluate(int argc, char *argv[]) { return 0.0; };
-    //--------------------------------------
+    //--------------------------------
 
 protected:
     //  Control variables ^^^^^^^^^^^^
@@ -102,8 +98,8 @@ protected:
     int createTimeControls();
     int readTimeControls();
 
-    //int setDeltaT();
-    int setDeltaT(double* newDeltaT = nullptr);
+    int setDeltaT();
+    //int setDeltaT(double* newDeltaT = nullptr);
 
     // int createMesh();
     int createDynamicFvMesh();

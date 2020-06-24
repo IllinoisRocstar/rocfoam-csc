@@ -78,6 +78,9 @@ private:
 
     double errorEvaluate(int argc, char *argv[]);
     //--------------------------------------
+
+protected:
+    int loadInternal(const char* name);
     
 public:
     //  Main functions ^^^^^^^^^^^^^^^^^^^^^
