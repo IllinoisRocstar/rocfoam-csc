@@ -113,7 +113,7 @@ int comFoam::createFaceConnectivities()
 int comFoam::createFaceData()
 {
     ca_faceOwner = new int[*ca_nFaces]{0};
-    ca_faceNeighb = new int[*ca_nFaces]{-1};
+    ca_faceNeighb = new int[*ca_nFaces]{0};
 
     if (phiPtr != nullptr)
         ca_Phi = new double[*ca_nFaces]{0};

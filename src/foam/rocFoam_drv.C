@@ -1,14 +1,17 @@
-#include "comLoadUnload.H"
+//#include "comLoadUnload.H"
+#include "rocRhoPimple.H"
+#include "rocRhoCentral.H"
 
+COM_EXTERN_MODULE(rocfoam);
 COM_EXTERN_MODULE(Rocout);
 COM_EXTERN_MODULE(Rocin);
-
+using namespace COM;
 
 MPI_Comm masterComm;
 MPI_Comm newComm;
 
-int masterRank;
-int masterNProc;
+int myRank;
+int nProcs;
 bool runParallel;
 
 char *solverType;
@@ -17,14 +20,12 @@ std::string status;
 //  Status Variables ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 // volume window
 
-
 char getDataItemLoc;
 COM_Type getDataItemType;
 int numElementNodes;
 std::string getDataItemUnits;
 
 int timeArrayLength;
-
 
 //  Function Handlers ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 std::vector<std::string> winNames;
@@ -34,6 +35,11 @@ std::vector<int> flowLoopHandle;
 std::vector<int> flowStepHandle;
 std::vector<int> flowFinHandle;
 std::vector<int> flowRestartInitHandle;
+
+// Rocstar functions handls
+std::vector<int> initializeHandle;
+std::vector<int> update_solutionHandle;
+std::vector<int> finalizeHandle;
 
 // Registered veriables with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
 int *fluidRun;
@@ -61,7 +67,6 @@ int main(int argc, char *argv[])
     //comDrvStat(const char *name);
     //comDrvLoop(const char *name);
     
-
     if (status == "preprocess")
     {
         comDrvStart(argc, argv);
@@ -73,13 +78,11 @@ int main(int argc, char *argv[])
         std::string lookUpWindow = winNames[0]+string("VOL");
         comGetRunStatItems(lookUpWindow.c_str());
         comDrvStep(winNames[0].c_str());
-
-        //rocfoam_unload_module(winNames[0].c_str(), solverType);
     }
     else
     {
-        std::cout << " Warning: stat = " << status
-                  << " unknown." << std::endl;
+        std::cout << " Warning: status = " << status
+                  << " is unknown." << std::endl;
     }
 
     comDrvFin(winNames[0].c_str());
@@ -92,17 +95,17 @@ int comDrvInit(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     masterComm = MPI_COMM_WORLD;
 
-    MPI_Comm_rank(masterComm, &masterRank);
-    MPI_Comm_size(masterComm, &masterNProc);
+    MPI_Comm_rank(masterComm, &myRank);
+    MPI_Comm_size(masterComm, &nProcs);
 
 
-    if (masterRank==0)
+    if (myRank==0)
     {
         std::cout << "rocFoam.main: Setting up communicator..."
                   << std::endl;
 
-        std::cout << "rocFoam.main:Rank " << masterRank
-                  << ", NProc = " << masterNProc
+        std::cout << "rocFoam.main:Rank " << myRank
+                  << ", NProc = " << nProcs
                   << ", COMM = " << masterComm
                   << std::endl;
 
@@ -114,6 +117,7 @@ int comDrvInit(int argc, char *argv[])
     // A new communicator can be generated for
     //   openfoam solver
     newComm = masterComm;
+    COM_set_default_communicator(newComm);
 
     // Run in parallel mode?
     runParallel = false;
@@ -151,7 +155,7 @@ int comDrvInit(int argc, char *argv[])
             }
             /* else
             {
-                if (masterRank==0)
+                if (myRank==0)
                 {
                     std::cout << "rocFoam.main: Unknown argumnet"
                               << ss.str() << std::endl;
@@ -176,17 +180,17 @@ int comDrvInit(int argc, char *argv[])
     }
 
 
-    if (runParallel && masterNProc > 1)
+    if (runParallel && nProcs > 1)
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "rocFoam.main: Running in PRALLEL with solver " 
                       << solverType << "." << std::endl;
         }
     }
-    else if (!runParallel && masterNProc > 1)
+    else if (!runParallel && nProcs > 1)
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "rocFoam.main: NProc>1 detected for a serial job."
                       << std::endl;
@@ -198,24 +202,25 @@ int comDrvInit(int argc, char *argv[])
     {
         runParallel = false;
 
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "rocFoam.main: Running in SERIAL with solver " 
                       << solverType << "." << std::endl;
         }
     }
-    if (masterRank==0) std::cout << std::endl;
+    if (myRank==0) std::cout << std::endl;
 
     return 0;
 }
 
 int comDrvStart(int argc, char *argv[])
 {
-    COM_set_default_communicator(newComm);
-    winNames.push_back("ROCFOAM");
+    std::string winName{"ROCFOAM"};
+    winNames.push_back(winName);
     
-    rocfoam_load_module(winNames[0].c_str(), solverType);
-    comGetFunctionHandles(winNames[0].c_str());
+    //rocfoam_load_module(winName.c_str(), solverType);
+    COM_LOAD_MODULE_STATIC_DYNAMIC(rocfoam, winName.c_str());
+    comGetFunctionHandles(winName.c_str());
 
     int myArgc = 1;
     char *myArgv[2];
@@ -231,7 +236,7 @@ int comDrvStart(int argc, char *argv[])
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     COM_call_function(flowInitHandle[0],
                       &myArgc, &myArgv,
-                      winNames[0].c_str());
+                      winName.c_str());
 
     std::cout << "Writing data windows" << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
@@ -239,30 +244,30 @@ int comDrvStart(int argc, char *argv[])
     for (int count=0; count<2; count++)
     {
         std::string strTmp;
-        if (count == 0 )
+        if (count == 0)
         {
             strTmp = "VOL";
         }
-        else if (count == 1 )
+        else if (count == 1)
         {
             strTmp = "SURF";
         }
 
-        std::string lookUpWindow1 = winNames[0]+strTmp;
-        std::string whatToWrite = lookUpWindow1+std::string(".all");
+        std::string lookUpWindow = winName+strTmp;
+        std::string whatToWrite = lookUpWindow+std::string(".all");
         int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
         std::string pathTmp = std::string("./")
-                            + winNames[0]+"/"
-                            + lookUpWindow1+std::string("_");
+                            + winName+"/"
+                            + lookUpWindow+std::string("_");
 
-        char* outputPath = new char[40]{' '};
+        char* outputPath = new char[40]{};
         std::strcpy(outputPath, pathTmp.c_str());
 
-        char* material = new char[40]{' '};
-        std::strcpy(material, lookUpWindow1.c_str());
+        char* material = new char[40]{};
+        std::strcpy(material, lookUpWindow.c_str());
 
-        char* timeName = new char[40]{' '};
+        char* timeName = new char[40]{};
 
         COM_call_function
         (
@@ -289,15 +294,11 @@ int comDrvStart(int argc, char *argv[])
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     std::cout << "Unloaded SIMOUT" << std::endl;
 
-    //rocfoam_unload_module(winNames[0].c_str(), solverType);
-
     return 0;
 }
 
 int comDrvRestart(int argc, char *argv[])
 {
-    COM_set_default_communicator(newComm);
-
     std::string winNameOld = "ROCFOAM0";
     std::string winName = "ROCFOAM";
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
@@ -342,12 +343,14 @@ int comDrvRestart(int argc, char *argv[])
     std::cout << "Unloaded SimIN" << std::endl;
 
     winNames.push_back(winName);
-    rocfoam_load_module(winName.c_str(), solverType);
+    //rocfoam_load_module(winName.c_str(), solverType);
+    COM_LOAD_MODULE_STATIC_DYNAMIC(rocfoam, winName.c_str());
     comGetFunctionHandles(winName.c_str());
 
     comFoam::copyWindow(winNameOld.c_str(), winName.c_str());
     
-    rocfoam_unload_module(winNameOld.c_str(), solverType);
+    //rocfoam_unload_module(winNameOld.c_str(), solverType);
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, winNameOld.c_str());
 
     int myArgc = 1;
     char *myArgv[2];
@@ -362,7 +365,7 @@ int comDrvRestart(int argc, char *argv[])
 
     COM_call_function(flowRestartInitHandle[0],
                       &myArgc, &myArgv,
-                      winNames[0].c_str());
+                      winName.c_str());
     return 0;
 }
 
@@ -383,11 +386,11 @@ int comGetFunctionHandles(const char *name)
         std::cout << "Could not get handle for "
                   << functionName.c_str()
                   << std::endl;
-        return -2;
+        exit(-1);
     }
     else
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
@@ -404,11 +407,11 @@ int comGetFunctionHandles(const char *name)
         std::cout << "Could not get handle for "
                   << functionName.c_str()
                   << std::endl;
-        return -2;
+        exit(-1);
     }
     else
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
@@ -425,11 +428,11 @@ int comGetFunctionHandles(const char *name)
         std::cout << "Could not get handle for "
                   << functionName.c_str()
                   << std::endl;
-        return -2;
+        exit(-1);
     }
     else
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
@@ -447,11 +450,11 @@ int comGetFunctionHandles(const char *name)
         std::cout << "Could not get handle for "
                   << functionName.c_str()
                   << std::endl;
-        return -2;
+        exit(-1);
     }
     else
     {
-        if (masterRank==0)
+        if (myRank==0)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
@@ -459,19 +462,65 @@ int comGetFunctionHandles(const char *name)
         }
     }
 
-    //  Get the handle for the finalize function ^^^^^^^^^^
-    /*int flowFinHandle = COM_get_function_handle("ROCFOAM.flowFin");
-    if (flowFinHandle <= 0)
+    functionName = winName+string(".initialize");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    initializeHandle.push_back(intTmp);
+    if (intTmp <= 0)
     { // fail
-        std::cout << "rocFoam.main: Could not get handle for finalize."
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
                   << std::endl;
-        return -2;
+        exit(-1);
     }
     else
     {
-        std::cout << "rocFoam.main: Acquired a handle for finLauncher."
-                  << std::endl;    
-    }*/
+        if (myRank==0)
+        {
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
+        }
+    }
+
+    functionName = winName+string(".update_solution");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    update_solutionHandle.push_back(intTmp);
+    if (intTmp <= 0)
+    { // fail
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
+                  << std::endl;
+        exit(-1);
+    }
+    else
+    {
+        if (myRank==0)
+        {
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
+        }
+    }
+
+    functionName = winName+string(".finalize");
+    intTmp = COM_get_function_handle(functionName.c_str());
+    finalizeHandle.push_back(intTmp);
+    if (intTmp <= 0)
+    { // fail
+        std::cout << "Could not get handle for "
+                  << functionName.c_str()
+                  << std::endl;
+        exit(-1);
+    }
+    else
+    {
+        if (myRank==0)
+        {
+            std::cout << "Acquired a handle for "
+                  << functionName.c_str()
+                  << std::endl;
+        }
+    }
 
     return 0;
 }
@@ -1283,7 +1332,8 @@ int comDrvFin(const char* name)
 {
     //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
     //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, "ROCFOAM");
-    rocfoam_unload_module(name, solverType);
+    //rocfoam_unload_module(name, solverType);
+    COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, name);
 
     COM_set_default_communicator(masterComm);
     

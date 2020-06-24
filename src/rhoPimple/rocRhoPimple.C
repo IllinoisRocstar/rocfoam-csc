@@ -1500,6 +1500,19 @@ int rhoPimple::finalizeFoam()
     return finalizeStat;
 }
 
+//^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^
+// C/C++ bindings to load rocFoam
+extern "C" void rocfoam_load_module(const char *name)
+{
+    rhoPimple::load(name);
+}
+
+extern "C" void rocfoam_unload_module(const char *name)
+{
+    rhoPimple::unload(name);
+}
+//===============================================
+
 double rhoPimple::errorEvaluate(int argc, char *argv[])
 {
     createArgs(argc, argv);
