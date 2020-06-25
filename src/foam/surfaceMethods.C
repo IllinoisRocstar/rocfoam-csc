@@ -388,6 +388,7 @@ int comFoam::createSurfaceData()
     ca_patchTrac = new double*[nPatches];
     ca_patchDisp = new double*[nPatches];
     ca_patchMassFlux = new double*[nPatches];
+    ca_patchFlameT   = new double*[nPatches];
     ca_patchMomentum = new double*[nPatches];
     //-------------------------------------------
  
@@ -444,6 +445,10 @@ int comFoam::createSurfaceData()
         }
         if (ca_patchMassFlux != nullptr)
             ca_patchMassFlux[ipatch] = new double[nfaces]{0};
+
+        if (ca_patchFlameT != nullptr)
+            ca_patchFlameT[ipatch] = new double[nfaces]{0};
+
         if (ca_patchMomentum != nullptr)
             ca_patchMomentum[ipatch] = new double[nTotal]{0};
         //-------------------------------------------------
@@ -987,6 +992,12 @@ int comFoam::registerSurfaceData(const char *name)
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/(m^2s)");
     }
 
+    if (ca_patchFlameT != nullptr)
+    {
+        dataName = surfName+std::string(".Tflm_alp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
+    }
+
     if (ca_patchMomentum != nullptr)
     {
         dataName = surfName+std::string(".rhofvf_alp");
@@ -1238,6 +1249,13 @@ int comFoam::registerSurfaceData(const char *name)
             Info << "  " << dataName.c_str() << " registered." << endl;
         }
 
+        if (ca_patchFlameT != nullptr)
+        {
+            dataName = surfName+std::string(".Tflm_alp");
+            COM_set_array(dataName, paneID, ca_patchFlameT[ipatch], 1);
+            Info << "  " << dataName.c_str() << " registered." << endl;
+        }
+
         if (ca_patchMomentum != nullptr)
         {
             dataName = surfName+std::string(".rhofvf_alp");
@@ -1381,6 +1399,10 @@ int comFoam::reconstSurfaceData(const char *name)
     dataName = std::string("mdot_alp");
     if (nameExists(dataItemNames, dataName))
         ca_patchMassFlux = new double*[nPatches];
+
+    dataName = std::string("Tflm_alp");
+    if (nameExists(dataItemNames, dataName))
+        ca_patchFlameT = new double*[nPatches];
 
     dataName = std::string("rhofvf_alp");
     if (nameExists(dataItemNames, dataName))
@@ -1767,6 +1789,16 @@ int comFoam::reconstSurfaceData(const char *name)
         {
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchMassFlux[ipane], &nComp);
+            COM_get_size(regName.c_str(), paneID, &numElem);
+            std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                 << ", components = " << nComp << std::endl;
+        }
+
+        dataName = std::string("Tflm_alp");
+        if (nameExists(dataItemNames, dataName))
+        {
+            regName = surfName+std::string(".")+dataName;
+            COM_get_array(regName.c_str(), paneID, &ca_patchFlameT[ipane], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
             std::cout << "    " << dataName.c_str() << " elements = " << numElem
                  << ", components = " << nComp << std::endl;
@@ -2165,6 +2197,20 @@ int comFoam::deleteSurfaceData()
         }
         delete [] ca_patchMassFlux;
         ca_patchMassFlux = nullptr;
+    }
+
+    if (ca_patchFlameT != nullptr)
+    {
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
+        {
+            if (ca_patchFlameT[ipatch] != nullptr)
+            {
+                delete [] ca_patchFlameT[ipatch];
+                ca_patchFlameT[ipatch] = nullptr;
+            }
+        }
+        delete [] ca_patchFlameT;
+        ca_patchFlameT = nullptr;
     }
 
     if (ca_patchMomentum != nullptr)

@@ -190,9 +190,9 @@ private:
 
     char** ca_patchName{nullptr}; //single value for the last
     char** ca_patchType{nullptr}; //single value for the last
-    wordList**    ca_patchInGroup{nullptr}; //single value for the last
-    int**         ca_patchStart{nullptr}; //single value for the last
-    int**         ca_patchSize{nullptr}; //single value for the last
+    wordList** ca_patchInGroup{nullptr}; //single value for the last
+    int**      ca_patchStart{nullptr}; //single value for the last
+    int**      ca_patchSize{nullptr}; //single value for the last
 
     // PointToPoint Mapping
     int** ca_patchPointToPointMap_size{nullptr}; //single value for the last
@@ -228,9 +228,10 @@ private:
     double** ca_patchNf{nullptr};
     double** ca_patchSf{nullptr};
     double** ca_patchTrac{nullptr};
-    double** ca_patchDisp{nullptr}; //Displacement
+    double** ca_patchDisp{nullptr};     //Displacement
     double** ca_patchMassFlux{nullptr}; //Mass flux (scalar)
     double** ca_patchMomentum{nullptr}; //Momentum flux (vector)
+    double** ca_patchFlameT{nullptr};   //Flame Temperature (scalar)
     //-------------------------------------------
     
     // Files
@@ -264,6 +265,7 @@ protected:
     
     int ca_nProc{0};
     int ca_myRank{0};
+    std::string winName{""};
     
     // Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // rocFoam driver methods
@@ -295,7 +297,8 @@ public:
     (
         double* currentTime,
         double* timeStep,
-        int* handles
+        int* bcHandle,
+        int* gmHandle
     );
 
     void finalize();

@@ -357,11 +357,15 @@ void comFoam::initialize
     std::string volName = std::string(volName_);
     std::string surfName = std::string(surfName_);
 
+    
+    /*
     std::string volTmp = "_vol";
     std::string surfTmp = "_srf";
     size_t volStart = volName.find(volTmp, 0);
     size_t surfStart = surfName.find(surfTmp, 0);
 
+
+    
     if (volStart == std::string::npos ||
         surfStart == std::string::npos)
     {
@@ -378,8 +382,8 @@ void comFoam::initialize
                   << std::endl;
         exit(-1);
     }
-    
-    std::string subType = volName.substr(0, volStart);
+        
+    std::string subType = winName; //volName.substr(0, volStart);
     char* name = const_cast<char*>(subType.c_str());
     
     if (ca_myRank == 0)
@@ -393,18 +397,19 @@ void comFoam::initialize
         std::cout << "ObtainHandle is "
                   << std::string((*obtainHandle < 0) ? ("not set") : ("set"));
     }
+    */
 
     //loadInternal(name);
 
-    std::string newVolName = std::string(name)+"VOL";
-    std::string newSurfName = std::string(name)+"SURF";
+    std::string newVolName = winName+"VOL";
+    std::string newSurfName = winName+"SURF";
 
     copyWindow(volName.c_str(),
                newVolName.c_str());
     copyWindow(surfName.c_str(),
                newSurfName.c_str());
 
-    reconstCSCdata(name);
+    reconstCSCdata(winName.c_str());
 
     int argc{3};
     if (ca_nProc>1) argc++;
@@ -464,15 +469,20 @@ void comFoam::update_solution
 (
     double* currentTime,
     double* timeStep,
-    int* handles
+    int* bcHandle,
+    int* gmHandle
 )
 {
 
     Info << "rocFoam.flowStepRocStar: Stepping flow solver."
          << endl;
          
-    Info << "  Update_inbuff_handle is "
-         << std::string((*handles < 0) ? ("not set") : ("set"))
+    Info << "  bcHandle is "
+         << std::string((*bcHandle < 0) ? ("not set") : ("set"))
+         << endl;
+
+    Info << "  gmHandle is "
+         << std::string((*gmHandle < 0) ? ("not set") : ("set"))
          << endl;
 
     if (*currentTime != *ca_time)
@@ -592,7 +602,8 @@ int comFoam::registerFunctions(const char *name)
         COM_RAWDATA,    // G
         COM_DOUBLE,     // currentTime
         COM_DOUBLE,     // initTime
-        COM_INT         // handle1
+        COM_INT,        // handle1
+        COM_INT         // handle2
     };
     functionName = winName+std::string(".update_solution");
     COM_set_member_function
@@ -600,7 +611,7 @@ int comFoam::registerFunctions(const char *name)
         functionName.c_str(),
         reinterpret_cast<Member_func_ptr>(&comFoam::update_solution),
         objectName.c_str(),
-        "biii",
+        "biiii",
         update_types
     );
 

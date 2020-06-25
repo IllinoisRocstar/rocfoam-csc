@@ -57,6 +57,9 @@ void rhoPimple::load(const char *name)
 
     // Base window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string winName = name;
+    
+    comFoamPtr->winName = winName;
+    
     int winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {

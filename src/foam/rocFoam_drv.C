@@ -749,17 +749,18 @@ int comDrvStep_Rocstar(const char* name)
     {
         double currentTime = *fluidRun;
         double timeStep{1}; //*fluidDeltaT;
-        int handle{-1};
+        int bcHandle{-1};
+        int gmHandle{-1};
 
         COM_call_function
         (
             update_solutionHandle[index],
             &currentTime,
             &timeStep,
-            &handle
+            &bcHandle,
+            &gmHandle
         );
     }
-
 
     Info << "End\n" << endl;
 
