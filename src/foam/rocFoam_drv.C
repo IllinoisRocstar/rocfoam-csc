@@ -63,6 +63,7 @@ int comDrvRestart(int argc, char *argv[]);
 
 int comDrvRestart_Rocstar();
 int comDrvStep_Rocstar(const char *name);
+int comDrvFin_Rocstar(const char *name);
 
 int main(int argc, char *argv[])
 {
@@ -87,9 +88,12 @@ int main(int argc, char *argv[])
         else
         {
             comDrvRestart_Rocstar();
+
             std::string lookUpWindow = winNames[0]+string("VOL");
             comGetRunStatItems(lookUpWindow.c_str());
+
             comDrvStep_Rocstar(winNames[0].c_str());
+            comDrvFin_Rocstar(winNames[0].c_str());
         }
     }
     else
@@ -131,7 +135,7 @@ int comDrvInit(int argc, char *argv[])
 
     // Run in parallel mode?
     runParallel = false;
-    //solverType = const_cast<char *>("rocRhoCentral");
+    solverType = const_cast<char *>("rocRhoPimple");
     
     std::string arg;
     std::stringstream ss;
@@ -147,6 +151,7 @@ int comDrvInit(int argc, char *argv[])
             {
                 runParallel = true;
             }
+            /*
             else if (ss.str() == "-rocRhoCentral")
             {
                 solverType = const_cast<char *>("rocRhoCentral");
@@ -155,6 +160,7 @@ int comDrvInit(int argc, char *argv[])
             {
                 solverType = const_cast<char *>("rocRhoPimple");
             }
+            */
             else if (ss.str() == "-preprocess")
             {
                 status = "preprocess";
@@ -388,7 +394,6 @@ int comDrvRestart(int argc, char *argv[])
 
 int comDrvRestart_Rocstar()
 {
-    std::string winNameOld = "ROCFOAM0";
     std::string winName = "ROCFOAM";
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     std::cout << "Reading data windows" << std::endl;
@@ -396,26 +401,30 @@ int comDrvRestart_Rocstar()
     int IN_read = COM_get_function_handle("IN.read_window");
     for (int count=0; count<2; count++)
     {
+        std::string strTmpExist;
         std::string strTmp;
         if (count == 0 )
         {
+            strTmpExist = "VOL";
             strTmp = "_vol";
         }
         else if (count == 1 )
         {
+            strTmpExist = "SURF";
             strTmp = "_srf";
         }
         
         
-        std::string lookUpWindow = winNameOld+strTmp;
-
         std::string pathTmp = std::string("./")
                             + winName+"/"
-                            + winName+strTmp+std::string("_");
+                            + winName+strTmpExist+std::string("_");
+        std::string whatToRead = pathTmp+"*";
+
+        std::string lookUpWindow = winName+strTmp;
 
         std::cout << "Reading file " << pathTmp << std::endl;
 
-        std::string whatToRead = pathTmp+"*";
+        
 
         COM_call_function
         (
@@ -446,12 +455,12 @@ int comDrvRestart_Rocstar()
     COM_call_function
     (
         initializeHandle[0],
-        initTime,
-        newComm,
-        initHndl,
+        &initTime,
+        &newComm,
+        &initHndl,
         surfName.c_str(),
         volName.c_str(),
-        obtHndl
+        &obtHndl
     );
 
     return 0;
@@ -482,6 +491,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -503,6 +513,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -524,6 +535,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -546,6 +558,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -566,6 +579,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -586,6 +600,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -606,6 +621,7 @@ int comGetFunctionHandles(const char *name)
         {
             std::cout << "Acquired a handle for "
                   << functionName.c_str()
+                  << ", handle = " << intTmp
                   << std::endl;
         }
     }
@@ -673,703 +689,6 @@ int comGetRunStatItems(const char *name)
     return 0;
 }
 
-int comGetVolDataItems(const char *name)
-{
-    std::string volName = name;
-
-    int numDataItems=0;
-    std::vector<std::string> dataItemNames;
-    int numPanes;
-    int* paneList;
-
-    double *volCoord;
-    int volNumNodes = 0;
-    int nComp = 0;
-
-    int numCells = 0;
-    double* cellVel;
-    double* cellPres;
-    double* cellTemp;
-    double* cellRho;
-
-    int* Conn;
-    int numConn;
-    int numElem;
-
-    int* Owner;
-    int* Neighb;
-    int numFaces;
-
-    std::vector<std::string> connNames;
-    Info << endl
-         << "rocFoam.main: Retreiving data form window "
-         << volName << "."
-         << endl;
-         
-    std::string output;
-    COM_get_dataitems(volName.c_str(), &numDataItems, output);
-    Info << "  numDataItems = " << numDataItems << endl;
-
-    std::istringstream Istr(output);
-    dataItemNames.clear();
-    for (int i=0; i<numDataItems; ++i)
-    {
-        std::string nameTmp;
-        Istr >> nameTmp;
-        dataItemNames.push_back(nameTmp);
-        Info << "  DataItem[" << i << "] = " << nameTmp << endl;
-    }
-    Info << endl;
-
-    // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    std::string dataName = string("nProc");
-    std::string regName = volName+string(".")+dataName;
-    bool ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *nProcReg;
-        COM_get_array(regName.c_str(), 0, &nProcReg);
-        Info << "  " << dataName.c_str() << " = " << *nProcReg << endl;
-    }
-
-    dataName = string("time");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        COM_get_array(regName.c_str(), 0, &fluidTime);
-        Info << "  " << dataName.c_str() << " = " << *fluidTime << endl;
-    }
-
-    dataName = string("deltaT");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        COM_get_array(regName.c_str(), 0, &fluidDeltaT);
-        Info << "  " << dataName.c_str() << " = " << *fluidDeltaT << endl;
-    }
-
-    dataName = string("runStat");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        COM_get_array(regName.c_str(), 0, &fluidRun);
-        Info << "  " << dataName.c_str() << " = " << *fluidRun << endl;
-    }
-
-    dataName = string("nPoints");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *nPoints;
-        COM_get_array(regName.c_str(), 0, &nPoints);
-        Info << "  " << dataName.c_str() << " = " << *nPoints << endl;
-    }
-
-    dataName = string("nCells");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *nCells;
-        COM_get_array(regName.c_str(), 0, &nCells);
-        Info << "  " << dataName.c_str() << " = " << *nCells << endl;
-    }
-
-    dataName = string("cellToPointConn_types");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *cellToPointConn_types;
-        COM_get_array(regName.c_str(), 0, &cellToPointConn_types);
-        Info << "  " << dataName.c_str() << " = " << *cellToPointConn_types << endl;
-    }
-
-    dataName = string("cellToPointConn_map");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *cellToPointConn_map;
-        COM_get_array(regName.c_str(), 0, &cellToPointConn_map);
-        COM_get_size(regName.c_str(), 0, &nComp);
-        //Info << "  " << dataName.c_str() << " size = " << nComp << endl;
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-                 << cellToPointConn_map[icomp] << endl;
-        }
-    }
-
-    dataName = string("cellToPointConn_size");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *cellToPointConn_size;
-        COM_get_array(regName.c_str(), 0, &cellToPointConn_size);
-        COM_get_size(regName.c_str(), 0, &nComp);
-        //Info << "  " << dataName.c_str() << " size = " << nComp << endl;
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-                 << cellToPointConn_size[icomp] << endl;
-        }
-    }
-    //-------------------------------------------
-
-    // Face data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int* nFaces;
-    dataName = string("nFaces");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        COM_get_array(regName.c_str(), 0, &nFaces);
-        Info << "  " << dataName.c_str() << " = " << *nFaces << endl;
-    }
-
-    dataName = string("faceToPointConn_types");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *faceToPointConn_types;
-        COM_get_array(regName.c_str(), 0, &faceToPointConn_types);
-        Info << "  " << dataName.c_str() << " = " << *faceToPointConn_types << endl;
-    }
-
-
-    dataName = string("faceToPointConn_map");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *faceToPointConn_map;
-        COM_get_array(regName.c_str(), 0, &faceToPointConn_map);
-        COM_get_size(regName.c_str(), 0, &nComp);
-        //Info << "  " << dataName.c_str() << " size = " << nComp << endl;
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-                 << faceToPointConn_map[icomp] << endl;
-        }
-    }
-
-    dataName = string("faceToPointConn_size");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        int *faceToPointConn_size;
-        COM_get_array(regName.c_str(), 0, &faceToPointConn_size);
-        COM_get_size(regName.c_str(), 0, &nComp);
-        //Info << "  " << dataName.c_str() << " size = " << nComp << endl;
-        for(int icomp=0; icomp<nComp; icomp++)
-        {
-            Info << "  " << dataName.c_str() << "[" << icomp << "] = "
-                 << faceToPointConn_size[icomp] << endl;
-        }
-    }
-    //-------------------------------------------
-    
-    // Surface data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int* nPatches;
-    dataName = string("nPatches");
-    regName = volName+string(".")+dataName;
-    ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
-    if (ifCorrect)
-    {
-        COM_get_array(regName.c_str(), 0, &nPatches);
-        Info << "  " << dataName.c_str() << " = " << *nPatches << endl;
-    }
-
-    //  List of panes in this window ^^^^^^^^^^^^
-    COM_get_panes(volName.c_str(), &numPanes, &paneList);
-    Info << "  Number of Panes = " << numPanes << endl;
-
-    for (int i=0; i<numPanes; ++i) 
-    {
-        Info << "  Pane[" << i
-             <<"]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
-
-        dataName = string("patchName");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            char* patchName;
-        
-            COM_get_array(regName.c_str(), paneList[i], &patchName);
-            COM_get_size(regName.c_str(), paneList[i], &nComp);
-
-            std::istringstream iss(patchName);
-            
-            std::string strPatchName;
-            iss >> strPatchName;
-            strPatchName.resize(nComp);
-            Info << "    " << dataName.c_str() << " = " << strPatchName.c_str() << endl;
-        }
-
-        dataName = string("patchType");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            char* patchType;
-        
-            COM_get_array(regName.c_str(), paneList[i], &patchType);
-            COM_get_size(regName.c_str(), paneList[i], &nComp);
-
-            std::istringstream iss(patchType);
-            
-            std::string strPatchType;
-            iss >> strPatchType;
-            strPatchType.resize(nComp);
-            Info << "    " << dataName.c_str() << " = " << strPatchType.c_str() << endl;
-        }
-
-        dataName = string("patchStart");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchStart;
-            COM_get_array(regName.c_str(), paneList[i], &patchStart);
-            Info << "    " << dataName.c_str() << " = " << *patchStart << endl;
-        }
-
-        dataName = string("patchSize");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchSize;
-            COM_get_array(regName.c_str(), paneList[i], &patchSize);
-            Info << "    " << dataName.c_str() << " = " << *patchSize << endl;
-        }
-
-        dataName = string("patchPointToPointMap_size");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchPointToPointMap_size;
-            COM_get_array(regName.c_str(), paneList[i], &patchPointToPointMap_size);
-            Info << "    " << dataName.c_str() << " = " << *patchPointToPointMap_size << endl;
-        }
-
-        dataName = string("patchFaceToPointConn_types");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchFaceToPointConn_types;
-            COM_get_array(regName.c_str(), paneList[i], &patchFaceToPointConn_types);
-            Info << "    " << dataName.c_str() << " = " << *patchFaceToPointConn_types << endl;
-        }
-
-
-        dataName = string("patchFaceToPointConn_map");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchFaceToPointConn_map;
-            COM_get_array(regName.c_str(), paneList[i], &patchFaceToPointConn_map);
-            COM_get_size(regName.c_str(), paneList[i], &nComp);
-            //Info << "    " << dataName.c_str() << " size = " << nComp << endl;
-            for(int icomp=0; icomp<nComp; icomp++)
-            {
-                Info << "    " << dataName.c_str() << "[" << icomp << "] = "
-                     << patchFaceToPointConn_map[icomp] << endl;
-            }
-        }
-
-        dataName = string("patchFaceToPointConn_size");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int *patchFaceToPointConn_size;
-            COM_get_array(regName.c_str(), paneList[i], &patchFaceToPointConn_size);
-            COM_get_size(regName.c_str(), paneList[i], &nComp);
-            //Info << "    " << dataName.c_str() << " size = " << nComp << endl;
-            for(int icomp=0; icomp<nComp; icomp++)
-            {
-                Info << "    " << dataName.c_str() << "[" << icomp << "] = "
-                     << patchFaceToPointConn_size[icomp] << endl;
-            }
-        }
-
-
-
-
-
-        // Point and connectivity stuff ^^^^^^^^^
-        dataName = string("nc");
-        regName = volName+string(".")+dataName;
-        COM_get_array(regName.c_str(), paneList[i], &volCoord, &nComp);
-        COM_get_size(regName.c_str(), paneList[i], &volNumNodes);
-        Info << "    " << dataName.c_str() << " points = " << volNumNodes
-             << ", components = " << nComp << endl;
-//        for(int ipoint=0; ipoint<volNumNodes; ipoint++)
-//        {
-//          Info << "Node " << ipoint << " volCoordinates = ";
-//          for(int icomp=0; icomp<nComp; icomp++)
-//          {
-//              Info << *(volCoord+ipoint*nComp+icomp) << " ";
-//          }
-//          Info << endl;
-//        }
-
-        std::string connNames;
-        COM_get_connectivities(volName.c_str(), paneList[i], &numConn, connNames);
-        std::istringstream connISS(connNames);
-        //Info << "    Connectivity types =" << numConn << endl;
-
-        for (int j=0; j<numConn; ++j)
-        {
-            std::string connName;
-            connISS >> connName;
-            //connNames.push_back(connName);
-
-            dataName = volName+string(".")+connName;
-            COM_get_array(dataName.c_str(), paneList[i], &Conn, &nComp);
-            COM_get_size(dataName.c_str(), paneList[i], &numElem);
-
-            Info << "    Connectivity["
-                 << j << "] = " << connName
-                 << ", elements = " << numElem
-                 << ", components =" << nComp << endl;
-
-//            for(int icell=0; icell<numElem; icell++)
-//            {
-//                Info << "    Element " << icell << " connectivities = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(Conn+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-
-        }
-        //---------------------------------------
-
-
-
-        // Mapping data
-        dataName = string("cellToCellMap");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int* cellToCellMap;
-            
-            COM_get_array(regName.c_str(), paneList[i], &cellToCellMap, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " velocity = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellVel+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-        dataName = string("faceToFaceMap");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int* faceToFaceMap;
-            
-            COM_get_array(regName.c_str(), paneList[i], &faceToFaceMap, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " velocity = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellVel+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-
-        dataName = string("patchPointToPointMap");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int* patchPointToPointMap;
-            
-            COM_get_array(regName.c_str(), paneList[i], &patchPointToPointMap, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " velocity = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellVel+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-
-        dataName = string("patchFaceToFaceMap");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            int* patchFaceToFaceMap;
-            
-            COM_get_array(regName.c_str(), paneList[i], &patchFaceToFaceMap, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " velocity = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellVel+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-        //---------------------------------------
-
-
-
-        // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        dataName = string("vel");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &cellVel, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " velocity = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellVel+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-    
-        dataName = string("pres");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &cellPres, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " pressure = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellPres+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-    
-        dataName = string("temp");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &cellTemp, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " temperature = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellTemp+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-
-        dataName = string("rho");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &cellRho, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numCells);
-            Info << "    " << dataName.c_str() << " elements = " << numCells
-                 << ", components = " << nComp << endl;
-//            for(int icell=0; icell<numCells; icell++)
-//            {
-//                Info << "Cell " << icell << " density = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(cellRho+icell*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-        dataName = string("owner");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &Owner, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numFaces);
-            Info << "    " << dataName.c_str() << " elements = " << numFaces
-                 << ", components = " << nComp << endl;
-//            for(int iface=0; iface<numFaces; iface++)
-//            {
-//                Info << "Face " << iface << " owner = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(Owner+iface*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-        dataName = string("neighbor");
-        regName = volName+string(".")+dataName;
-        ifCorrect = (std::find(dataItemNames.begin(),
-                                    dataItemNames.end(), dataName)
-                                    != dataItemNames.end());
-        if (ifCorrect)
-        {
-            COM_get_array(regName.c_str(), paneList[i], &Neighb, &nComp);
-            COM_get_size(regName.c_str(), paneList[i], &numFaces);
-            Info << "    " << dataName.c_str() << " elements = " << numFaces
-                 << ", components = " << nComp << endl;
-//            for(int iface=0; iface<numFaces; iface++)
-//            {
-//                Info << "Face " << iface << " neighbor = ";
-//                for(int icomp=0; icomp<nComp; icomp++)
-//                {
-//                    Info << *(Neighb+iface*nComp+icomp) << " ";
-//                }
-//                Info << endl;
-//            }
-        }
-
-        Info << "  --------------------------------------------------"
-             << endl << endl;
-    }
-
-    Info << "----------------------------------------------------"
-         << endl;
-
-    COM_free_buffer(&paneList);
-
-    return 0;
-}
-
-/*
-int flowReconst(const char* name)
-{
-    //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
-    std::vector<std::string>::iterator location = std::find(
-            winNames.begin(), winNames.end(), string(name));
-    int index = std::distance(winNames.begin(), location);
-    //std::string volName = winNames[index]+string("VOL");
-
-    COM_call_function(flowReconstDataHandle[index], name);
-    
-    return 0;
-}
-*/
-
 int comDrvLoop(char* const name)
 {
     //  Call the flow iterator ^^^^^^^^^^^^^^^^^^
@@ -1429,15 +748,15 @@ int comDrvStep_Rocstar(const char* name)
     while (*fluidRun)
     {
         double currentTime = *fluidRun;
-        double timeStep{10}; //*fluidDeltaT;
+        double timeStep{1}; //*fluidDeltaT;
         int handle{-1};
 
         COM_call_function
         (
             update_solutionHandle[index],
-            currentTime,
-            timeStep,
-            handle
+            &currentTime,
+            &timeStep,
+            &handle
         );
     }
 
@@ -1474,5 +793,24 @@ int comDrvFin(const char* name)
     MPI_Finalize();
     
     return 0;
-}    
+}
+
+int comDrvFin_Rocstar(const char* name)
+{
+    //  Call the flow unloader ^^^^^^^^^^^^^^^^^^
+    std::vector<std::string>::iterator location = std::find(
+            winNames.begin(), winNames.end(), string(name));
+    int index = std::distance(winNames.begin(), location);
+
+    COM_call_function( finalizeHandle[index] );
+
+    COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, name);
+    
+    COM_finalize();
+
+    MPI_Barrier(masterComm);
+    MPI_Finalize();
+    
+    return 0;
+}
 

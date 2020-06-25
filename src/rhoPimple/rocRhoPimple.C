@@ -75,6 +75,9 @@ void rhoPimple::load(const char *name)
         COM_window_init_done(winName);
         
         comFoamPtr->registerFunctions(winName.c_str());
+
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
     }
     //-------------------------------------------
 
@@ -91,6 +94,9 @@ void rhoPimple::load(const char *name)
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
+
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
     }
     //-------------------------------------------
 
@@ -107,6 +113,9 @@ void rhoPimple::load(const char *name)
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
+
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
     }
     //-------------------------------------------
 

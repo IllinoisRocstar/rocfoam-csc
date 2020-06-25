@@ -283,19 +283,19 @@ public:
     // RocStar-specific methods ^^^^^^^^^^^^^^^^^
     void initialize
     (
-        const double& initTime,
-        const MPI_Comm& flowComm,
-        const int& manInitHandle,
-        const std::string& volName,
-        const std::string& surfName,
-        const int& obtainHandle
+        const double *initTime,
+        const MPI_Comm* flowComm,
+        const int* manInitHandle,
+        const char* volName,
+        const char* surfName,
+        const int* obtainHandle
     );
 
     void update_solution
     (
-        double& currentTime,
-        double& timeStep,
-        int& handles
+        double* currentTime,
+        double* timeStep,
+        int* handles
     );
 
     void finalize();

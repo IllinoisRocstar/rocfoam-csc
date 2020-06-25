@@ -346,18 +346,30 @@ int comFoam::flowStep()
 // Rocstar Agent methods ^^^^^^^^^^^^^^^^^^^^^^^^
 void comFoam::initialize
 (
-    const double& initTime,
-    const MPI_Comm& flowComm,
-    const int& manInitHandle,
-    const std::string& volName,
-    const std::string& surfName,
-    const int& obtainHandle
+    const double *initTime,
+    const MPI_Comm* flowComm,
+    const int* manInitHandle,
+    const char* surfName_,
+    const char* volName_,
+    const int* obtainHandle
 )
 {
+    std::string volName = std::string(volName_);
+    std::string surfName = std::string(surfName_);
+
     std::string volTmp = "_vol";
     std::string surfTmp = "_srf";
-    size_t volStart = volName.find(volTmp);
-    size_t surfStart = surfName.find(surfTmp);
+    size_t volStart = volName.find(volTmp, 0);
+    size_t surfStart = surfName.find(surfTmp, 0);
+
+    if (volStart == std::string::npos ||
+        surfStart == std::string::npos)
+    {
+        std::cout << "WARNING: The name of input windows are not"
+                  << " consistent with what required names."
+                  << std::endl;
+        exit(-1);    
+    }
     
     if (volStart != surfStart)
     {
@@ -377,12 +389,12 @@ void comFoam::initialize
                   << name << std::endl;
 
         std::cout << "ManInitHandle is "
-                  << std::string((manInitHandle < 0) ? ("not set") : ("set"));
+                  << std::string((*manInitHandle < 0) ? ("not set") : ("set"));
         std::cout << "ObtainHandle is "
-                  << std::string((obtainHandle < 0) ? ("not set") : ("set"));
+                  << std::string((*obtainHandle < 0) ? ("not set") : ("set"));
     }
 
-    loadInternal(name);
+    //loadInternal(name);
 
     std::string newVolName = std::string(name)+"VOL";
     std::string newSurfName = std::string(name)+"SURF";
@@ -420,10 +432,10 @@ void comFoam::initialize
 
     initFOAM(argc, argv);
     
-    if (initTime != *ca_time)
+    if (*initTime != *ca_time)
     {
         std::cout << "WARNING: initTime!=ca_time, "
-                  << "initTime = " << initTime
+                  << "initTime = " << *initTime
                   << ", ca_time = " << *ca_time
                   << std::endl;
     }
@@ -442,17 +454,17 @@ void comFoam::initialize
         argv = nullptr;
     }
 
-    if (manInitHandle > 0)
-        COM_call_function(manInitHandle,
+    if (*manInitHandle > 0)
+        COM_call_function(*manInitHandle,
                           newSurfName.c_str(),
                           newVolName.c_str());
 }
 
 void comFoam::update_solution
 (
-    double& currentTime,
-    double& timeStep,
-    int& handles
+    double* currentTime,
+    double* timeStep,
+    int* handles
 )
 {
 
@@ -460,26 +472,23 @@ void comFoam::update_solution
          << endl;
          
     Info << "  Update_inbuff_handle is "
-         << std::string((handles < 0) ? ("not set") : ("set"))
+         << std::string((*handles < 0) ? ("not set") : ("set"))
          << endl;
 
-    if (timeStep != *ca_time)
+    if (*currentTime != *ca_time)
         Info << "  Flow solver time and the input time"
              << " are not the same " << *ca_time 
-             << " vs " << timeStep << endl;
+             << " vs " << *currentTime << endl;
 
-    step(&timeStep);
+    step(timeStep);
     updateCSCdata();
 }
 
 void comFoam::finalize()
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.finalize: "
-                  << "Finalizing flow solver."
-                  << std::endl;
-    }
+    Info << "rocFoam.finalize: "
+         << "Finalizing flow solver."
+         << endl;
 
     finalizeFoam();
 }
@@ -560,13 +569,13 @@ int comFoam::registerFunctions(const char *name)
     // RocStar Agent driver functions ^^^^^^^^^^^^^^^^^^^^^
     COM_Type init_types[]
     {
-        COM_RAWDATA,          // G
-        COM_DOUBLE_PRECISION, // initialTime
-        COM_MPI_COMM,         // communicator
-        COM_INTEGER,          // manInitHandle,
-        COM_STRING,           // win_surf
-        COM_STRING,           // win_vol
-        COM_INTEGER           // obtainHandle
+        COM_RAWDATA,      // G
+        COM_DOUBLE,       // initialTime
+        COM_MPI_COMM,     // communicator
+        COM_INT,          // manInitHandle,
+        COM_STRING,       // win_surf
+        COM_STRING,       // win_vol
+        COM_INT           // obtainHandle
     };
     functionName = winName+std::string(".initialize");
     COM_set_member_function
@@ -580,10 +589,10 @@ int comFoam::registerFunctions(const char *name)
 
     COM_Type update_types[]
     {
-        COM_RAWDATA,          // G
-        COM_DOUBLE_PRECISION, // currentTime
-        COM_DOUBLE_PRECISION, // initTime
-        COM_INTEGER           // handle1
+        COM_RAWDATA,    // G
+        COM_DOUBLE,     // currentTime
+        COM_DOUBLE,     // initTime
+        COM_INT         // handle1
     };
     functionName = winName+std::string(".update_solution");
     COM_set_member_function
