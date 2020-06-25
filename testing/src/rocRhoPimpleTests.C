@@ -19,7 +19,7 @@ protected:
 TEST_F(rocRhoPimpleTest, rhoPimple)
 {
     rocFoam = new rhoPimple;
-    rocFoam->initialize(ARGC, ARGV);
+    rocFoam->initFOAM(ARGC, ARGV);
     EXPECT_EQ(rocFoam->initializeStat, 0) << "Testing rocRhoPimple: initilize unsuccessful"
                                           << std::endl;
 
