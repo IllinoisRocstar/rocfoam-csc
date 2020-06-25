@@ -983,7 +983,7 @@ double rhoCentral::errorEvaluate(int argc, char *argv[])
         
         rhoVec.push_back(rho);
         rhoUVec.push_back(rhoU);
-        UMagVec.push_back(magSqr(rhoU));
+        UMagVec.emplace_back(magSqr(rhoU));
         rhoEVec.push_back(rhoE);
     }
 
