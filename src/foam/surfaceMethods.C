@@ -761,7 +761,72 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
-    /*
+
+    label patchWallID = mesh.boundaryMesh().findPatchID(movingWallName);
+    const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
+
+    Info << endl
+         << "rocFoam.updateSurfaceData_incoming:"
+         << " Assigning pointDisplacement to the "
+         << movingWallName << " patch."
+         << endl;
+
+    //Find the reference to the location of pointDisplacement field
+    pointVectorField& PointDisplacement = const_cast<pointVectorField&>
+    (
+	    mesh.objectRegistry::lookupObject<pointVectorField>
+	    (
+	    "pointDisplacement"
+	    )
+    );
+    
+    if (!PointDisplacement.valid())
+    {
+        Info << "No pointDisplacement field is available. Skipping this."
+             << endl;
+
+        return 0;
+    }
+
+
+    //Get the vector field of the patch
+    vectorField& patchDisplacement = 
+        refCast<vectorField>(PointDisplacement.boundaryField()[patchWallID]);
+
+    //Find the relevant size of the vector and declare a vectorField.
+    vectorField dispVals(patchDisplacement.size());
+
+    forAll(dispVals, index)
+    {
+        dispVals[index].x() = 
+    
+    
+    }
+
+
+    int npoints = *ca_patchPointToPointMap_size[ipatch];
+
+    int localIndex = 0;
+    for(int ipoint=0; ipoint<npoints; ipoint++)
+    {
+        int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+
+        for(int jcomp=0; jcomp<nComponents; jcomp++)
+        {
+            ca_patchPoints[ipatch][localIndex]
+                = points[globalPointID][jcomp];
+
+            localIndex++;
+        }
+    }
+
+
+
+
+
+
+
+    /*    
     //- Identify the internal boundary points in the subset1 mesh
     label patchIndex = subset1Mesh_.subMesh().boundaryMesh().findPatchID("oldInternalFaces"); 
     //- search the ID of the boundary patch

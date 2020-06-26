@@ -144,32 +144,34 @@ int comFoam::updateVolumeData_outgoing()
     const dynamicFvMesh& mesh(*meshPtr);
     const pointField&    points = mesh.points();
 
-    /*
-    //if (mesh.moving())
-        pointVectorField& pointDisplacement = const_cast<pointVectorField&>
-        (
-            mesh().objectRegistry::lookupObject<pointVectorField>
-            (
-                "pointDisplacement"
-            )
-        );
-    */
-
     forAll(points, ipoint)
     {
         for(int jcomp=0; jcomp<nComponents; jcomp++)
         {
             ca_Points[ipoint*nComponents+jcomp]
                 = points[ipoint][jcomp];
-
-            /*
-            if (mesh.moving())
-                ca_Disp[ipoint*nComponents+jcomp]
-                = pointDisplacement[ipoint][jcomp];
-            */
         }
     }
-    
+
+    pointVectorField& PointDisplacement = const_cast<pointVectorField&>
+    (
+	    mesh.objectRegistry::lookupObject<pointVectorField>
+	    (
+	        "pointDisplacement"
+	    )
+    );
+
+    if (PointDisplacement.valid())
+    {
+        forAll(points, ipoint)
+        {
+            for(int jcomp=0; jcomp<nComponents; jcomp++)
+            {
+                ca_Disp[ipoint*nComponents+jcomp]
+                    = PointDisplacement[ipoint][jcomp];
+            }
+        }
+    }
     
     // Cell-centered data ^^^^^^^^^^^^^^^^^^^^^^^
     const volScalarField& p(*pPtr);
@@ -481,6 +483,7 @@ int comFoam::reconstVolumeData(const char *name)
             nameTmp == "pres" ||
             nameTmp == "temp" ||
             nameTmp == "rho" ||
+            nameTmp == "disp" ||
             nameTmp == "alphaT" ||
             nameTmp == "epsilon" ||
             nameTmp == "k" ||
@@ -633,6 +636,16 @@ int comFoam::reconstVolumeData(const char *name)
                   << ", components = " << nComp << std::endl;
     }
 
+    dataName = std::string("disp");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_disp, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }
+
     // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
     dataName = std::string("alphaT");
     if (nameExists(dataItemNames, dataName))
@@ -734,12 +747,6 @@ int comFoam::deleteVolumeData()
         ca_Points = nullptr;
     }
 
-    if (ca_Disp != nullptr)
-    {
-        delete [] ca_Disp;
-        ca_Disp = nullptr;
-    }
-
     if (ca_Vel != nullptr)
     {
         delete [] ca_Vel;
@@ -762,6 +769,12 @@ int comFoam::deleteVolumeData()
     {
         delete [] ca_Rho;
         ca_Rho = nullptr;
+    }
+
+    if (ca_Disp != nullptr)
+    {
+        delete [] ca_Disp;
+        ca_Disp = nullptr;
     }
 
     if (ca_nPoints!= nullptr)
