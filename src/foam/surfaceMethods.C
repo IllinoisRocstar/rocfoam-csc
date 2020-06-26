@@ -58,6 +58,9 @@ int comFoam::createSurfaceConnectivities()
     //  Create patch general data  arrays ^^^^^^^
     //ca_nPatches = new int(patches.size());
     ca_patchName    = new char*[nPatches];
+    if (patchNameStr == nullptr)
+        patchNameStr = new std::string[nPatches];
+
     ca_patchType    = new char*[nPatches];
     //ca_patchInGroup = new wordList*[nPatches];
     ca_patchStart   = new int*[nPatches];
@@ -76,6 +79,8 @@ int comFoam::createSurfaceConnectivities()
         std::string tmpStr = patchName;
         ca_patchName[ipatch] = new char [tmpStr.length()+1];
         std::strcpy(ca_patchName[ipatch], tmpStr.c_str());
+
+        patchNameStr[ipatch] = ca_patchName[ipatch];
 
         tmpStr = patchType;
         ca_patchType[ipatch] = new char [tmpStr.length()+1];
@@ -364,7 +369,6 @@ int comFoam::createSurfaceData()
         )
     );
 
-    word RASModel{""};
     word simulationType = turbProperties.lookup("simulationType");
     if (simulationType == "RAS")
     {
@@ -418,7 +422,7 @@ int comFoam::createSurfaceData()
             ca_patchRhoUf[ipatch] = new double[nTotal]{0};
 
         // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
-        if (simulationType == "RAS" && RASModel == "kEpsilon")
+        if (simulationType == "RAS")
         {
             ca_patchAlphaT[ipatch] = new double[nfaces]{0};
             ca_patchEpsilon[ipatch] = new double[nfaces]{0};
@@ -517,7 +521,14 @@ int comFoam::updateSurfaceData_outgoing()
         // Interacting BCs should be set according to the BC name??!!
         if (ca_bcflag != nullptr)
         {
-            *ca_bcflag[ipatch] = 2;
+            if (patchNameStr[ipatch] == movingWallName)
+            {
+                *ca_bcflag[ipatch] = 0;
+            }
+            else
+            {
+                *ca_bcflag[ipatch] = 2;
+            }
         }
 
         int ntypes = *ca_patchFaceToPointConn_types[ipatch];
@@ -761,25 +772,33 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
+    const dynamicFvMesh& mesh(*meshPtr);
 
-    label patchWallID = mesh.boundaryMesh().findPatchID(movingWallName);
-    const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
 
-    Info << endl
-         << "rocFoam.updateSurfaceData_incoming:"
-         << " Assigning pointDisplacement to the "
-         << movingWallName << " patch."
+    int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
+    //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
+
+    Info << "rocFoam.updateSurfaceData_incoming:"
+         << " Assigning pointDisplacement to"
+         << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
          << endl;
 
     //Find the reference to the location of pointDisplacement field
-    pointVectorField& PointDisplacement = const_cast<pointVectorField&>
-    (
-	    mesh.objectRegistry::lookupObject<pointVectorField>
-	    (
-	    "pointDisplacement"
-	    )
-    );
     
+    /*
+    pointVectorField PointDisplacement = const_cast<pointVectorField&>
+	(
+		mesh.objectRegistry::lookupObject<pointVectorField>
+		(
+			"pointDisplacement"
+		)
+	);
+	*/
+
+    //pointVectorField& PointDisplacement =
+    //    mesh.objectRegistry::lookupObject<pointVectorField&>("pointDisplacement");    
+    
+    /*
     if (!PointDisplacement.valid())
     {
         Info << "No pointDisplacement field is available. Skipping this."
@@ -787,44 +806,32 @@ int comFoam::updateSurfaceData_incoming()
 
         return 0;
     }
+    */
 
-
-    //Get the vector field of the patch
-    vectorField& patchDisplacement = 
-        refCast<vectorField>(PointDisplacement.boundaryField()[patchWallID]);
-
-    //Find the relevant size of the vector and declare a vectorField.
-    vectorField dispVals(patchDisplacement.size());
-
-    forAll(dispVals, index)
+    /*
+    forAll(patches, ipatch)
     {
-        dispVals[index].x() = 
+        if (ipatch != patchFSIid)
+            continue;
     
-    
-    }
+        int npoints = *ca_patchPointToPointMap_size[ipatch];
 
-
-    int npoints = *ca_patchPointToPointMap_size[ipatch];
-
-    int localIndex = 0;
-    for(int ipoint=0; ipoint<npoints; ipoint++)
-    {
-        int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
-
-        for(int jcomp=0; jcomp<nComponents; jcomp++)
+        int localIndex = 0;
+        for(int ipoint=0; ipoint<npoints; ipoint++)
         {
-            ca_patchPoints[ipatch][localIndex]
-                = points[globalPointID][jcomp];
+            int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
 
-            localIndex++;
+            for(int jcomp=0; jcomp<nComponents; jcomp++)
+            {
+                PointDisplacement[globalPointID][jcomp]
+                    = ca_patchDisp[ipatch][localIndex];
+
+                localIndex++;
+            }
         }
     }
-
-
-
-
-
-
+    mesh.update();
+    */
 
     /*    
     //- Identify the internal boundary points in the subset1 mesh

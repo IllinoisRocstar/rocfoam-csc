@@ -153,6 +153,7 @@ int comFoam::updateVolumeData_outgoing()
         }
     }
 
+    /*
     pointVectorField& PointDisplacement = const_cast<pointVectorField&>
     (
 	    mesh.objectRegistry::lookupObject<pointVectorField>
@@ -161,7 +162,8 @@ int comFoam::updateVolumeData_outgoing()
 	    )
     );
 
-    if (PointDisplacement.valid())
+    
+    if (PointDisplacement.size())
     {
         forAll(points, ipoint)
         {
@@ -172,6 +174,8 @@ int comFoam::updateVolumeData_outgoing()
             }
         }
     }
+    */
+    
     
     // Cell-centered data ^^^^^^^^^^^^^^^^^^^^^^^
     const volScalarField& p(*pPtr);
@@ -640,7 +644,7 @@ int comFoam::reconstVolumeData(const char *name)
     if (nameExists(dataItemNames, dataName))
     {
         regName = volName+std::string(".")+dataName;
-        COM_get_array(regName.c_str(), paneID, &ca_disp, &nComp);
+        COM_get_array(regName.c_str(), paneID, &ca_Disp, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
         std::cout << "    " << dataName.c_str() << " elements = " << numElem
                   << ", components = " << nComp << std::endl;
