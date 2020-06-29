@@ -1171,7 +1171,7 @@ int comFoam::createFacesFile(const std::string& rootAddr)
             int index = ipoint+localFaceIndex*npoints;
             int typeSelect_ = typeSelect + ntypesCell;
 
-            content += std::to_string(ca_faceToPointConn[typeSelect_][index]);
+            content += std::to_string(ca_faceToPointConn[typeSelect_][index] -1 );
             if (ipoint<npoints-1)
                 content += " ";
         }
