@@ -70,12 +70,12 @@ target_include_directories(runRhoPimpleTest
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
 )
 
-add_executable(runRhoFoamTest src/rocFoamTests.C)
-target_link_libraries(runRhoFoamTest rocfoam gtest gtest_main)
-target_include_directories(runRhoFoamTest
-    PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
-)
+#add_executable(runRhoFoamTest src/rocFoamTests.C)
+#target_link_libraries(runRhoFoamTest rocfoam gtest gtest_main)
+#target_include_directories(runRhoFoamTest
+#    PRIVATE
+#        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
+#)
 
 add_executable(normtest src/normTest.C)
 target_link_libraries(normtest rocfoam gtest gtest_main)
@@ -130,26 +130,26 @@ add_test(NAME rocRhoPimpleParallel
 #--------------------------------------------------------------------
 
 #^^^ Tesing rocFoam ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-add_test(NAME rocFoamRhoCentralSerial
-         COMMAND
-         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral
-         WORKING_DIRECTORY ${TEST_RESULTS})
+#add_test(NAME rocFoamRhoCentralSerial
+#         COMMAND
+#         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral
+#         WORKING_DIRECTORY ${TEST_RESULTS})
 
-add_test(NAME rocFoamRhoCentralParallel
-         COMMAND
-         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral -parallel
-         WORKING_DIRECTORY ${TEST_RESULTS})
+#add_test(NAME rocFoamRhoCentralParallel
+#         COMMAND
+#         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOCENTRAL} -rocRhoCentral -parallel
+#         WORKING_DIRECTORY ${TEST_RESULTS})
 
 
-add_test(NAME rocFoamRhoPimpleSerial
-         COMMAND
-         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple
-         WORKING_DIRECTORY ${TEST_RESULTS})
+#add_test(NAME rocFoamRhoPimpleSerial
+#         COMMAND
+#         runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple
+#         WORKING_DIRECTORY ${TEST_RESULTS})
 
-add_test(NAME rocFoamRhoPimpleParallel
-         COMMAND
-         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple -parallel
-         WORKING_DIRECTORY ${TEST_RESULTS})
+#add_test(NAME rocFoamRhoPimpleParallel
+#         COMMAND
+#         mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOM_RHOPIMPLE} -rocRhoPimple -parallel
+#         WORKING_DIRECTORY ${TEST_RESULTS})
 #--------------------------------------------------------------------
 
 #^^^ Tesing infinity norms ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

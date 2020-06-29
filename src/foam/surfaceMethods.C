@@ -466,7 +466,7 @@ int comFoam::updateSurfaceData_outgoing()
     const dynamicFvMesh&    mesh(*meshPtr);
     const pointField&       points = mesh.points();
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
-    
+
     forAll(patches, ipatch)
     {
         int npoints = *ca_patchPointToPointMap_size[ipatch];
@@ -540,7 +540,6 @@ int comFoam::updateSurfaceData_outgoing()
             for(int iface=0; iface<nfaces; iface++)
             {
                 int localFaceID = ca_patchFaceToFaceMap[ipatch][faceIndex];
-                
                 if (std::string(ca_patchType[ipatch]) == "empty")
                 {
                     for(int jcomp=0; jcomp<nComponents; jcomp++)
@@ -631,7 +630,6 @@ int comFoam::updateSurfaceData_outgoing()
                             ca_patchSf_time += (timeOut - timeIn);
                         }
                     }
-
                     ca_patchP[ipatch][faceIndex] = p.boundaryField()[ipatch][localFaceID];
 
                     if (ca_patchT != nullptr)
@@ -696,6 +694,7 @@ int comFoam::updateSurfaceData_outgoing()
                         double timeIn = MPI_Wtime();
 
                         const tmp<volScalarField>& alphat = turbulence.alphat();
+
                         ca_patchAlphaT[ipatch][faceIndex] =
                             alphat().boundaryField()[ipatch][localFaceID];
 

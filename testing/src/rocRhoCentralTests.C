@@ -19,7 +19,7 @@ protected:
 TEST_F(rocRhoCentralTest, rhoCentral)
 {
     rocFoam = new rhoCentral;
-    rocFoam->initialize(ARGC, ARGV);
+    rocFoam->initFOAM(ARGC, ARGV);
     EXPECT_EQ(rocFoam->initializeStat, 0) << "Testing rocRhoCentral: initilize unsuccessful"
                                           << std::endl;
 
