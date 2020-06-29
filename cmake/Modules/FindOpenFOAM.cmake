@@ -146,6 +146,9 @@ set(OPNF_VALID_COMPONENTS
     twoPhaseReactingTurbulenceModels
     userd-foam
     utilityFunctionObjects
+
+    # in the mpi subfolder
+    Pstream
 )
 
 # set initial parameters from OpenFOAM environment variables
@@ -153,6 +156,7 @@ set(OPNF_VALID_COMPONENTS
 if(EXISTS $ENV{FOAM_SRC})
   # search standard environment variables
   set(OPNF_VERSION $ENV{WM_PROJECT_VERSION})
+  set(OPNF_MPI $ENV{FOAM_MPI})
   set(OPNF_INST_DIR $ENV{WM_PROJECT_DIR})
   set(OPNF_SRC_DIR $ENV{FOAM_SRC})
   set(OPNF_LIB_DIR $ENV{FOAM_LIBBIN})
@@ -175,7 +179,7 @@ else()
     if(${component_location} EQUAL -1)
       message(FATAL_ERROR "\"${component}\" is not a valid OpenFOAM component.")
     else()
-      find_library(${component}_lib ${component} PATH ${OPNF_LIB_DIR})
+      find_library(${component}_lib ${component} PATH ${OPNF_LIB_DIR} ${OPNF_LIB_DIR}/${OPNF_MPI})
       list(APPEND OPNF_COMPONENT_BINDINGS ${${component}_lib})
     endif()
   endforeach()

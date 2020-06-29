@@ -11,3 +11,5 @@
 */*/*/*.dep
 build*
 build
+install
+install*

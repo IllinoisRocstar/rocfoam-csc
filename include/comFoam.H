@@ -4,7 +4,7 @@
 #include "rocFoam.H"
 #include "com.h"
 #include "fileContainer.H"
-#include <filesystem.hpp>
+#include <boost/filesystem.hpp>
 #include <iomanip>
 
 class comFoam : public COM_Object, public rocFoam

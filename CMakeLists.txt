@@ -34,27 +34,25 @@ if(OF7 GREATER -1)
   find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
       compressibleTransportModels fluidThermophysicalModels specie
       turbulenceModels compressibleTurbulenceModels dynamicFvMesh
-      topoChangerFvMesh meshTools)
+      topoChangerFvMesh meshTools Pstream)
 else()
   # > 7.x series
   find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
       compressibleTransportModels fluidThermophysicalModels specie
       turbulenceModels compressibleTurbulenceModels dynamicFvMesh
-      topoChangerFvMesh meshTools)
+      topoChangerFvMesh meshTools Pstream)
 endif()
+message(STATUS "OpenFOAM libraries: ${OPNF_LIBRARIES}")
 
 #find_package(IMPACT COMPONENTS)
 find_package(IMPACT REQUIRED)
-FIND_LIBRARY(IMPACT_LIB SITCOM)
-FIND_FILE(IMPACT_HDR com.h)
-#GET_FILENAME_COMPONENT(IMPACT_LIBPATH ${IMPACT_LIB} PATH)
-#GET_FILENAME_COMPONENT(IMPACT_INCPATH ${IMPACT_HDR} PATH)
 
-set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.45.0 REQUIRED COMPONENTS filesystem regex system)
-#if(Boost_FOUND)
-#    include_directories(${Boost_INCLUDE_DIRS})
-#endif()
+#set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.45.0 REQUIRED COMPONENTS filesystem)
+if(Boost_FOUND)
+   include_directories(${Boost_INCLUDE_DIR})
+   message(STATUS "Boost found.")
+endif()
 
 # Setting library files ########################################################
 # Setting include files
@@ -65,9 +63,6 @@ foreach(file_path ${rocfoam_INC_FILES})
   get_filename_component(dir_path ${file_path} PATH)
   list(APPEND rocfoam_INC_DIRS ${dir_path})
 endforeach()
-
-list(APPEND rocfoam_INC_DIRS ${IMPACT_HDR})
-list(APPEND rocfoam_INC_DIRS ${BOOST_INC})
 
 list(REMOVE_DUPLICATES rocfoam_INC_DIRS)
 
@@ -95,13 +90,14 @@ add_library(rocfoam ${rocfoam_SRCS})
 target_include_directories(rocfoam
     PUBLIC
         $<INSTALL_INTERFACE:include/rocfoam>
+        Boost::headers
 )
 
 foreach(include_dir ${rocfoam_INC_DIRS})
   target_include_directories(rocfoam
       PUBLIC
         $<BUILD_INTERFACE:${include_dir}>
-)
+  )
 endforeach()
 
 target_compile_options(rocfoam
@@ -120,18 +116,14 @@ target_compile_options(rocfoam
 target_link_libraries(rocfoam
     PUBLIC
         ${OPNF_LIBRARIES}
-        ${IMPACT_LIB}
-        ${BOOST_SYSTEM_LIB}
-        ${BOOST_REGEX_LIB}
-        ${BOOST_FILESYSTEM_LIB}
+        Boost::filesystem
+        IMPACT::SITCOM
 )
 
 target_include_directories(rocfoam SYSTEM
     PUBLIC
         ${OPNF_INCLUDE_DIRS}
-        ${IMPACT_HDR}
-        ${BOOST_INC}
-        )
+)
 
 target_compile_definitions(rocfoam
     PUBLIC
