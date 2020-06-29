@@ -80,7 +80,7 @@ int comFoam::createVolumeConnectivities()
             {
                 int index = icell*nPoints + ipoint;
 
-                ca_cellToPointConn[itype][index] = cellShape_[ipoint];
+                ca_cellToPointConn[itype][index] = cellShape_[ipoint] + 1; //CGNS starts from ID 1;
             }
             sortedCellIndex++;
         }

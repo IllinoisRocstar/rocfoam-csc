@@ -101,7 +101,7 @@ int comFoam::createFaceConnectivities()
                 int index = ipoint+iface*nPoints;
                 
                 ca_faceToPointConn[itypeTotal][index] =
-                    vecFaceToPointConn[iface][ipoint];
+                    vecFaceToPointConn[iface][ipoint] + 1; //CGNS starts from ID 1
             }
         }
     }

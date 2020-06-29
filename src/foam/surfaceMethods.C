@@ -304,7 +304,7 @@ int comFoam::createSurfaceConnectivities()
                     int index = ipoint+iface*npoints;
                     
                     ca_patchFaceToPointConn[ipatch][itype][index] =
-                        vecFaceToPointConn[iface][ipoint];
+                        vecFaceToPointConn[iface][ipoint] + 1; //CGNS starts form ID 1
                 }
             }
         }
@@ -762,6 +762,8 @@ int comFoam::updateSurfaceData_outgoing()
         Info << "  ca_patchNuT_time =     " << ca_patchNuT_time << " (s)" << endl;
         */
     }
+
+
     
     return 0;
 }
@@ -1337,6 +1339,118 @@ int comFoam::registerSurfaceData(const char *name)
         //---------------------------------------
         Info << "----------------------------------------------------"
              << endl << endl;
+
+        if (false)
+        {
+            // VTK output: gas-phase grid data ^^^^^^^^^^^^^^^^
+            std::string content;
+            content  = "# vtk DataFile Version 3.0\n";
+            content += "UNSTRUCTURED_GRID example\n";
+            content += "ASCII\n";
+            content += "DATASET UNSTRUCTURED_GRID\n";
+            
+            int npoints = *ca_patchPointToPointMap_size[ipatch];
+            
+            content += "POINTS "+std::to_string(npoints)+" float\n";
+            
+            int localIndex = 0;
+            for(int ipoint=0; ipoint<npoints; ipoint++)
+            {
+                for(int jcomp=0; jcomp<nComponents; jcomp++)
+                {
+                    content += std::to_string(ca_patchPoints[ipatch][localIndex]);
+                              // points[globalPointID][jcomp];
+                    if (jcomp<nComponents-1)
+                    {
+                        content += " ";
+                    }
+                    else
+                    {
+                            content += "\n";
+                    }
+                    localIndex++;
+                }
+            }
+            
+            int size{0};
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipatch][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipatch][itype];
+                for(int iface=0; iface<nfaces; iface++)
+                {
+                    size++;
+                    for(int ipoint=0; ipoint<npoints; ipoint++)
+                    {
+                        size++;
+                    }
+                }
+            }
+
+            int nfacesTotal = *ca_patchSize[ipatch];
+            content += "CELLS "+std::to_string(nfacesTotal)
+                    +" "+std::to_string(size)+"\n";
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipatch][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipatch][itype];
+        
+                for(int iface=0; iface<nfaces; iface++)
+                {
+
+                    content += std::to_string(npoints);
+
+                    for(int ipoint=0; ipoint<npoints; ipoint++)
+                    {
+                        content +=" ";
+                    
+                        int index = ipoint+iface*npoints;
+                        
+                        int ID = ca_patchFaceToPointConn[ipatch][itype][index] - 1;
+
+                        content += std::to_string(ID);
+                            //vecFaceToPointConn[iface][ipoint];
+                    }
+                    content +="\n";
+                }
+            }
+
+            content += "CELL_TYPES "+std::to_string(nfacesTotal)+"\n";
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipatch][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipatch][itype];
+                for(int iface=0; iface<nfaces; iface++)
+                {
+
+                    if (npoints == 3)
+                    {
+                        content += "5\n";
+                    }
+                    else if (npoints == 4)
+                    {
+                        content += "9\n";
+                    }
+                    else
+                    {
+                        content += "XXXX\n";
+                    }
+                }
+            }
+
+            std::ofstream outFile;
+            std::string fileName;
+            fileName = "SURFACE/patch"+std::to_string(ipatch)+".vtk";
+            outFile.open(fileName, std::ios::out);
+            if (!outFile.is_open())
+            {
+                std::cout << "Writing to file " << fileName
+                     << " not successfull" << std::endl;
+                exit(1);
+            }
+            outFile << content;
+            outFile.close();
+        }
     }
 
     COM_window_init_done(surfName); 
@@ -1889,6 +2003,124 @@ int comFoam::reconstSurfaceData(const char *name)
 
         std::cout << "  --------------------------------------------------"
              << std::endl;
+
+
+        if (false)
+        {
+            // VTK output: gas-phase grid data ^^^^^^^^^^^^^^^^
+            
+            int ntypes = *ca_patchFaceToPointConn_types[ipane];
+            std::string content;
+            content  = "# vtk DataFile Version 3.0\n";
+            content += "UNSTRUCTURED_GRID example\n";
+            content += "ASCII\n";
+            content += "DATASET UNSTRUCTURED_GRID\n";
+            
+            int npoints = *ca_patchPointToPointMap_size[ipane];
+            
+            content += "POINTS "+std::to_string(npoints)+" float\n";
+            
+            int localIndex = 0;
+            for(int ipoint=0; ipoint<npoints; ipoint++)
+            {
+                for(int jcomp=0; jcomp<nComponents; jcomp++)
+                {
+                    content += std::to_string(ca_patchPoints[ipane][localIndex]);
+                              // points[globalPointID][jcomp];
+                    if (jcomp<nComponents-1)
+                    {
+                        content += " ";
+                    }
+                    else
+                    {
+                            content += "\n";
+                    }
+                    localIndex++;
+                }
+            }
+            
+            int size{0};
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipane][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipane][itype];
+                for(int iface=0; iface<nfaces; iface++)
+                {
+                    size++;
+                    for(int ipoint=0; ipoint<npoints; ipoint++)
+                    {
+                        size++;
+                    }
+                }
+            }
+
+            int nfacesTotal = *ca_patchSize[ipane];
+            content += "CELLS "+std::to_string(nfacesTotal)
+                    +" "+std::to_string(size)+"\n";
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipane][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipane][itype];
+        
+                for(int iface=0; iface<nfaces; iface++)
+                {
+
+                    content += std::to_string(npoints);
+
+                    for(int ipoint=0; ipoint<npoints; ipoint++)
+                    {
+                        content +=" ";
+                    
+                        int index = ipoint+iface*npoints;
+                        
+                        int ID = ca_patchFaceToPointConn[ipane][itype][index] - 1;
+
+                        content += std::to_string(ID);
+                            //vecFaceToPointConn[iface][ipoint];
+                    }
+                    content +="\n";
+                }
+            }
+
+            content += "CELL_TYPES "+std::to_string(nfacesTotal)+"\n";
+            for (int itype=0; itype<ntypes; itype++)
+            {
+                int npoints = ca_patchFaceToPointConn_map[ipane][itype];
+                int nfaces = ca_patchFaceToPointConn_size[ipane][itype];
+                for(int iface=0; iface<nfaces; iface++)
+                {
+
+                    if (npoints == 3)
+                    {
+                        content += "5\n";
+                    }
+                    else if (npoints == 4)
+                    {
+                        content += "9\n";
+                    }
+                    else
+                    {
+                        content += "XXXX\n";
+                    }
+                }
+            }
+
+            std::ofstream outFile;
+            std::string fileName;
+            fileName = "SURFACE_REC/patch"+std::to_string(ipane)+".vtk";
+            outFile.open(fileName, std::ios::out);
+            if (!outFile.is_open())
+            {
+                std::cout << "Writing to file " << fileName
+                     << " not successfull" << std::endl;
+                exit(1);
+            }
+            outFile << content;
+            outFile.close();
+        }
+
+
+
     }
 
     std::cout << "----------------------------------------------------"
