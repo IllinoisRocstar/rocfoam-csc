@@ -60,6 +60,7 @@ int comDrvFin(const char *name);
 
 int comDrvStart(int argc, char *argv[]);
 int comDrvRestart(int argc, char *argv[]);
+int comDrvOutput(std::string winName, std::string suffix = "");
 
 int comDrvRestart_Rocstar();
 int comDrvStep_Rocstar(const char *name);
@@ -91,6 +92,9 @@ int main(int argc, char *argv[])
 
             std::string lookUpWindow = winNames[0]+string("VOL");
             comGetRunStatItems(lookUpWindow.c_str());
+
+//comDrvOutput(winNames[0], "_");
+//std::cin.get();
 
             comDrvStep_Rocstar(winNames[0].c_str());
             comDrvFin_Rocstar(winNames[0].c_str());
@@ -258,7 +262,16 @@ int comDrvStart(int argc, char *argv[])
                       &myArgc, &myArgv,
                       winName.c_str());
 
-    std::cout << "Writing data windows" << std::endl;
+    comDrvOutput(winName);
+
+    return 0;
+}
+
+int comDrvOutput(std::string winName_, std::string suffix_)
+{
+    std::string winName{winName_};
+    std::cout << "Writing data windows with the base name "
+              << winName << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     int OUT_write = COM_get_function_handle("OUT.write_dataitem");
     for (int count=0; count<2; count++)
@@ -274,12 +287,18 @@ int comDrvStart(int argc, char *argv[])
         }
 
         std::string lookUpWindow = winName+strTmp;
+        std::string targetName{lookUpWindow+suffix_};
+        
         std::string whatToWrite = lookUpWindow+std::string(".all");
         int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
         std::string pathTmp = std::string("./")
                             + winName+"/"
-                            + lookUpWindow+std::string("_");
+                            + targetName+std::string("_");
+
+        std::cout << "  Target window = " << lookUpWindow << std::endl;
+        std::cout << "  What to write = " << whatToWrite << std::endl;
+        std::cout << "  Path = " << pathTmp << std::endl;
 
         char* outputPath = new char[40]{};
         std::strcpy(outputPath, pathTmp.c_str());
@@ -314,8 +333,12 @@ int comDrvStart(int argc, char *argv[])
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     std::cout << "Unloaded SIMOUT" << std::endl;
 
+
+
     return 0;
 }
+
+
 
 int comDrvRestart(int argc, char *argv[])
 {
@@ -389,14 +412,25 @@ int comDrvRestart(int argc, char *argv[])
     COM_call_function(flowRestartInitHandle[0],
                       &myArgc, &myArgv,
                       winName.c_str());
+
     return 0;
 }
 
 int comDrvRestart_Rocstar()
 {
+    std::string winNameOld = "ROCFOAM";
+    std::for_each(winNameOld.begin(), winNameOld.end(), [](char & c) {
+        c = ::tolower(c);
+    });
+
     std::string winName = "ROCFOAM";
+    std::for_each(winName.begin(), winName.end(), [](char & c) {
+        c = ::toupper(c);
+    });
+    
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    std::cout << "Reading data windows" << std::endl;
+    std::cout << "Reading data window with the base name "
+              << winNameOld << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
     int IN_read = COM_get_function_handle("IN.read_window");
     for (int count=0; count<2; count++)
@@ -406,12 +440,12 @@ int comDrvRestart_Rocstar()
         if (count == 0 )
         {
             strTmpExist = "VOL";
-            strTmp = "_vol";
+            strTmp = "VOL";
         }
         else if (count == 1 )
         {
             strTmpExist = "SURF";
-            strTmp = "_srf";
+            strTmp = "SURF";
         }
         
         
@@ -420,11 +454,9 @@ int comDrvRestart_Rocstar()
                             + winName+strTmpExist+std::string("_");
         std::string whatToRead = pathTmp+"*";
 
-        std::string lookUpWindow = winName+strTmp;
-
-        std::cout << "Reading file " << pathTmp << std::endl;
-
-        
+        std::string lookUpWindow = winNameOld+strTmp;
+        std::cout << "  Reading file " << pathTmp << std::endl;
+        std::cout << "  Reading path " << lookUpWindow << std::endl;
 
         COM_call_function
         (
@@ -448,8 +480,8 @@ int comDrvRestart_Rocstar()
     double initTime = 0;
     int initHndl = -1;
     int obtHndl = -1;
-    std::string volName = winName+"_vol";
-    std::string surfName = winName+"_srf";
+    std::string volName = winNameOld+"VOL";
+    std::string surfName = winNameOld+"SURF";
 
 
     COM_call_function
@@ -462,6 +494,11 @@ int comDrvRestart_Rocstar()
         volName.c_str(),
         &obtHndl
     );
+
+    COM_delete_window(volName);
+    COM_delete_window(surfName);
+    
+    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, winNameOld.c_str());
 
     return 0;
 }

@@ -23,12 +23,11 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
               << winName1 << " = "
               << nPanes << std::endl;
 
-    for(int ipane=0; ipane<nPanes; ipane++)
-    {
+    //for(int ipane=0; ipane<nPanes; ipane++)
+    //{
         COM_clone_dataitem((winName2+".mesh").c_str(),
-                           (winName1+".mesh").c_str(),
-                           ipane);
-    }
+                           (winName1+".mesh").c_str());
+    //}
     // ------------------------------------------
 
     //  Window data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
