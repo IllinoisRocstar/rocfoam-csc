@@ -26,7 +26,8 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
     //for(int ipane=0; ipane<nPanes; ipane++)
     //{
         COM_clone_dataitem((winName2+".mesh").c_str(),
-                           (winName1+".mesh").c_str());
+                           (winName1+".mesh").c_str(),
+                           0);
     //}
     // ------------------------------------------
 
@@ -55,7 +56,8 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
             std::string dataName2 = winName2+std::string(".")+dataName;
 
             COM_clone_dataitem(dataName2.c_str(),
-                               dataName1.c_str());
+                               dataName1.c_str(),
+                               0);
 
             std::string subName = dataName.substr(0,4);
             if (subName != "file")
