@@ -337,34 +337,6 @@ int comFoam::registerVolumeData(const char *name)
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
-    // Face connectivity size should be set to  zero ^^^^^^
-    int faceNtypes = *ca_faceToPointConn_types;
-    for (int itype=0; itype<faceNtypes; itype++)
-    {
-        int typeID = ca_faceToPointConn_map[itype];
-        int nfaces = ca_faceToPointConn_size[itype];
-
-        if (typeID == 3)
-        { // Triangle
-            dataName = volName+std::string(".:t3");
-        }
-        else if (typeID == 4)
-        { // Quad
-            dataName = volName+std::string(".:q4");
-        }
-        else
-        { // Type not identified
-
-            Foam::Info << "=================== WARNING ==================="
-                       << " Face typeID " << typeID << " with size = "
-                       << nfaces << " not identified!"
-                       << endl;
-            exit(-1);
-        }
-        COM_set_size( dataName, paneID, 0);
-    }
-    //-----------------------------------------------------
-
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
@@ -572,10 +544,8 @@ int comFoam::reconstVolumeData(const char *name)
     {
         std::string connName;
         connISS >> connName;
-        //connNames.push_back(connName);
 
         dataName = volName+std::string(".")+connName;
-        //nameExists(dataItemNames, dataName);
         COM_get_array(dataName.c_str(), paneID, &ca_cellToPointConn[icon], &nComp);
         COM_get_size(dataName.c_str(), paneID, &numElem);
 

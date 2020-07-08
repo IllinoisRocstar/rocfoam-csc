@@ -1138,7 +1138,6 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     for(int iface=0; iface<nfaces; iface++)
     {
         int faceIndex = ca_faceToFaceMap_inverse[iface];
-        int ntypesCell = *ca_cellToPointConn_types;
         int ntypes     = *ca_faceToPointConn_types;
         int typeSelect = -1;
         int faceCountFloor = 0;
@@ -1169,9 +1168,8 @@ int comFoam::createFacesFile(const std::string& rootAddr)
         for(int ipoint=0; ipoint<npoints; ipoint++)
         {
             int index = ipoint+localFaceIndex*npoints;
-            int typeSelect_ = typeSelect + ntypesCell;
 
-            content += std::to_string(ca_faceToPointConn[typeSelect_][index] -1 );
+            content += std::to_string(ca_faceToPointConn[typeSelect][index] -1 );
             if (ipoint<npoints-1)
                 content += " ";
         }
@@ -1915,6 +1913,7 @@ int comFoam::deleteFilesData()
             if (ca_fileContent[ifile] != nullptr)
             {
                 delete [] ca_fileContent[ifile];
+                ca_fileContent[ifile] = nullptr;
             }
         }
         delete [] ca_fileContent;
@@ -1928,6 +1927,7 @@ int comFoam::deleteFilesData()
             if (ca_filePath[ifile] != nullptr)
             {
                 delete [] ca_filePath[ifile];
+                ca_filePath[ifile] = nullptr;
             }
         }
         delete [] ca_filePath;
@@ -1941,6 +1941,7 @@ int comFoam::deleteFilesData()
             if (ca_fileName[ifile] != nullptr)
             {
                 delete [] ca_fileName[ifile];
+                ca_fileName[ifile] = nullptr;
             }
         }
         delete [] ca_fileName;
