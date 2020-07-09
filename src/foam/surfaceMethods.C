@@ -1692,7 +1692,8 @@ int comFoam::reconstSurfaceData(const char *name)
             std::cout << "    Connectivity[" << icon << "] = " << connName
                  << ", elements = " << numElem
                  << ", components =" << nComp << std::endl;
-
+        }
+        
         // Mapping data ^^^^^^^^^^^^^^^^^^^^^^^^^
         dataName = std::string("patchPointToPointMap");
         nameExists(dataItemNames, dataName);

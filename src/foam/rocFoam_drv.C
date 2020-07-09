@@ -93,9 +93,6 @@ int main(int argc, char *argv[])
             std::string lookUpWindow = winNames[0]+string("VOL");
             comGetRunStatItems(lookUpWindow.c_str());
 
-//comDrvOutput(winNames[0], "_");
-//std::cin.get();
-
             comDrvStep_Rocstar(winNames[0].c_str());
             comDrvFin_Rocstar(winNames[0].c_str());
         }
@@ -306,7 +303,7 @@ int comDrvOutput(std::string winName_, std::string suffix_)
         char* material = new char[40]{};
         std::strcpy(material, lookUpWindow.c_str());
 
-        char* timeName = new char[40]{};
+        char* timeName = new char[40]{'0'};
 
         COM_call_function
         (
