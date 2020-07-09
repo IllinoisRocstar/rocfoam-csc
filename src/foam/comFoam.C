@@ -199,15 +199,15 @@ int comFoam::reconstCSCdata(const char *name)
     deleteTempFiles(tmpFluidDir);
     for (int iproc=0; iproc<ca_nProc; iproc++)
     {
-        if(iproc==ca_myRank)
-        {
-            reconstStatusData(name);
-            reconstVolumeData(name);
-            reconstFaceData(name);
-            reconstSurfaceData(name);
-            reconstFilesData(name);
-        }
         MPI_Barrier(winComm);
+        if(iproc!=ca_myRank)
+            continue;
+
+        reconstStatusData(name);
+        reconstVolumeData(name);
+        reconstFaceData(name);
+        reconstSurfaceData(name);
+        reconstFilesData(name);
     }
 
     return 0;

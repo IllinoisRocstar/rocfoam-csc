@@ -44,22 +44,7 @@ void rhoPimple::load(const char *name)
         std::cout << std::endl;
     }
 
-    // Register Volume Window ^^^^^^^^^^^^^^^^^^^
-    rhoPimple *comFoamPtr = new rhoPimple();
-    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
-    comFoamPtr->winComm = tmpComm;
-    
-    //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
-    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
-    
-    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
-    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
-
-    // Base window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string winName = name;
-    
-    comFoamPtr->winName = winName;
-    
     int winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
@@ -72,16 +57,24 @@ void rhoPimple::load(const char *name)
     {
         COM_new_window(winName, tmpComm);
 
-        std::string objectName = winName + string(".object");
-        COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
-        COM_set_object(objectName.c_str(), 0, comFoamPtr);
-        COM_window_init_done(winName);
-        
-        comFoamPtr->registerFunctions(winName.c_str());
-
         Info << "rocFoam.load: Window " << winName
              << " created." << endl;
     }
+
+    // Register object ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    rhoPimple *comFoamPtr = new rhoPimple();
+    std::string objectName = winName + string(".object");
+    COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
+    COM_set_object(objectName.c_str(), 0, comFoamPtr);
+    COM_window_init_done(winName);
+    
+    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
+    comFoamPtr->winComm = tmpComm;
+    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
+    comFoamPtr->winName = winName;
+    comFoamPtr->registerFunctions(winName.c_str());
     //-------------------------------------------
 
     // Vol window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
