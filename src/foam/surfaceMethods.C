@@ -957,113 +957,113 @@ int comFoam::registerSurfaceData(const char *name)
     dataName = surfName+std::string(".patchFaceToPointConn_size");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
 
-//    dataName = surfName+std::string(".patchFaceToFaceMap");
-//    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
-//    
-//    dataName = surfName+std::string(".patchFaceToFaceMap_inverse");
-//    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
-//    // ------------------------------------------
+    dataName = surfName+std::string(".patchFaceToFaceMap");
+    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
+    
+    dataName = surfName+std::string(".patchFaceToFaceMap_inverse");
+    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
+    // ------------------------------------------
 
-//    // Element data registered with window ^^^^^^
-//    dataName = surfName+std::string(".vel");
-//    COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
+    // Element data registered with window ^^^^^^
+    dataName = surfName+std::string(".vel");
+    COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
 
-//    dataName = surfName+std::string(".pf"); //(".pres");
-//    COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
+    dataName = surfName+std::string(".pf"); //(".pres");
+    COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
 
-//    if (ca_patchT != nullptr)
-//    {
-//        dataName = surfName+std::string(".temp");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
-//    }
+    if (ca_patchT != nullptr)
+    {
+        dataName = surfName+std::string(".temp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
+    }
 
-//    if (ca_patchRho != nullptr)
-//    {
-//        dataName = surfName+std::string(".rhof_alp"); //(".rho");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
-//    }
+    if (ca_patchRho != nullptr)
+    {
+        dataName = surfName+std::string(".rhof_alp"); //(".rho");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
+    }
 
-//    if (ca_patchPhi != nullptr)
-//    {
-//        dataName = surfName+std::string(".phi");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/s");
-//    }
+    if (ca_patchPhi != nullptr)
+    {
+        dataName = surfName+std::string(".phi");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/s");
+    }
 
-//    if (ca_patchRhoUf != nullptr)
-//    {
-//        dataName = surfName+std::string(".rhoUf");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "kg/m^2*s");
-//    }
+    if (ca_patchRhoUf != nullptr)
+    {
+        dataName = surfName+std::string(".rhoUf");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "kg/m^2*s");
+    }
 
-//    // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
-//    if (ca_patchAlphaT != nullptr)
-//    {
-//        dataName = surfName+std::string(".alphaT");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m/s");
-//    }
+    // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    if (ca_patchAlphaT != nullptr)
+    {
+        dataName = surfName+std::string(".alphaT");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m/s");
+    }
 
-//    if (ca_patchEpsilon != nullptr)
-//    {
-//        dataName = surfName+std::string(".epsilon");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^3");
-//    }
+    if (ca_patchEpsilon != nullptr)
+    {
+        dataName = surfName+std::string(".epsilon");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^3");
+    }
 
-//    if (ca_patchK != nullptr)
-//    {
-//        dataName = surfName+std::string(".k");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
-//    }
+    if (ca_patchK != nullptr)
+    {
+        dataName = surfName+std::string(".k");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
+    }
 
-//    if (ca_patchNuT != nullptr)
-//    {
-//        dataName = surfName+std::string(".nuT");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s");
-//    }
-//    //-------------------------------------------
+    if (ca_patchNuT != nullptr)
+    {
+        dataName = surfName+std::string(".nuT");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s");
+    }
+    //-------------------------------------------
 
-//    // RocStar data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//    if (ca_patchNf != nullptr)
-//    {
-//        dataName = surfName+std::string(".nf_alp"); //(".nf");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "");
-//    }
+    // RocStar data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    if (ca_patchNf != nullptr)
+    {
+        dataName = surfName+std::string(".nf_alp"); //(".nf");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "");
+    }
 
-//    if (ca_patchSf != nullptr)
-//    {
-//        dataName = surfName+std::string(".sf");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m^2");
-//    }
+    if (ca_patchSf != nullptr)
+    {
+        dataName = surfName+std::string(".sf");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m^2");
+    }
 
-//    if (ca_patchTrac != nullptr)
-//    {
-//        dataName = surfName+std::string(".tf");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "Pa");
-//    }
-//    
-//    if (ca_patchDisp != nullptr)
-//    {
-//        dataName = surfName+std::string(".du_alp");
-//        COM_new_dataitem( dataName, 'n', COM_DOUBLE, nComponents, "m");
-//    }
+    if (ca_patchTrac != nullptr)
+    {
+        dataName = surfName+std::string(".tf");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "Pa");
+    }
+    
+    if (ca_patchDisp != nullptr)
+    {
+        dataName = surfName+std::string(".du_alp");
+        COM_new_dataitem( dataName, 'n', COM_DOUBLE, nComponents, "m");
+    }
 
-//    if (ca_patchMassFlux != nullptr)
-//    {
-//        dataName = surfName+std::string(".mdot_alp");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/(m^2s)");
-//    }
+    if (ca_patchMassFlux != nullptr)
+    {
+        dataName = surfName+std::string(".mdot_alp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/(m^2s)");
+    }
 
-//    if (ca_patchFlameT != nullptr)
-//    {
-//        dataName = surfName+std::string(".Tflm_alp");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
-//    }
+    if (ca_patchFlameT != nullptr)
+    {
+        dataName = surfName+std::string(".Tflm_alp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
+    }
 
-//    if (ca_patchMomentum != nullptr)
-//    {
-//        dataName = surfName+std::string(".rhofvf_alp");
-//        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "kg/(m^2s)");
-//    }
-//    // ------------------------------------------
+    if (ca_patchMomentum != nullptr)
+    {
+        dataName = surfName+std::string(".rhofvf_alp");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "kg/(m^2s)");
+    }
+    // ------------------------------------------
 
     // paneID>2 reserved for patches
     int paneIDStart = 1;
@@ -1082,16 +1082,12 @@ int comFoam::registerSurfaceData(const char *name)
 
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-
-if (ipatch>= 6) continue;
-
             int paneID = paneIDStart+ipatch;
 
             std::cout << "procID = " << Pstream::myProcNo()
                  << ", paneID = " << paneID
                  << ", PatchID = " << ipatch << ","
                  << " ^^^^^^^^^^^^^^^" << std::endl;
-
 
             // Genral patch data ^^^^^^^^^^^^^^^^^^^^^
             std::string charToStr = std::string(ca_patchName[ipatch]);
@@ -1175,8 +1171,6 @@ if (ipatch>= 6) continue;
             COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_size[ipatch]);
             std::cout << "  " << dataName.c_str() << " registered." << std::endl;
 
-if (ca_myRank==0)
-{
             for(int itype=0; itype<ntypes; itype++)
             {
                 int typeID = ca_patchFaceToPointConn_map[ipatch][itype];
@@ -1208,8 +1202,6 @@ if (ca_myRank==0)
                              );
                 std::cout << "  " << dataName.c_str() << " registered." << std::endl;
             }
-}
-continue;
 
             dataName = surfName+std::string(".patchFaceToFaceMap");
             COM_set_array(dataName, paneID, ca_patchFaceToFaceMap[ipatch], 1);
