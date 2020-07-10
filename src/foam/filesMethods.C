@@ -1232,7 +1232,7 @@ int comFoam::createBoundaryFile
                 int startTmp = 0;
                 while (!found)
                 {
-                    patchStart = findLoc(fullAddr, content, patchName, startTmp);
+                    patchStart = findOnlyLoc(fullAddr, content, patchName);
                     brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
                     brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
 
