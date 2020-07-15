@@ -713,12 +713,23 @@ int rhoPimple::step(double* incomingDeltaT)
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
+
+
+    double mandatedTime{};
+    if (incomingDeltaT != nullptr)
+    {
+        mandatedTime = runTime.value() + *incomingDeltaT;
+    }
+
+
+
+
     int count{0};
-    int nCycle{1};
+    bool continueIter{true};
     while
     (
         runTime.run() && 
-        count<nCycle
+        continueIter
     )
     {
         count++;
@@ -741,13 +752,13 @@ int rhoPimple::step(double* incomingDeltaT)
             );
         }
 
-        if (LTS && count==1)
+        if (LTS)
         {
             //  setRDeltaT.H  ^^^^^^^^^^^^^^^
             setRDeltaT();
             // -------------------------------
         }
-        else if (count==1)
+        else //if (count==1)
         {
             //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
             compressibleCourantNo();
@@ -757,32 +768,34 @@ int rhoPimple::step(double* incomingDeltaT)
             setDeltaT();
             // ---------------------------------------------
 
+            double flowDeltaT = runTime.deltaTValue();
+            double flowCurTime = runTime.value();
+            double expectedTime = flowCurTime + flowDeltaT;
+            
             if (incomingDeltaT != nullptr)
             {
-                double flowDeltaT = runTime.deltaTValue();
-                if (*incomingDeltaT > flowDeltaT)
+                if (expectedTime > mandatedTime)
                 {
-                    nCycle = ceil( *incomingDeltaT/flowDeltaT );
-                    
-                    if (nCycle>1)
-                    {
-                        double newDeltaT = *incomingDeltaT/nCycle;
-                        runTime.setDeltaT(newDeltaT);
-                    }
-
-                    if ( ceil( *incomingDeltaT/flowDeltaT ) != 
-                         *incomingDeltaT/flowDeltaT
-                       )
-                        Info << "NewdeltaT = " << runTime.deltaTValue()
-                             << endl;
-                }
-                else if (flowDeltaT > *incomingDeltaT)
-                {
-                    double newDeltaT = min( flowDeltaT, *incomingDeltaT );
+                    double newDeltaT = mandatedTime - flowCurTime;
                     runTime.setDeltaT(newDeltaT);
                     Info << "NewdeltaT = " << runTime.deltaTValue()
                          << endl;
+                         
+                    continueIter = false;
                 }
+                else if (expectedTime == mandatedTime)
+                {
+                    continueIter = false;
+                }
+                //else if (expectedTime < mandatedTime)
+                //{
+                //    continueIter = true;
+                //}
+                 
+            }
+            else
+            {
+                continueIter = false;
             }
         }
 
