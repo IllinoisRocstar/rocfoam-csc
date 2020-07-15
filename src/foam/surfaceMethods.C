@@ -740,7 +740,7 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMomentum: Momentum flux (vector)
 
     dynamicFvMesh& mesh(*meshPtr);
-    const Time& t = mesh.time();
+    //const Time& t = mesh.time();
     pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
@@ -752,8 +752,6 @@ int comFoam::updateSurfaceData_incoming()
          << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
          << endl;
 
-
-
     /*
     const motionSolver& motion_ =
         refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
@@ -761,100 +759,10 @@ int comFoam::updateSurfaceData_incoming()
             refCast<const displacementMotionSolver>(motion_).pointDisplacement();
     */
 
-ca_patchDisp[patchFSIid][0] = 0.00259899; ca_patchDisp[patchFSIid][1] = 0;   ca_patchDisp[patchFSIid][2] =  -0.00401698;
-ca_patchDisp[patchFSIid][3] = 0.00789971; ca_patchDisp[patchFSIid][4] =  0;  ca_patchDisp[patchFSIid][5] =   -0.00816199;
-ca_patchDisp[patchFSIid][6] = 0.00789971; ca_patchDisp[patchFSIid][7] =  0;  ca_patchDisp[patchFSIid][8] =   -0.00816199;
-ca_patchDisp[patchFSIid][9] = 0.00259899; ca_patchDisp[patchFSIid][10] =  0; ca_patchDisp[patchFSIid][11] =   -0.00401698;
-ca_patchDisp[patchFSIid][12] = 0;          ca_patchDisp[patchFSIid][13] =  0; ca_patchDisp[patchFSIid][14] =   0;
-ca_patchDisp[patchFSIid][15] = 0;          ca_patchDisp[patchFSIid][16] =  0; ca_patchDisp[patchFSIid][17] =   0;
-ca_patchDisp[patchFSIid][18] = 0.00286153; ca_patchDisp[patchFSIid][19] =  0; ca_patchDisp[patchFSIid][20] =   0.00336792;
-ca_patchDisp[patchFSIid][21] = 0;          ca_patchDisp[patchFSIid][22] =  0; ca_patchDisp[patchFSIid][23] =   0;
-ca_patchDisp[patchFSIid][24] = 0;          ca_patchDisp[patchFSIid][25] =  0; ca_patchDisp[patchFSIid][26] =   0;
-ca_patchDisp[patchFSIid][27] = 0.00286153; ca_patchDisp[patchFSIid][28] =  0; ca_patchDisp[patchFSIid][29] =   0.00336792;
-ca_patchDisp[patchFSIid][30] = 0.00897453; ca_patchDisp[patchFSIid][31] =  0; ca_patchDisp[patchFSIid][32] =   0.00634141;
-ca_patchDisp[patchFSIid][33] = 0.00897453; ca_patchDisp[patchFSIid][34] =  0; ca_patchDisp[patchFSIid][35] =   0.00634141;
-ca_patchDisp[patchFSIid][36] = 0.0186637; ca_patchDisp[patchFSIid][37] =  0; ca_patchDisp[patchFSIid][38] =   0.00842845;
-ca_patchDisp[patchFSIid][39] = 0.0186637; ca_patchDisp[patchFSIid][40] =  0; ca_patchDisp[patchFSIid][41] =   0.00842845;
-ca_patchDisp[patchFSIid][42] = 0.0314006; ca_patchDisp[patchFSIid][43] =  0; ca_patchDisp[patchFSIid][44] =   0.00954133;
-ca_patchDisp[patchFSIid][45] = 0.0314006; ca_patchDisp[patchFSIid][46] =  0; ca_patchDisp[patchFSIid][47] =   0.00954133;
-ca_patchDisp[patchFSIid][48] = 0.0278702; ca_patchDisp[patchFSIid][49] =  0; ca_patchDisp[patchFSIid][50] =   -0.0167539;
-ca_patchDisp[patchFSIid][51] = 0.0418323; ca_patchDisp[patchFSIid][52] =  0; ca_patchDisp[patchFSIid][53] =   -0.0214495;
-ca_patchDisp[patchFSIid][54] = 0.0418323; ca_patchDisp[patchFSIid][55] =  0; ca_patchDisp[patchFSIid][56] =   -0.0214495;
-ca_patchDisp[patchFSIid][57] = 0.0278702; ca_patchDisp[patchFSIid][58] =  0; ca_patchDisp[patchFSIid][59] =   -0.0167539;
-ca_patchDisp[patchFSIid][60] = 0.0164762; ca_patchDisp[patchFSIid][61] =  0; ca_patchDisp[patchFSIid][62] =   -0.0123407;
-ca_patchDisp[patchFSIid][63] = 0.0164762; ca_patchDisp[patchFSIid][64] =  0; ca_patchDisp[patchFSIid][65] =   -0.0123407;
-ca_patchDisp[patchFSIid][66] = 0.0580029; ca_patchDisp[patchFSIid][67] =  0; ca_patchDisp[patchFSIid][68] =   -0.0263898;
-ca_patchDisp[patchFSIid][69] = 0.0580029; ca_patchDisp[patchFSIid][70] =  0; ca_patchDisp[patchFSIid][71] =   -0.0263898;
-ca_patchDisp[patchFSIid][72] = 0.0759499; ca_patchDisp[patchFSIid][73] =  0; ca_patchDisp[patchFSIid][74] =   -0.0314988;
-ca_patchDisp[patchFSIid][75] = 0.0759499; ca_patchDisp[patchFSIid][76] =  0; ca_patchDisp[patchFSIid][77] =   -0.0314988;
-ca_patchDisp[patchFSIid][78] = 0.0952359; ca_patchDisp[patchFSIid][79] =  0; ca_patchDisp[patchFSIid][80] =   -0.0367276;
-ca_patchDisp[patchFSIid][81] = 0.0952359; ca_patchDisp[patchFSIid][82] =  0; ca_patchDisp[patchFSIid][83] =   -0.0367276;
-ca_patchDisp[patchFSIid][84] = 0.0467775; ca_patchDisp[patchFSIid][85] =  0; ca_patchDisp[patchFSIid][86] =   0.00956404;
-ca_patchDisp[patchFSIid][87] = 0.0467775; ca_patchDisp[patchFSIid][88] =  0; ca_patchDisp[patchFSIid][89] =   0.00956404;
-ca_patchDisp[patchFSIid][90] = 0.0642932; ca_patchDisp[patchFSIid][91] =  0; ca_patchDisp[patchFSIid][92] =   0.00846738;
-ca_patchDisp[patchFSIid][93] = 0.0642932; ca_patchDisp[patchFSIid][94] =  0; ca_patchDisp[patchFSIid][95] =   0.00846738;
-ca_patchDisp[patchFSIid][96] = 0.0834096; ca_patchDisp[patchFSIid][97] =  0; ca_patchDisp[patchFSIid][98] =   0.00633716;
-ca_patchDisp[patchFSIid][99] = 0.0834096; ca_patchDisp[patchFSIid][100] =  0; ca_patchDisp[patchFSIid][101] =   0.00633716;
-ca_patchDisp[patchFSIid][102] = 0.103658; ca_patchDisp[patchFSIid][103] =  0; ca_patchDisp[patchFSIid][104] =   0.00336065;
-ca_patchDisp[patchFSIid][105] = 0.103658; ca_patchDisp[patchFSIid][106] =  0; ca_patchDisp[patchFSIid][107] =   0.00336065;
-ca_patchDisp[patchFSIid][108] = 0.124728; ca_patchDisp[patchFSIid][109] =  0; ca_patchDisp[patchFSIid][110] =   -0.000252435;
-ca_patchDisp[patchFSIid][111] = 0.124728; ca_patchDisp[patchFSIid][112] =  0; ca_patchDisp[patchFSIid][113] =   -0.000252435;
-ca_patchDisp[patchFSIid][114] = 0.18063;  ca_patchDisp[patchFSIid][115] =  0; ca_patchDisp[patchFSIid][116] =   -0.0592771;
-ca_patchDisp[patchFSIid][117] = 0.203513; ca_patchDisp[patchFSIid][118] =  0; ca_patchDisp[patchFSIid][119] =   -0.0654252;
-ca_patchDisp[patchFSIid][120] = 0.203513; ca_patchDisp[patchFSIid][121] =  0; ca_patchDisp[patchFSIid][122] =   -0.0654252;
-ca_patchDisp[patchFSIid][123] = 0.18063;  ca_patchDisp[patchFSIid][124] =  0; ca_patchDisp[patchFSIid][125] =   -0.0592771;
-ca_patchDisp[patchFSIid][126] = 0.115515; ca_patchDisp[patchFSIid][127] =  0; ca_patchDisp[patchFSIid][128] =   -0.0420828;
-ca_patchDisp[patchFSIid][129] = 0.115515; ca_patchDisp[patchFSIid][130] =  0; ca_patchDisp[patchFSIid][131] =   -0.0420828;
-ca_patchDisp[patchFSIid][132] = 0.136574; ca_patchDisp[patchFSIid][133] =  0; ca_patchDisp[patchFSIid][134] =   -0.0476056;
-ca_patchDisp[patchFSIid][135] = 0.136574; ca_patchDisp[patchFSIid][136] =  0; ca_patchDisp[patchFSIid][137] =   -0.0476056;
-ca_patchDisp[patchFSIid][138] = 0.1583;   ca_patchDisp[patchFSIid][139] =  0; ca_patchDisp[patchFSIid][140] =   -0.053333;
-ca_patchDisp[patchFSIid][141] = 0.1583;   ca_patchDisp[patchFSIid][142] =  0; ca_patchDisp[patchFSIid][143] =   -0.053333;
-ca_patchDisp[patchFSIid][144] = 0.226891; ca_patchDisp[patchFSIid][145] =  0; ca_patchDisp[patchFSIid][146] =   -0.071745;
-ca_patchDisp[patchFSIid][147] = 0.226891; ca_patchDisp[patchFSIid][148] =  0; ca_patchDisp[patchFSIid][149] =   -0.071745;
-ca_patchDisp[patchFSIid][150] = 0.250692; ca_patchDisp[patchFSIid][151] =  0; ca_patchDisp[patchFSIid][152] =   -0.0781904;
-ca_patchDisp[patchFSIid][153] = 0.250692; ca_patchDisp[patchFSIid][154] =  0; ca_patchDisp[patchFSIid][155] =   -0.0781904;
-ca_patchDisp[patchFSIid][156] = 0.274827; ca_patchDisp[patchFSIid][157] =  0; ca_patchDisp[patchFSIid][158] =   -0.0847105;
-ca_patchDisp[patchFSIid][159] = 0.274827; ca_patchDisp[patchFSIid][160] =  0; ca_patchDisp[patchFSIid][161] =   -0.0847105;
-ca_patchDisp[patchFSIid][162] = 0.299201; ca_patchDisp[patchFSIid][163] =  0; ca_patchDisp[patchFSIid][164] =   -0.0912577;
-ca_patchDisp[patchFSIid][165] = 0.299201; ca_patchDisp[patchFSIid][166] =  0; ca_patchDisp[patchFSIid][167] =   -0.0912577;
-ca_patchDisp[patchFSIid][168] = 0.323721; ca_patchDisp[patchFSIid][169] =  0; ca_patchDisp[patchFSIid][170] =   -0.0977962;
-ca_patchDisp[patchFSIid][171] = 0.323721; ca_patchDisp[patchFSIid][172] =  0; ca_patchDisp[patchFSIid][173] =   -0.0977962;
-ca_patchDisp[patchFSIid][174] = 0.146466; ca_patchDisp[patchFSIid][175] =  0; ca_patchDisp[patchFSIid][176] =   -0.00434417;
-ca_patchDisp[patchFSIid][177] = 0.146466; ca_patchDisp[patchFSIid][178] =  0; ca_patchDisp[patchFSIid][179] =   -0.00434417;
-ca_patchDisp[patchFSIid][180] = 0.168804; ca_patchDisp[patchFSIid][181] =  0; ca_patchDisp[patchFSIid][182] =   -0.00882705;
-ca_patchDisp[patchFSIid][183] = 0.168804; ca_patchDisp[patchFSIid][184] =  0; ca_patchDisp[patchFSIid][185] =   -0.00882705;
-ca_patchDisp[patchFSIid][186] = 0.348307; ca_patchDisp[patchFSIid][187] =  0; ca_patchDisp[patchFSIid][188] =   -0.104308;
-ca_patchDisp[patchFSIid][189] = 0.348307; ca_patchDisp[patchFSIid][190] =  0; ca_patchDisp[patchFSIid][191] =   -0.104308;
-ca_patchDisp[patchFSIid][192] = 0.372911; ca_patchDisp[patchFSIid][193] =  0; ca_patchDisp[patchFSIid][194] =   -0.110795;
-ca_patchDisp[patchFSIid][195] = 0.372911; ca_patchDisp[patchFSIid][196] =  0; ca_patchDisp[patchFSIid][197] =   -0.110795;
-ca_patchDisp[patchFSIid][198] = 0.379386; ca_patchDisp[patchFSIid][199] =  0; ca_patchDisp[patchFSIid][200] =   -0.0862009;
-ca_patchDisp[patchFSIid][201] = 0.379386; ca_patchDisp[patchFSIid][202] =  0; ca_patchDisp[patchFSIid][203] =   -0.0862009;
-ca_patchDisp[patchFSIid][204] = 0.385869; ca_patchDisp[patchFSIid][205] =  0; ca_patchDisp[patchFSIid][206] =   -0.0616025;
-ca_patchDisp[patchFSIid][207] = 0.385869; ca_patchDisp[patchFSIid][208] =  0; ca_patchDisp[patchFSIid][209] =   -0.0616025;
-ca_patchDisp[patchFSIid][210] = 0.191695; ca_patchDisp[patchFSIid][211] =  0; ca_patchDisp[patchFSIid][212] =   -0.0136619;
-ca_patchDisp[patchFSIid][213] = 0.191695; ca_patchDisp[patchFSIid][214] =  0; ca_patchDisp[patchFSIid][215] =   -0.0136619;
-ca_patchDisp[patchFSIid][216] = 0.215086; ca_patchDisp[patchFSIid][217] =  0; ca_patchDisp[patchFSIid][218] =   -0.0188303;
-ca_patchDisp[patchFSIid][219] = 0.215086; ca_patchDisp[patchFSIid][220] =  0; ca_patchDisp[patchFSIid][221] =   -0.0188303;
-ca_patchDisp[patchFSIid][222] = 0.238904; ca_patchDisp[patchFSIid][223] =  0; ca_patchDisp[patchFSIid][224] =   -0.0243164;
-ca_patchDisp[patchFSIid][225] = 0.238904; ca_patchDisp[patchFSIid][226] =  0; ca_patchDisp[patchFSIid][227] =   -0.0243164;
-ca_patchDisp[patchFSIid][228] = 0.263063; ca_patchDisp[patchFSIid][229] =  0; ca_patchDisp[patchFSIid][230] =   -0.0300938;
-ca_patchDisp[patchFSIid][231] = 0.263063; ca_patchDisp[patchFSIid][232] =  0; ca_patchDisp[patchFSIid][233] =   -0.0300938;
-ca_patchDisp[patchFSIid][234] = 0.287465; ca_patchDisp[patchFSIid][235] =  0; ca_patchDisp[patchFSIid][236] =   -0.0361215;
-ca_patchDisp[patchFSIid][237] = 0.287465; ca_patchDisp[patchFSIid][238] =  0; ca_patchDisp[patchFSIid][239] =   -0.0361215;
-ca_patchDisp[patchFSIid][240] = 0.312015; ca_patchDisp[patchFSIid][241] =  0; ca_patchDisp[patchFSIid][242] =   -0.0423461;
-ca_patchDisp[patchFSIid][243] = 0.312015; ca_patchDisp[patchFSIid][244] =  0; ca_patchDisp[patchFSIid][245] =   -0.0423461;
-ca_patchDisp[patchFSIid][246] = 0.336631; ca_patchDisp[patchFSIid][247] =  0; ca_patchDisp[patchFSIid][248] =   -0.0487061;
-ca_patchDisp[patchFSIid][249] = 0.336631; ca_patchDisp[patchFSIid][250] =  0; ca_patchDisp[patchFSIid][251] =   -0.0487061;
-ca_patchDisp[patchFSIid][252] = 0.361258; ca_patchDisp[patchFSIid][253] =  0; ca_patchDisp[patchFSIid][254] =   -0.0551419;
-ca_patchDisp[patchFSIid][255] = 0.361258; ca_patchDisp[patchFSIid][256] =  0; ca_patchDisp[patchFSIid][257] =   -0.0551419;
-
-
-
-    int patchID{-1};
+    //int patchID{-1};
     forAll(patches, ipatch)
     {
         const polyPatch& patch = patches[ipatch];
-        int localIndex = 0;
         if (ipatch == patchFSIid)
         {
             // Loop over all nodes of boundary patch
@@ -866,40 +774,33 @@ ca_patchDisp[patchFSIid][255] = 0.361258; ca_patchDisp[patchFSIid][256] =  0; ca
                 std::cout << "Warning: patchPoints.size() != ca_npoints "
                           << patchPoints.size() << " vs " << ca_npoints
                           << std::endl;
+                exit(-1);
+            }
+
+            if (ca_npoints<=0 || patchPoints.size()<=0)
+            {
+                std::cout << "Warning: ca_npoints = 0 "
+                          << std::endl;
             }
             
             forAll(patchPoints, ipoint)
             {
                 int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
             
-                const label& pointID = patch.meshPoints()[ipoint];  // Node index
+                //const label& pointID = patch.meshPoints()[ipoint];  // Node index
 
                 for(int jcomp=0; jcomp<nComponents; jcomp++)
                 {
 
-                    pointDisplacementNew[pointID][jcomp]
-                        = ca_patchDisp[ipatch][localIndex] *(t.value()-8.9)/10;
-                
-                    localIndex++;
+                    int localIndex = jcomp+ipoint*nComponents;
+                    
+                    pointDisplacementNew[globalPointID][jcomp]
+                        = ca_patchDisp[ipatch][localIndex];
                 }
-
-//////////////////////////////////
-//////////////////////////////////
-//////////////////////////////////
-//////////////////////////////////
-// FIX THIS
-
-
             }
             break;
         }
     }
-
-
-//Info << pointDisplacementNew << endl;
-//Info << "In updateSurfaceData_incoming" << endl;
-//std::cin.get();
-
 
     /*
     forAll(patches, ipatch)
@@ -925,8 +826,6 @@ ca_patchDisp[patchFSIid][255] = 0.361258; ca_patchDisp[patchFSIid][256] =  0; ca
         }
     }
     */
-
-
 
     return 0;
 }

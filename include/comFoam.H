@@ -19,7 +19,7 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallName = "flap";
+    const std::string movingWallName = "blade";
     
 protected:
     const int nComponents{3};

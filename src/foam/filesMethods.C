@@ -119,6 +119,7 @@ int comFoam::createFieldFiles
     if (ca_Rho != nullptr) nTotal++;
     if (ca_Phi != nullptr) nTotal++;
     if (ca_RhoUf != nullptr) nTotal++;
+    //if (ca_Disp != nullptr) nTotal +=2;
     
     for (int ifile=0; ifile<nTotal; ifile++)
     {
@@ -176,6 +177,34 @@ int comFoam::createFieldFiles
                         "[1 -2 -1 0 0 0 0]"
                       );
         }
+/*
+        else if (ifile==*ca_nFiles+3)
+        {
+            fileName = "pointDisplacement";
+            localDir = locaParAddr+"0";
+            content = createBaseFile
+                      (
+                        "pointDisplacement",
+                        "point",
+                        "Vector",
+                        "[0 1 0 0 0 0 0]"
+                      );
+        }
+        else if (ifile==*ca_nFiles+4)
+        {
+            fileName = "pointDisplacementNew";
+            localDir = locaParAddr+"0";
+            content = createBaseFile
+                      (
+                        "pointDisplacementNew",
+                        "point",
+                        "Vector",
+                        "[0 1 0 0 0 0 0]"
+                      );
+        }
+*/
+
+
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
 
@@ -205,7 +234,9 @@ int comFoam::createFieldFiles
                 fileName == "alphat" ||
                 fileName == "epsilon" ||
                 fileName == "k" ||
-                fileName == "nut"
+                fileName == "nut" ||
+                fileName == "pointDisplacement" ||
+                fileName == "pointDisplacementNew"
                )
             {   
                 // Modify the internalField
@@ -452,6 +483,35 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
+                else if (fileName == "pointDisplacement" ||
+                         fileName == "pointDisplacementNew")
+                {
+                    newStr += "<vector>\n";
+                    int npoints = *ca_nPoints;
+                    newStr += std::to_string(npoints);
+                    newStr += "\n(\n";
+
+                    for(int ipoint=0; ipoint<npoints; ipoint++)
+                    {
+                        newStr += "(";
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localComp = jcomp + ipoint*nComponents;
+                            
+                            std::ostringstream doubleToOs;
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_Disp[localComp];
+
+                            newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                            if (jcomp<nComponents-1)
+                                newStr += " ";
+                        }
+                        newStr += ")\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
                 //-----------------------------------
             }
             // Files that are the in folder "0"" and
@@ -479,7 +539,9 @@ int comFoam::createFieldFiles
                     fileName == "alphat" ||
                     fileName == "epsilon" ||
                     fileName == "k" ||
-                    fileName == "nut"
+                    fileName == "nut"||
+                    fileName == "pointDisplacement" ||
+                    fileName == "pointDisplacementNew"
                    )
                 {
                     int nfaces = *ca_patchSize[ipatch];
@@ -730,6 +792,36 @@ int comFoam::createFieldFiles
                             doubleToOs << ca_patchNuT[ipatch][faceIndex];
                             newStr += removeTrailZero(doubleToOs.str());
                             newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    else if (fileName == "pointDisplacement" ||
+                             fileName == "pointDisplacementNew")
+                    {
+                        newStr += "<vector>\n";
+                        
+                        int npoints = *ca_patchPointToPointMap_size[ipatch];
+                        newStr += std::to_string(npoints);
+                        newStr += "\n(\n";
+
+                        //int localIndex = 0;
+                        for(int ipoint=0; ipoint<npoints; ipoint++)
+                        {
+                            int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+
+                            newStr += "(";
+                            for(int jcomp=0; jcomp<nComponents; jcomp++)
+                            {
+                                int localComp = jcomp + globalPointID*nComponents;
+
+                                std::ostringstream doubleToOs;                            
+                                doubleToOs << std::scientific << std::setprecision(IODigits);
+                                doubleToOs << ca_Disp[localComp];
+                                newStr += removeTrailZero(doubleToOs.str());
+                                if (jcomp<nComponents-1)
+                                    newStr += " ";
+                            }
+                            newStr += ")\n";
                         }
                         newStr += ")\n";
                     }
@@ -1417,7 +1509,7 @@ std::string comFoam::createBaseFile
         exit(-1);
     }
 
-    if (loc!="vol" && loc!="surface")
+    if (loc!="vol" && loc!="surface" && loc!="point")
     {
         std::cout << "Watning: Invalid location \""
                   << loc << "\" sent to createBaseFile"

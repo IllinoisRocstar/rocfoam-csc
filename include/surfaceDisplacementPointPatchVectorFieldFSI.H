@@ -79,41 +79,9 @@ public:
 
     // Public data types
 
-        //enum projectMode
-        //{
-        //    NEAREST,
-        //    POINTNORMAL,
-        //    FIXEDNORMAL
-        //};
-
 private:
 
     // Private Data
-
-        //- Project mode names
-        //static const NamedEnum<projectMode, 3> projectModeNames_;
-
-        //- Maximum velocity
-        //const vector velocity_;
-
-        //- Names of surfaces
-        //const dictionary surfacesDict_;
-
-        //- How to project/project onto surface
-        //const projectMode projectMode_;
-
-        //- Direction to project
-        //const vector projectDir_;
-
-        //- Plane for 2D wedge case or -1.
-        //const label wedgePlane_;
-
-        //- pointZone with frozen points
-        //const word frozenPointsZone_;
-
-        //- Demand driven: surface to project
-        //mutable autoPtr<searchableSurfaces> surfacesPtr_;
-
 
     // Private Member Functions
 
