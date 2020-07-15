@@ -2,6 +2,11 @@
 #define COMFOAM_
 
 #include "rocFoam.H"
+
+#include "displacementMotionSolver.H"
+#include "dynamicMotionSolverFvMesh.H"
+#include "surfaceDisplacementPointPatchVectorFieldFSI.H"
+
 #include "com.h"
 #include "fileContainer.H"
 #include <boost/filesystem.hpp>

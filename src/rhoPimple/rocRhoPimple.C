@@ -219,6 +219,47 @@ int rhoPimple::initFOAM(int argc, char *argv[])
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
+dynamicFvMesh &mesh(*meshPtr);
+//const Foam::motionSolver& testMotion = mesh.motion();;
+
+const motionSolver& motionTest =
+    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+const pointField& points0 =
+        refCast<const displacementMotionSolver>(motionTest).points0();
+
+const pointField& dispTest =
+        refCast<const displacementMotionSolver>(motionTest).pointDisplacement();
+
+
+//const pointField& dispTest = motionTest.pointDisplacement();
+
+
+/*
+pointField newPoints = mesh.points();
+std::cout << "mesh.points1 = " << mesh.points()[0][0] << " "
+                               << mesh.points()[0][1] << " "
+                               << mesh.points()[0][2] << " "
+                               << std::endl;
+newPoints.replace
+(
+    vector::X,
+    newPoints.component(vector::X)*
+    (
+        2.0
+    )
+);
+mesh.movePoints(newPoints);
+mesh.update();
+std::cout << "mesh.points2 = " << mesh.points()[0][0] << " "
+                               << mesh.points()[0][1] << " "
+                               << mesh.points()[0][2] << " "
+                               << std::endl;
+std::cout << "writing out" << std::endl;
+std::cin.get();
+*/
+
+
     initializeStat = 0;
     return initializeStat;
 }

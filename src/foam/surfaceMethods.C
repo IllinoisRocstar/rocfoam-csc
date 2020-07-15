@@ -739,7 +739,8 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
-    const dynamicFvMesh& mesh(*meshPtr);
+    dynamicFvMesh& mesh(*meshPtr);
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
 
     int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
@@ -750,37 +751,22 @@ int comFoam::updateSurfaceData_incoming()
          << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
          << endl;
 
-    //Find the reference to the location of pointDisplacement field
-    
-    /*
-    pointVectorField PointDisplacement = const_cast<pointVectorField&>
-	(
-		mesh.objectRegistry::lookupObject<pointVectorField>
-		(
-			"pointDisplacement"
-		)
-	);
-	*/
 
-    //pointVectorField& PointDisplacement =
-    //    mesh.objectRegistry::lookupObject<pointVectorField&>("pointDisplacement");    
-    
-    /*
-    if (!PointDisplacement.valid())
-    {
-        Info << "No pointDisplacement field is available. Skipping this."
-             << endl;
 
-        return 0;
-    }
-    */
+    const motionSolver& motion_ =
+        refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
 
-    /*
+    const pointField& pointDisplacement =
+            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
+    pointField newPointDisplacement(pointDisplacement);
+
+
     forAll(patches, ipatch)
     {
-        if (ipatch != patchFSIid)
+        if (*ca_bcflag[ipatch] == 2)
             continue;
-    
+
         int npoints = *ca_patchPointToPointMap_size[ipatch];
 
         int localIndex = 0;
@@ -790,86 +776,30 @@ int comFoam::updateSurfaceData_incoming()
 
             for(int jcomp=0; jcomp<nComponents; jcomp++)
             {
-                PointDisplacement[globalPointID][jcomp]
+
+                newPointDisplacement[globalPointID][jcomp]
                     = ca_patchDisp[ipatch][localIndex];
 
                 localIndex++;
             }
         }
-    }
-    mesh.update();
-    */
 
-    /*    
-    //- Identify the internal boundary points in the subset1 mesh
-    label patchIndex = subset1Mesh_.subMesh().boundaryMesh().findPatchID("oldInternalFaces"); 
-    //- search the ID of the boundary patch
-    if (patchIndex < 0)
-    {
-        FatalErrorIn("bool hiMultiSubsetMotionSolverFvMesh::update")
-            //- show error when there is negetive patch ID
-            << " Patch " << "oldInternalFaces" << "not found. "
-            << abort(FatalError);
-    }
-    else
-    {
-        Info << "The patchID of the internal boundaries are " << patchIndex << endl;
-        //- show the internal boundary patch ID on the list
+
+        //const pointPatch& curPatch = mesh.boundary()[ipatch];
+        //const pointPatch  patchDisp = pointDisplacement.boundary()[ipatch];
+
     }
 
-    // Info << "number of boundary mesh points " << nBoundaryPoints << endl ;
-    //- show the number of boundary points
-    pointVectorField& pointDisplacement = const_cast<pointVectorField&>
-    //- Define the point field of the domain
-    (
-        subset1Mesh_.subMesh().objectRegistry::lookupObject<pointVectorField>
-        (
-            "pointDisplacement"
-        )
-    );
-    pointField &subset1BoundaryDis =
-    refCast<vectorField>
-    (
-        pointDisplacement.boundaryField()[patchIndex]
-    );
-    //- Define the boundary condition for the subset mesh
-    pointField subset1BoundaryLoc =
-        subset1Mesh_.subMesh().boundaryMesh()[patchIndex].localPoints();
-    // Info << "subset1 boundary Displacement " << subset1BoundaryDis << endl ;
-    //- set the boundary conditions of the subset1 mesh
-    pointField stationaryBoundary = subset1BoundaryDis ;
-    pointField boundaryMotion (subset1BoundaryLoc.size(), vector::zero);
-    pointField boundaryRotationField
-    (
-        (RzCur - RzOld) & (subset1BoundaryLoc - initialRotationOrigin_)
-    );
 
-    // Info << "boundaryRotationField " << boundaryRotationField << endl ;
-    boundaryMotion = translationVector + boundaryRotationField;
-    // Info << "subset1 boundary motion displacement " << subset1BoundaryDis << endl ;
-    subset1BoundaryDis.replace
-    (
-        vector::X,
-        stationaryBoundary.component(vector::X) + boundaryMotion.component(vector::X)
-    );
-    subset1BoundaryDis.replace
-    (
-        vector::Z,
-        stationaryBoundary.component(vector::Z) + boundaryMotion.component(vector::Z)
-    );
-    // Info << "subset1 boundary motion displacement " << subset1BoundaryDis << endl ;
-    pointField subset1Points = motionPtr_->newPoints();
-    const labelList& subset1PointAddr = subset1Mesh_.pointMap();
-    forAll (subset1Points, subsetI)
+
+
+    //if (!pointDisplacement.valid())
     {
-        p[subset1PointAddr[subsetI]] = subset1Points[subsetI];
+        Info << "No pointDisplacement field is available. Skipping this."
+             << endl;
+
     }
-    subset1Mesh_.subMesh().movePoints(subset1Points);
-    // move the entire field -----------------------------------------------------------
-    // Under-relax mesh motion
-    p = alpha_*p + (1 - alpha_)*allPoints();
-    fvMesh::movePoints(p);
-    */
+
 
     return 0;
 }
