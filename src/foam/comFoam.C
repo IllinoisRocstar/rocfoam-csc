@@ -491,6 +491,8 @@ void comFoam::update_solution
              << " are not the same " << *ca_time 
              << " vs " << *currentTime << endl;
 
+    double alpha{1};
+    COM_call_function(*gmHandle, alpha);
     updateSurfaceData_incoming();
     step(timeStep);
     updateCSCdata();
