@@ -19,10 +19,13 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallName = "blade";
+    const std::string movingWallName = "flap";
+    
 protected:
     const int nComponents{3};
     const int genCharSize{20};
+
+    pointVectorField* pointDisplacementNewPtr{nullptr};
 
 public:
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^

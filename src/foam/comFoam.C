@@ -337,6 +337,7 @@ int comFoam::flowStep()
     Foam::Info << "rocFoam.flowStep: Stepping flow solver."
                << Foam::endl;
 
+    updateSurfaceData_incoming();
     step();
     updateCSCdata();
 
@@ -490,6 +491,7 @@ void comFoam::update_solution
              << " are not the same " << *ca_time 
              << " vs " << *currentTime << endl;
 
+    updateSurfaceData_incoming();
     step(timeStep);
     updateCSCdata();
 }

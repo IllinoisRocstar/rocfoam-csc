@@ -416,6 +416,20 @@ int rhoPimple::createFields()
         dimensionedScalar(p.dimensions() / dimTime, 0)
     );
 
+    pointDisplacementNewPtr = new pointVectorField
+    (
+        IOobject
+        (
+            "pointDisplacementNew",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        pointMesh::New(mesh)
+    );
+    pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
+
     Info << "Creating field kinetic energy K\n" << endl;
     KPtr = new volScalarField("K", 0.5 * magSqr(U));
 
@@ -1571,6 +1585,12 @@ int rhoPimple::finalizeFoam()
     {
         delete MRFPtr;
         MRFPtr = nullptr;
+    }
+
+    if (pointDisplacementNewPtr != nullptr)
+    {
+        delete pointDisplacementNewPtr;
+        pointDisplacementNewPtr = nullptr;
     }
 
     // delete meshPtr;

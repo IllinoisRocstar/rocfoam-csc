@@ -123,21 +123,18 @@ void surfaceDisplacementPointPatchVectorFieldFSI::updateCoeffs()
     const pointField&       points = mesh.points();
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
-
-const Time& t = mesh.time();    
-
-
-
     const pointVectorField& incompingPointDisplacement = refCast<const pointVectorField>
     (
 	    mesh.objectRegistry::lookupObject<pointVectorField>
 	    (
-	    "pointDisplacement"
+	    "pointDisplacementNew"
 	    )
     );
 
     vectorField patchNewPointDisplacement(*this);
 
+/*
+const Time& t = mesh.time();
 patchNewPointDisplacement[0][0] = 0.00259899; patchNewPointDisplacement[0][1] = 0; patchNewPointDisplacement[0][2] =  -0.00401698;
 patchNewPointDisplacement[1][0] = 0.00789971; patchNewPointDisplacement[1][1] =  0; patchNewPointDisplacement[1][2] =   -0.00816199;
 patchNewPointDisplacement[2][0] = 0.00789971; patchNewPointDisplacement[2][1] =  0; patchNewPointDisplacement[2][2] =   -0.00816199;
@@ -224,8 +221,8 @@ patchNewPointDisplacement[82][0] = 0.336631; patchNewPointDisplacement[82][1] = 
 patchNewPointDisplacement[83][0] = 0.336631; patchNewPointDisplacement[83][1] =  0; patchNewPointDisplacement[83][2] =   -0.0487061;
 patchNewPointDisplacement[84][0] = 0.361258; patchNewPointDisplacement[84][1] =  0; patchNewPointDisplacement[84][2] =   -0.0551419;
 patchNewPointDisplacement[85][0] = 0.361258; patchNewPointDisplacement[85][1] =  0; patchNewPointDisplacement[85][2] =   -0.0551419;
-
-/*    int patchID{-1};
+*/
+    int patchID{-1};
     forAll(patches, ipatch)
     {
         const polyPatch& patch = patches[ipatch];
@@ -246,9 +243,12 @@ patchNewPointDisplacement[85][0] = 0.361258; patchNewPointDisplacement[85][1] = 
             break;
         }
     }
-*/
 
-    this->operator==(patchNewPointDisplacement*(t.value()-9)/10);
+//Info << patchNewPointDisplacement << endl;
+//Info << "In surfaceDisplacementPointPatchVectorFieldFSI" << endl;
+//std::cin.get();
+
+    this->operator==(patchNewPointDisplacement);
     fixedValuePointPatchVectorField::updateCoeffs();
 
 }
