@@ -153,16 +153,13 @@ int comFoam::updateVolumeData_outgoing()
         }
     }
 
-    /*
-    pointVectorField& PointDisplacement = const_cast<pointVectorField&>
-    (
-	    mesh.objectRegistry::lookupObject<pointVectorField>
-	    (
-	        "pointDisplacement"
-	    )
-    );
 
-    
+    const motionSolver& motion_ =
+        refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+    const pointField& PointDisplacement =
+            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
     if (PointDisplacement.size())
     {
         forAll(points, ipoint)
@@ -174,7 +171,6 @@ int comFoam::updateVolumeData_outgoing()
             }
         }
     }
-    */
     
     
     // Cell-centered data ^^^^^^^^^^^^^^^^^^^^^^^

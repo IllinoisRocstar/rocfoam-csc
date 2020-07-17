@@ -13,3 +13,5 @@ build*
 build
 install
 install*
+CMakeCache.txt
+CMakeFiles

@@ -2,6 +2,11 @@
 #define COMFOAM_
 
 #include "rocFoam.H"
+
+#include "displacementMotionSolver.H"
+#include "dynamicMotionSolverFvMesh.H"
+#include "surfaceDisplacementPointPatchVectorFieldFSI.H"
+
 #include "com.h"
 #include "fileContainer.H"
 #include <boost/filesystem.hpp>
@@ -15,9 +20,12 @@ private:
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
     const std::string movingWallName = "blade";
+    
 protected:
     const int nComponents{3};
     const int genCharSize{20};
+
+    pointVectorField* pointDisplacementNewPtr{nullptr};
 
 public:
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^

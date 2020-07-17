@@ -71,6 +71,7 @@ set(rocfoam_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
     src/foam/fileContainer.C
+    src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C
     src/rhoCentral/rocRhoCentral.C
     src/rhoPimple/rocRhoPimple.C)
     

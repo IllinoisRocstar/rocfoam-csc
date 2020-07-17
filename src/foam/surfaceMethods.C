@@ -9,7 +9,7 @@ int comFoam::createSurfaceConnectivities()
 
     // Gather the number of patches in each processor
     int nPatches = patches.size();
-    ca_nPatches = new int[Pstream::nProcs()];
+    ca_nPatches = new int[Pstream::nProcs()]{};
     for(int i=0; i<Pstream::nProcs(); i++)
     {
         ca_nPatches[i] = 0;
@@ -57,14 +57,14 @@ int comFoam::createSurfaceConnectivities()
 
     //  Create patch general data  arrays ^^^^^^^
     //ca_nPatches = new int(patches.size());
-    ca_patchName    = new char*[nPatches];
+    ca_patchName    = new char*[nPatches]{};
     if (patchNameStr == nullptr)
-        patchNameStr = new std::string[nPatches];
+        patchNameStr = new std::string[nPatches]{};
 
-    ca_patchType    = new char*[nPatches];
+    ca_patchType    = new char*[nPatches]{};
     //ca_patchInGroup = new wordList*[nPatches];
-    ca_patchStart   = new int*[nPatches];
-    ca_patchSize    = new int*[nPatches];
+    ca_patchStart   = new int*[nPatches]{};
+    ca_patchSize    = new int*[nPatches]{};
 
     forAll(patches, ipatch)
     {
@@ -77,13 +77,13 @@ int comFoam::createSurfaceConnectivities()
         const int& patchSize = patch.size();
 
         std::string tmpStr = patchName;
-        ca_patchName[ipatch] = new char [tmpStr.length()+1];
+        ca_patchName[ipatch] = new char [tmpStr.length()+1]{};
         std::strcpy(ca_patchName[ipatch], tmpStr.c_str());
 
         patchNameStr[ipatch] = ca_patchName[ipatch];
 
         tmpStr = patchType;
-        ca_patchType[ipatch] = new char [tmpStr.length()+1];
+        ca_patchType[ipatch] = new char [tmpStr.length()+1]{};
         std::strcpy(ca_patchType[ipatch], tmpStr.c_str());
 
         ca_patchStart[ipatch] = new int(patchStart);
@@ -221,11 +221,11 @@ int comFoam::createSurfaceConnectivities()
     {
         // Create faceToFace mapping arrays ^^^^^^^^^
         int nfacesTotal = *ca_patchSize[ipatch];
-        if (nfacesTotal == 0)
-            continue;
+        //if (nfacesTotal == 0)
+        //    continue;
         
-        ca_patchFaceToFaceMap[ipatch] = new int[nfacesTotal];
-        ca_patchFaceToFaceMap_inverse[ipatch] = new int[nfacesTotal];
+        ca_patchFaceToFaceMap[ipatch] = new int[nfacesTotal]{};
+        ca_patchFaceToFaceMap_inverse[ipatch] = new int[nfacesTotal]{};
 
         const auto& mapFaceToFaceMap = vecPatchFaceToFaceMap[ipatch];
 
@@ -249,9 +249,9 @@ int comFoam::createSurfaceConnectivities()
         //  Create faceToPoint connectivity arrays ^^    
         int ntypes = mapFaceToFaceMap.size();
         ca_patchFaceToPointConn_types[ipatch] = new int(ntypes);
-        ca_patchFaceToPointConn_map[ipatch]   = new int[ntypes];
-        ca_patchFaceToPointConn_size[ipatch]  = new int[ntypes];
-        ca_patchFaceToPointConn[ipatch] = new int*[ntypes];
+        ca_patchFaceToPointConn_map[ipatch]   = new int[ntypes]{};
+        ca_patchFaceToPointConn_size[ipatch]  = new int[ntypes]{};
+        ca_patchFaceToPointConn[ipatch] = new int*[ntypes]{};
 
         auto mapFaceToPointConn = vecPatchFaceToPointConn[ipatch];
         for (auto it=mapFaceToPointConn.begin(); it!=mapFaceToPointConn.end(); it++)
@@ -265,7 +265,7 @@ int comFoam::createSurfaceConnectivities()
             ca_patchFaceToPointConn_size[ipatch][itype] = nfaces;
     
             int nTypeConn = npoints * nfaces;
-            ca_patchFaceToPointConn[ipatch][itype] = new int[nTypeConn];
+            ca_patchFaceToPointConn[ipatch][itype] = new int[nTypeConn]{};
             
             for(int iface=0; iface<nfaces; iface++)
             {
@@ -289,11 +289,11 @@ int comFoam::createSurfaceConnectivities()
     forAll(patches, ipatch)
     {
         int npoints = vecPatchPointToPointMap[ipatch].size();
-        if (npoints == 0)
-            continue;
+        //if (npoints == 0)
+        //    continue;
 
         ca_patchPointToPointMap_size[ipatch] = new int(npoints);
-        ca_patchPointToPointMap[ipatch] = new int[npoints];
+        ca_patchPointToPointMap[ipatch] = new int[npoints]{};
         
         for(int ipoint=0; ipoint<npoints; ipoint++)
         {
@@ -352,10 +352,10 @@ int comFoam::createSurfaceData()
 
         if (RASModel == "kEpsilon")
         {
-            ca_patchAlphaT = new double*[nPatches];
-            ca_patchEpsilon = new double*[nPatches];
-            ca_patchK = new double*[nPatches];
-            ca_patchNuT = new double*[nPatches];
+            ca_patchAlphaT = new double*[nPatches]{};
+            ca_patchEpsilon = new double*[nPatches]{};
+            ca_patchK = new double*[nPatches]{};
+            ca_patchNuT = new double*[nPatches]{};
         }
     }
     //-------------------------------------------
@@ -748,8 +748,6 @@ int comFoam::updateSurfaceData_outgoing()
         Info << "  ca_patchNuT_time =     " << ca_patchNuT_time << " (s)" << endl;
         */
     }
-
-
     
     return 0;
 }
@@ -760,9 +758,11 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
-    const dynamicFvMesh& mesh(*meshPtr);
+    dynamicFvMesh& mesh(*meshPtr);
+    //const Time& t = mesh.time();
+    pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
-
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
     int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
     //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
 
@@ -771,37 +771,62 @@ int comFoam::updateSurfaceData_incoming()
          << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
          << endl;
 
-    //Find the reference to the location of pointDisplacement field
-    
     /*
-    pointVectorField PointDisplacement = const_cast<pointVectorField&>
-	(
-		mesh.objectRegistry::lookupObject<pointVectorField>
-		(
-			"pointDisplacement"
-		)
-	);
-	*/
-
-    //pointVectorField& PointDisplacement =
-    //    mesh.objectRegistry::lookupObject<pointVectorField&>("pointDisplacement");    
-    
-    /*
-    if (!PointDisplacement.valid())
-    {
-        Info << "No pointDisplacement field is available. Skipping this."
-             << endl;
-
-        return 0;
-    }
+    const motionSolver& motion_ =
+        refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+    const pointField& pointDisplacement =
+            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
     */
+
+    //int patchID{-1};
+    forAll(patches, ipatch)
+    {
+        const polyPatch& patch = patches[ipatch];
+        if (ipatch == patchFSIid)
+        {
+            // Loop over all nodes of boundary patch
+            const labelList& patchPoints = patch.meshPoints();
+            int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
+            
+            if (ca_npoints != patchPoints.size())
+            {
+                std::cout << "Warning: patchPoints.size() != ca_npoints "
+                          << patchPoints.size() << " vs " << ca_npoints
+                          << std::endl;
+                exit(-1);
+            }
+
+            if (ca_npoints<=0 || patchPoints.size()<=0)
+            {
+                std::cout << "Warning: ca_npoints = 0 "
+                          << std::endl;
+            }
+            
+            forAll(patchPoints, ipoint)
+            {
+                int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+            
+                //const label& pointID = patch.meshPoints()[ipoint];  // Node index
+
+                for(int jcomp=0; jcomp<nComponents; jcomp++)
+                {
+
+                    int localIndex = jcomp+ipoint*nComponents;
+                    
+                    pointDisplacementNew[globalPointID][jcomp]
+                        = ca_patchDisp[ipatch][localIndex];
+                }
+            }
+            break;
+        }
+    }
 
     /*
     forAll(patches, ipatch)
     {
-        if (ipatch != patchFSIid)
+        if (*ca_bcflag[ipatch] == 2)
             continue;
-    
+
         int npoints = *ca_patchPointToPointMap_size[ipatch];
 
         int localIndex = 0;
@@ -811,85 +836,14 @@ int comFoam::updateSurfaceData_incoming()
 
             for(int jcomp=0; jcomp<nComponents; jcomp++)
             {
-                PointDisplacement[globalPointID][jcomp]
+
+                newPointDisplacement[globalPointID][jcomp]
                     = ca_patchDisp[ipatch][localIndex];
 
                 localIndex++;
             }
         }
     }
-    mesh.update();
-    */
-
-    /*    
-    //- Identify the internal boundary points in the subset1 mesh
-    label patchIndex = subset1Mesh_.subMesh().boundaryMesh().findPatchID("oldInternalFaces"); 
-    //- search the ID of the boundary patch
-    if (patchIndex < 0)
-    {
-        FatalErrorIn("bool hiMultiSubsetMotionSolverFvMesh::update")
-            //- show error when there is negetive patch ID
-            << " Patch " << "oldInternalFaces" << "not found. "
-            << abort(FatalError);
-    }
-    else
-    {
-        Info << "The patchID of the internal boundaries are " << patchIndex << endl;
-        //- show the internal boundary patch ID on the list
-    }
-
-    // Info << "number of boundary mesh points " << nBoundaryPoints << endl ;
-    //- show the number of boundary points
-    pointVectorField& pointDisplacement = const_cast<pointVectorField&>
-    //- Define the point field of the domain
-    (
-        subset1Mesh_.subMesh().objectRegistry::lookupObject<pointVectorField>
-        (
-            "pointDisplacement"
-        )
-    );
-    pointField &subset1BoundaryDis =
-    refCast<vectorField>
-    (
-        pointDisplacement.boundaryField()[patchIndex]
-    );
-    //- Define the boundary condition for the subset mesh
-    pointField subset1BoundaryLoc =
-        subset1Mesh_.subMesh().boundaryMesh()[patchIndex].localPoints();
-    // Info << "subset1 boundary Displacement " << subset1BoundaryDis << endl ;
-    //- set the boundary conditions of the subset1 mesh
-    pointField stationaryBoundary = subset1BoundaryDis ;
-    pointField boundaryMotion (subset1BoundaryLoc.size(), vector::zero);
-    pointField boundaryRotationField
-    (
-        (RzCur - RzOld) & (subset1BoundaryLoc - initialRotationOrigin_)
-    );
-
-    // Info << "boundaryRotationField " << boundaryRotationField << endl ;
-    boundaryMotion = translationVector + boundaryRotationField;
-    // Info << "subset1 boundary motion displacement " << subset1BoundaryDis << endl ;
-    subset1BoundaryDis.replace
-    (
-        vector::X,
-        stationaryBoundary.component(vector::X) + boundaryMotion.component(vector::X)
-    );
-    subset1BoundaryDis.replace
-    (
-        vector::Z,
-        stationaryBoundary.component(vector::Z) + boundaryMotion.component(vector::Z)
-    );
-    // Info << "subset1 boundary motion displacement " << subset1BoundaryDis << endl ;
-    pointField subset1Points = motionPtr_->newPoints();
-    const labelList& subset1PointAddr = subset1Mesh_.pointMap();
-    forAll (subset1Points, subsetI)
-    {
-        p[subset1PointAddr[subsetI]] = subset1Points[subsetI];
-    }
-    subset1Mesh_.subMesh().movePoints(subset1Points);
-    // move the entire field -----------------------------------------------------------
-    // Under-relax mesh motion
-    p = alpha_*p + (1 - alpha_)*allPoints();
-    fvMesh::movePoints(p);
     */
 
     return 0;
@@ -957,9 +911,9 @@ int comFoam::registerSurfaceData(const char *name)
     dataName = surfName+std::string(".patchFaceToPointConn_size");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
 
-//    dataName = surfName+std::string(".patchFaceToFaceMap");
-//    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
-//    
+    dataName = surfName+std::string(".patchFaceToFaceMap");
+    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
+   
 //    dataName = surfName+std::string(".patchFaceToFaceMap_inverse");
 //    COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
 //    // ------------------------------------------
@@ -1082,16 +1036,12 @@ int comFoam::registerSurfaceData(const char *name)
 
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-
-if (ipatch>= 6) continue;
-
             int paneID = paneIDStart+ipatch;
 
             std::cout << "procID = " << Pstream::myProcNo()
                  << ", paneID = " << paneID
                  << ", PatchID = " << ipatch << ","
                  << " ^^^^^^^^^^^^^^^" << std::endl;
-
 
             // Genral patch data ^^^^^^^^^^^^^^^^^^^^^
             std::string charToStr = std::string(ca_patchName[ipatch]);
@@ -1136,9 +1086,9 @@ if (ipatch>= 6) continue;
             }
             //---------------------------------------
             
-            int nfacesTotal = *ca_patchSize[ipatch];
-            if (nfacesTotal == 0)
-                continue;
+            //int nfacesTotal = *ca_patchSize[ipatch];
+            //if (nfacesTotal == 0)
+            //    continue;
 
             // points
             dataName = surfName+std::string(".patchPointToPointMap_size");
@@ -1146,11 +1096,15 @@ if (ipatch>= 6) continue;
             COM_set_array(dataName, paneID, ca_patchPointToPointMap_size[ipatch]);
             std::cout << "  " << dataName.c_str() << " registered." << std::endl;
 
-            int npoints = *ca_patchPointToPointMap_size[ipatch];
-            dataName = surfName+std::string(".nc");
-            COM_set_size( dataName, paneID, npoints);
-            COM_set_array(dataName, paneID, ca_patchPoints[ipatch], nComponents);
-            std::cout << "  " << dataName.c_str() << " registered." << std::endl;
+            int nPoints = *ca_patchPointToPointMap_size[ipatch];
+            if (nPoints>0)
+            {
+                int npoints = *ca_patchPointToPointMap_size[ipatch];
+                dataName = surfName+std::string(".nc");
+                COM_set_size( dataName, paneID, npoints);
+                COM_set_array(dataName, paneID, ca_patchPoints[ipatch], nComponents);
+                std::cout << "  " << dataName.c_str() << " registered." << std::endl;
+            }
 
             // point-mapping
             dataName = surfName+std::string(".patchPointToPointMap");
@@ -1175,8 +1129,6 @@ if (ipatch>= 6) continue;
             COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_size[ipatch]);
             std::cout << "  " << dataName.c_str() << " registered." << std::endl;
 
-if (ca_myRank==0)
-{
             for(int itype=0; itype<ntypes; itype++)
             {
                 int typeID = ca_patchFaceToPointConn_map[ipatch][itype];
@@ -1208,12 +1160,14 @@ if (ca_myRank==0)
                              );
                 std::cout << "  " << dataName.c_str() << " registered." << std::endl;
             }
-}
-continue;
 
             dataName = surfName+std::string(".patchFaceToFaceMap");
             COM_set_array(dataName, paneID, ca_patchFaceToFaceMap[ipatch], 1);
             std::cout << "  " << dataName.c_str() << " registered." << std::endl;
+
+
+continue;
+
 
             dataName = surfName+std::string(".patchFaceToFaceMap_inverse");
             COM_set_array(dataName, paneID, ca_patchFaceToFaceMap_inverse[ipatch], 1);
@@ -1719,7 +1673,7 @@ int comFoam::reconstSurfaceData(const char *name)
         std::istringstream connISS(connNames);
 
         // Secondary allocation ^^^^^^^^^^^^^^^^^
-        ca_patchFaceToPointConn[ipane] = new int*[nConn];
+        ca_patchFaceToPointConn[ipane] = new int*[nConn]{};
         //---------------------------------------
 
         for (int icon=0; icon<nConn; ++icon)
@@ -1939,7 +1893,7 @@ int comFoam::reconstSurfaceData(const char *name)
         std::cout << "  --------------------------------------------------"
              << std::endl;
 
-
+        /*
         if (false)
         {
             // VTK output: gas-phase grid data ^^^^^^^^^^^^^^^^
@@ -2053,9 +2007,7 @@ int comFoam::reconstSurfaceData(const char *name)
             outFile << content;
             outFile.close();
         }
-
-
-
+        */
     }
 
     std::cout << "----------------------------------------------------"
@@ -2104,7 +2056,6 @@ int comFoam::deleteSurfaceData()
         ca_patchStart = nullptr;
     }
 
-
     if (ca_patchSize != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
@@ -2120,7 +2071,6 @@ int comFoam::deleteSurfaceData()
         delete [] ca_patchSize;
         ca_patchSize = nullptr;
     }
-
 
     if (ca_patchName != nullptr)
     {
@@ -2165,7 +2115,6 @@ int comFoam::deleteSurfaceData()
         delete [] patchTypeStr;
         patchTypeStr = nullptr;
     }
-
 
     if (ca_patchFaceToFaceMap != nullptr)
     {
@@ -2506,7 +2455,6 @@ int comFoam::deleteSurfaceData()
         delete [] ca_patchFaceToPointConn_types;
         ca_patchFaceToPointConn_types = nullptr;
     }
-
 
     if (ca_patchFaceToPointConn_map != nullptr)
     {
