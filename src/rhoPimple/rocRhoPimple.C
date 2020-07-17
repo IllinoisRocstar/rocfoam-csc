@@ -212,6 +212,20 @@ int rhoPimple::initFOAM(int argc, char *argv[])
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
+/*
+dynamicFvMesh &mesh(*meshPtr);
+const motionSolver& motionTest =
+    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+const pointField& points0 =
+    refCast<const displacementMotionSolver>(motionTest).points0();
+
+const pointField& dispTest =
+    refCast<const displacementMotionSolver>(motionTest).pointDisplacement();
+
+const pointField& dispTest = motionTest.pointDisplacement();
+*/
+
     initializeStat = 0;
     return initializeStat;
 }
@@ -366,6 +380,19 @@ int rhoPimple::createFields()
         ),
         mesh,
         dimensionedScalar(p.dimensions() / dimTime, 0)
+    );
+
+    pointDisplacementNewPtr = new pointVectorField
+    (
+        IOobject
+        (
+            "pointDisplacementNew",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        pointMesh::New(mesh)
     );
 
     Info << "Creating field kinetic energy K\n" << endl;
@@ -679,12 +706,23 @@ int rhoPimple::step(double* incomingDeltaT)
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
+
+
+    double mandatedTime{};
+    if (incomingDeltaT != nullptr)
+    {
+        mandatedTime = runTime.value() + *incomingDeltaT;
+    }
+
+
+
+
     int count{0};
-    int nCycle{1};
+    bool continueIter{true};
     while
     (
         runTime.run() && 
-        count<nCycle
+        continueIter
     )
     {
         count++;
@@ -707,13 +745,13 @@ int rhoPimple::step(double* incomingDeltaT)
             );
         }
 
-        if (LTS && count==1)
+        if (LTS)
         {
             //  setRDeltaT.H  ^^^^^^^^^^^^^^^
             setRDeltaT();
             // -------------------------------
         }
-        else if (count==1)
+        else //if (count==1)
         {
             //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
             compressibleCourantNo();
@@ -723,32 +761,34 @@ int rhoPimple::step(double* incomingDeltaT)
             setDeltaT();
             // ---------------------------------------------
 
+            double flowDeltaT = runTime.deltaTValue();
+            double flowCurTime = runTime.value();
+            double expectedTime = flowCurTime + flowDeltaT;
+            
             if (incomingDeltaT != nullptr)
             {
-                double flowDeltaT = runTime.deltaTValue();
-                if (*incomingDeltaT > flowDeltaT)
+                if (expectedTime > mandatedTime)
                 {
-                    nCycle = ceil( *incomingDeltaT/flowDeltaT );
-                    
-                    if (nCycle>1)
-                    {
-                        double newDeltaT = *incomingDeltaT/nCycle;
-                        runTime.setDeltaT(newDeltaT);
-                    }
-
-                    if ( ceil( *incomingDeltaT/flowDeltaT ) != 
-                         *incomingDeltaT/flowDeltaT
-                       )
-                        Info << "NewdeltaT = " << runTime.deltaTValue()
-                             << endl;
-                }
-                else if (flowDeltaT > *incomingDeltaT)
-                {
-                    double newDeltaT = min( flowDeltaT, *incomingDeltaT );
+                    double newDeltaT = mandatedTime - flowCurTime;
                     runTime.setDeltaT(newDeltaT);
                     Info << "NewdeltaT = " << runTime.deltaTValue()
                          << endl;
+                         
+                    continueIter = false;
                 }
+                else if (expectedTime == mandatedTime)
+                {
+                    continueIter = false;
+                }
+                //else if (expectedTime < mandatedTime)
+                //{
+                //    continueIter = true;
+                //}
+                 
+            }
+            else
+            {
+                continueIter = false;
             }
         }
 
@@ -1523,6 +1563,12 @@ int rhoPimple::finalizeFoam()
     {
         delete MRFPtr;
         MRFPtr = nullptr;
+    }
+
+    if (pointDisplacementNewPtr != nullptr)
+    {
+        delete pointDisplacementNewPtr;
+        pointDisplacementNewPtr = nullptr;
     }
 
     // delete meshPtr;
