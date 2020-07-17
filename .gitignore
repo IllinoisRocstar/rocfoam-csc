@@ -14,3 +14,4 @@ build
 install
 install*
 CMakeCache.txt
+CMakeFiles

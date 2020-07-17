@@ -492,7 +492,7 @@ void comFoam::update_solution
              << " vs " << *currentTime << endl;
 
     double alpha{1};
-    COM_call_function(*gmHandle, alpha);
+    COM_call_function(*gmHandle, &alpha);
     updateSurfaceData_incoming();
     step(timeStep);
     updateCSCdata();
