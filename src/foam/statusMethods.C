@@ -178,8 +178,8 @@ int comFoam::reconstStatusData(const char *name)
     std::string volName = name+std::string("VOL");
 
     std::cout << "rocFoam.reconstructStatusData, procID = "
-              << Pstream::myProcNo()
-              << ", Retreiving surface data form window "
+              << ca_myRank
+              << ", Retreiving status data form window "
               << volName << "."
               << std::endl;
 

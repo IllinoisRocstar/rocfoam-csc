@@ -289,21 +289,24 @@ int comDrvOutput(std::string winName_, std::string suffix_)
         std::string whatToWrite = lookUpWindow+std::string(".all");
         int whatToWriteHandle = COM_get_dataitem_handle(whatToWrite.c_str());
 
-        std::string pathTmp = std::string("./")
-                            + winName+"/"
-                            + targetName+std::string("_");
+        std::string path = std::string("./")
+                           + winName+"/";
+
+        std::string fullPath = path + targetName+std::string("_");
 
         std::cout << "  Target window = " << lookUpWindow << std::endl;
         std::cout << "  What to write = " << whatToWrite << std::endl;
-        std::cout << "  Path = " << pathTmp << std::endl;
+        std::cout << "  Path = " << fullPath << std::endl;
 
         char* outputPath = new char[40]{};
-        std::strcpy(outputPath, pathTmp.c_str());
+        std::strcpy(outputPath, fullPath.c_str());
 
         char* material = new char[40]{};
         std::strcpy(material, lookUpWindow.c_str());
 
         char* timeName = new char[40]{'0'};
+
+        char* mfile_pre{nullptr};
 
         COM_call_function
         (
@@ -311,7 +314,9 @@ int comDrvOutput(std::string winName_, std::string suffix_)
             outputPath,
             &whatToWriteHandle,
             material,
-            timeName
+            timeName,
+            mfile_pre,
+            &newComm
         );
 
         delete [] outputPath;
@@ -323,28 +328,91 @@ int comDrvOutput(std::string winName_, std::string suffix_)
         delete [] timeName;
         timeName = nullptr;
 
-        std::cout << "Finished writting "
-                  << strTmp << " window."
+        std::cout << "File "
+                  << fullPath << " created."
                   << std::endl;
+
+        // Creating text files for SimIO using input files
+        std::string attrFile;
+        if (count == 0)
+        {
+            attrFile = "fluid_in_00.000000.txt";
+        }
+        else if (count == 1)
+        {
+            attrFile = "ifluid_in_00.000000.txt";
+        }
+        fullPath = path + attrFile;
+
+        for (int iproc=0; iproc<nProcs; iproc++)
+        {
+            MPI_Barrier(newComm);
+            if(iproc != myRank)
+                continue;
+
+            std::stringstream intToOs;
+            intToOs << std::setw(4) << std::setfill('0');
+            intToOs << myRank;
+            std::string outputFile = targetName +
+                                     std::string("_") +
+                                     intToOs.str() + "*";
+
+            std::string content = "@Proc: "+std::to_string(myRank)+"\n";
+            content +="@Files: " + outputFile + "\n";
+
+            int nPanes;
+            int* paneList;
+            COM_get_panes(lookUpWindow.c_str(), &nPanes, &paneList);
+
+            if (nPanes>0)
+            {
+                content +="@Panes: ";
+                for (int ipane=0; ipane<nPanes; ipane++)
+                {
+                    content += std::to_string(paneList[ipane]) + " ";
+                }
+                content += "\n\n";
+            }
+
+            std::ofstream outpuFile;
+            if (iproc==0)
+            {
+                outpuFile.open(fullPath, std::ofstream::trunc);
+
+                std::cout << "File "
+                          << fullPath << " created."
+                          << std::endl;
+            }
+            else
+            {
+                outpuFile.open(fullPath, std::ofstream::app);
+
+                std::cout << "File "
+                          << fullPath << " appended."
+                          << std::endl;
+            }
+            
+            outpuFile << content;
+            outpuFile.close();
+        }
     }
+
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     std::cout << "Unloaded SIMOUT" << std::endl;
 
-
-
     return 0;
 }
-
-
 
 int comDrvRestart(int argc, char *argv[])
 {
     std::string winNameOld = "ROCFOAM0";
     std::string winName = "ROCFOAM";
+
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
     std::cout << "Reading data windows" << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
-    int IN_read = COM_get_function_handle("IN.read_window");
+    //int IN_read = COM_get_function_handle("IN.read_window");
+    int IN_read = COM_get_function_handle("IN.read_by_control_file");
     for (int count=0; count<2; count++)
     {
         std::string strTmp;
@@ -357,33 +425,52 @@ int comDrvRestart(int argc, char *argv[])
             strTmp = "SURF";
         }
         
+        std::string targetName; // = winName+strTmp+std::string("_");
+        if (count == 0 )
+        {
+            targetName = "fluid_in_00.000000.txt";
+        }
+        else if (count == 1 )
+        {
+            targetName = "ifluid_in_00.000000.txt";
+        }
         
         std::string lookUpWindow = winNameOld+strTmp;
+        std::string path = std::string("./")
+                          + winName+"/";
 
-        std::string pathTmp = std::string("./")
-                            + winName+"/"
-                            + winName+strTmp+std::string("_");
+        std::string fullPath = path+targetName;
+                  
+//        std::ostringstream intToOs;
+//        intToOs << std::setw(4) << std::setfill('0');
+//        intToOs << myRank;
+//        std::string whatToRead = fullPath + intToOs.str() + "*";
 
-        std::cout << "Reading file " << pathTmp << std::endl;
+        std::string whatToRead = fullPath; //+ "*";
 
-        std::string whatToRead = pathTmp+"*";
+        std::cout << "Proc " << myRank << ": "
+                  << "Beging reading "
+                  << whatToRead << "."
+                  << std::endl;
 
         COM_call_function
         (
             IN_read,
             whatToRead.c_str(),
-            lookUpWindow.c_str()
+            lookUpWindow.c_str(),
+            &newComm
         );
 
-        std::cout << "Finished reading "
-                  << pathTmp << " window."
+        std::cout << "Proc " << myRank << ": "
+                  << "Finished reading "
+                  << whatToRead << "."
                   << std::endl;
     }
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
     std::cout << "Unloaded SimIN" << std::endl;
 
     winNames.push_back(winName);
-    //rocfoam_load_module(winName.c_str(), solverType);
+
     COM_LOAD_MODULE_STATIC_DYNAMIC(rocfoam, winName.c_str());
     comGetFunctionHandles(winName.c_str());
 
@@ -392,9 +479,6 @@ int comDrvRestart(int argc, char *argv[])
     comFoam::copyWindow((winNameOld+"SURF").c_str(),
                         (winName+"SURF").c_str());
     
-    //rocfoam_unload_module(winNameOld.c_str(), solverType);
-    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, winNameOld.c_str());
-
     int myArgc = 1;
     char *myArgv[2];
     myArgv[0] = argv[0];
@@ -429,41 +513,49 @@ int comDrvRestart_Rocstar()
     std::cout << "Reading data window with the base name "
               << winNameOld << std::endl;
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
-    int IN_read = COM_get_function_handle("IN.read_window");
+    //int IN_read = COM_get_function_handle("IN.read_window");
+    int IN_read = COM_get_function_handle("IN.read_by_control_file");
     for (int count=0; count<2; count++)
     {
-        std::string strTmpExist;
         std::string strTmp;
         if (count == 0 )
         {
-            strTmpExist = "VOL";
             strTmp = "VOL";
         }
         else if (count == 1 )
         {
-            strTmpExist = "SURF";
             strTmp = "SURF";
         }
         
+        std::string targetName;
+        if (count == 0 )
+        {
+            targetName = "fluid_in_00.000000.txt";
+        }
+        else if (count == 1 )
+        {
+            targetName = "ifluid_in_00.000000.txt";
+        }
         
-        std::string pathTmp = std::string("./")
-                            + winName+"/"
-                            + winName+strTmpExist+std::string("_");
-        std::string whatToRead = pathTmp+"*";
-
         std::string lookUpWindow = winNameOld+strTmp;
-        std::cout << "  Reading file " << pathTmp << std::endl;
-        std::cout << "  Reading path " << lookUpWindow << std::endl;
+        std::string path = std::string("./")
+                          + winName+"/";
+
+        std::string fullPath = path+targetName;
+        std::cout << "Reading file " << fullPath << std::endl;
+
+        std::string whatToRead = fullPath;
 
         COM_call_function
         (
             IN_read,
             whatToRead.c_str(),
-            lookUpWindow.c_str()
+            lookUpWindow.c_str(),
+            &newComm
         );
 
         std::cout << "Finished reading "
-                  << pathTmp << " window."
+                  << whatToRead << " window."
                   << std::endl;
     }
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
@@ -480,7 +572,6 @@ int comDrvRestart_Rocstar()
     std::string volName = winNameOld+"VOL";
     std::string surfName = winNameOld+"SURF";
 
-
     COM_call_function
     (
         initializeHandle[0],
@@ -495,8 +586,6 @@ int comDrvRestart_Rocstar()
     COM_delete_window(volName);
     COM_delete_window(surfName);
     
-    //COM_UNLOAD_MODULE_STATIC_DYNAMIC(rocfoam, winNameOld.c_str());
-
     return 0;
 }
 
@@ -781,7 +870,7 @@ int comDrvStep_Rocstar(const char* name)
 
     while (*fluidRun)
     {
-        double currentTime = *fluidRun;
+        double currentTime = *fluidTime;
         double timeStep{1}; //*fluidDeltaT;
         int bcHandle{-1};
         int gmHandle{-1};

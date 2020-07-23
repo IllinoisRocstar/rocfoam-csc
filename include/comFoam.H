@@ -20,7 +20,10 @@ private:
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
     const std::string movingWallName = "blade";
-    
+
+    size_t maxNameLength{0};
+    size_t maxTypeLength{0};
+
 protected:
     const int nComponents{3};
     const int genCharSize{20};
@@ -194,17 +197,19 @@ private:
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
 
-    std::string* patchNameStr{nullptr}; //single value for the last
-    std::string* patchTypeStr{nullptr}; //single value for the last
+    std::string* patchNameStr{nullptr};
+    std::string* patchTypeStr{nullptr};
 
-    char** ca_patchName{nullptr}; //single value for the last
-    char** ca_patchType{nullptr}; //single value for the last
+    char* ca_patchName{nullptr};
+    char* ca_patchType{nullptr};
     wordList** ca_patchInGroup{nullptr}; //single value for the last
-    int**      ca_patchStart{nullptr}; //single value for the last
-    int**      ca_patchSize{nullptr}; //single value for the last
+
+
+    int* ca_patchStart{nullptr};
+    int* ca_patchSize{nullptr};
 
     // PointToPoint Mapping
-    int** ca_patchPointToPointMap_size{nullptr}; //single value for the last
+    int* ca_patchPointToPointMap_size{nullptr};
     int** ca_patchPointToPointMap{nullptr};
 
     // FaceToFace Mapping
@@ -316,31 +321,37 @@ public:
     static void copyWindow(const string& name1, const string& name2);
     int findGlobalIndex(int* arr, const int& size,  const int& elem);
     static std::string removeTrailZero(std::string in);
+    static void compareWarningExit(
+                    const int& val1,
+                    const int& val2,
+                    const string& name1,
+                    const string& name2);
 
-    size_t findLoc
+    size_t findChar
     (
         const std::string& fullAddr,
         const std::string& content,
         const std::string& exp,
-        size_t start = 0
+        size_t start = 0,
+        size_t end = std::string::npos
     );
 
-    size_t findLoc
+    size_t findWord
     (
         const std::string& fullAddr,
         const std::string& content,
         const std::string& exp,
-        size_t start,
-        size_t end
+        size_t start = 0,
+        size_t end = std::string::npos
     );
 
-    size_t findOnlyLoc
+    size_t findWordOnly
     (
         const std::string& fullAddr,
         const std::string& content,
         const std::string& exp,
-        size_t start=0,
-        size_t end=std::string::npos
+        size_t start = 0,
+        size_t end = std::string::npos
     );
 
 };

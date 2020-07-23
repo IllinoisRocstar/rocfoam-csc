@@ -183,7 +183,7 @@ int comFoam::registerFaceData(const char *name)
                << endl;
 
     // Use this paneID for face connectivity
-    int paneID = Pstream::myProcNo()+1; // + Pstream::nProcs();
+    int paneID = Pstream::myProcNo()+1;
     Info << "procID = " << Pstream::myProcNo()
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
@@ -301,7 +301,7 @@ int comFoam::reconstFaceData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     std::cout << "rocFoam.reconstFaceData, procID = "
-              << Pstream::myProcNo()
+              << ca_myRank
               << ", Retreiving surface data form window "
               << volName << "."
               << std::endl;
@@ -340,10 +340,10 @@ int comFoam::reconstFaceData(const char *name)
               << std::endl << std::endl;
 
     //  List of panes in this window ^^^^^^^^^^^^
-    int paneID = Pstream::myProcNo()+1; //+ Pstream::nProcs();
+    int paneID = ca_myRank+1;
     // Use this paneID for face connectivity
 
-    std::cout << "  procID = " << Pstream::myProcNo()
+    std::cout << "  procID = " << ca_myRank
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
 

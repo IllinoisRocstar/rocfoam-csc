@@ -6,7 +6,7 @@ int comFoam::readFilesData(const std::string& rootAddr)
     int myRank = 0;
     if (Pstream::parRun())
     {
-        myRank = Pstream::myProcNo();
+        myRank = ca_myRank;
         locaParAddr = "processor"+std::to_string(myRank);
         //fullAddr = rootAddr+locaParAddr;
     }
@@ -177,33 +177,6 @@ int comFoam::createFieldFiles
                         "[1 -2 -1 0 0 0 0]"
                       );
         }
-/*
-        else if (ifile==*ca_nFiles+3)
-        {
-            fileName = "pointDisplacement";
-            localDir = locaParAddr+"0";
-            content = createBaseFile
-                      (
-                        "pointDisplacement",
-                        "point",
-                        "Vector",
-                        "[0 1 0 0 0 0 0]"
-                      );
-        }
-        else if (ifile==*ca_nFiles+4)
-        {
-            fileName = "pointDisplacementNew";
-            localDir = locaParAddr+"0";
-            content = createBaseFile
-                      (
-                        "pointDisplacementNew",
-                        "point",
-                        "Vector",
-                        "[0 1 0 0 0 0 0]"
-                      );
-        }
-*/
-
 
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
@@ -212,11 +185,11 @@ int comFoam::createFieldFiles
         if (localDir==locaParAddr+"0")
         {
             std::string locationStr = "location";
-            size_t locationStart = findLoc(fullAddr, content, locationStr);
+            size_t locationStart = findWord(fullAddr, content, locationStr);
             if (locationStart != std::string::npos)
             {
                 std::string scStr = ";";
-                size_t locationEnd = findLoc(fullAddr, content, scStr, locationStart);
+                size_t locationEnd = findChar(fullAddr, content, scStr, locationStart);
                 size_t length = locationEnd-locationStart;
                 content.erase(locationStart, length);
                 std::string newStr  = "location    \"";
@@ -242,8 +215,8 @@ int comFoam::createFieldFiles
                 // Modify the internalField
                 std::string intFieldStr = "internalField";
                 std::string scStr = ";";
-                size_t intFieldStart= findOnlyLoc(fullAddr, content, intFieldStr);
-                size_t intFieldEnd  = findLoc(fullAddr, content, scStr, intFieldStart);
+                size_t intFieldStart= findWordOnly(fullAddr, content, intFieldStr);
+                size_t intFieldEnd  = findChar(fullAddr, content, scStr, intFieldStart);
                 size_t length = intFieldEnd-intFieldStart;
                 content.erase(intFieldStart, length);
                 
@@ -346,7 +319,7 @@ int comFoam::createFieldFiles
                 else if (fileName == "phi")
                 {
                     newStr += "<scalar>\n";
-                    int nfaces = *ca_patchStart[0];
+                    int nfaces = ca_patchStart[0];
                     newStr += std::to_string(nfaces);
                     newStr += "\n(\n";
 
@@ -368,7 +341,7 @@ int comFoam::createFieldFiles
                 else if (fileName == "rhoUf")
                 {
                     newStr += "<vector>\n";
-                    int nfaces = *ca_patchStart[0];
+                    int nfaces = ca_patchStart[0];
                     newStr += std::to_string(nfaces);
                     newStr += "\n(\n";
 
@@ -544,24 +517,24 @@ int comFoam::createFieldFiles
                     fileName == "pointDisplacementNew"
                    )
                 {
-                    int nfaces = *ca_patchSize[ipatch];
+                    int nfaces = ca_patchSize[ipatch];
                     if (nfaces<=0)
                     {
                         continue;
                     }
                     
                     std::string patchName = patchNameStr[ipatch];
-                    size_t patchStart = findOnlyLoc(fullAddr, content, patchName);
+                    size_t patchStart = findWordOnly(fullAddr, content, patchName);
                     
                     std::string brckOpen = "{";
                     std::string brckClose = "}";
-                    size_t brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
-                    size_t brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
+                    size_t brckStart = findChar(fullAddr, content, brckOpen, patchStart);
+                    size_t brckEnd   = findChar(fullAddr, content, brckClose, brckStart);
                     
                     std::string typeStr = "type";
                     std::string scStr = ";";
-                    size_t typeStart = findOnlyLoc(fullAddr, content, typeStr, brckStart, brckEnd);
-                    size_t typeEnd   = findLoc(fullAddr, content, scStr, typeStart);
+                    size_t typeStart = findWordOnly(fullAddr, content, typeStr, brckStart, brckEnd);
+                    size_t typeEnd   = findChar(fullAddr, content, scStr, typeStart);
 
                     size_t length = typeEnd-typeStart;
                     std::string subType = content.substr(typeStart, length);
@@ -583,13 +556,36 @@ int comFoam::createFieldFiles
                     
                     std::string valueStr = "value";
                     scStr = ";";
-                    size_t valueStart = findOnlyLoc(fullAddr, content, valueStr, brckStart, brckEnd);
-                    size_t valueEnd   = findLoc(fullAddr, content, scStr, valueStart);
+                    
+                    size_t valueStart = 0;
+                    if (fileName == "pointDisplacement" ||
+                        fileName == "pointDisplacementNew")
+                    {
+                        valueStart = findWord(fullAddr,
+                                             content,
+                                             valueStr,
+                                             brckStart,
+                                             brckEnd);
+
+                        if (valueStart<=brckStart || brckEnd>=valueStart)
+                            continue;
+                    }
+                    else
+                    {
+                        valueStart = findWordOnly(fullAddr,
+                                                 content,
+                                                 valueStr,
+                                                 brckStart,
+                                                 brckEnd);
+                    }
+                    
+                    size_t valueEnd   = findChar(fullAddr, content, scStr, valueStart);
 
                     length = valueEnd-valueStart;
                     content.erase(valueStart, length);
 
                     std::string newStr = "value           nonuniform List";
+
                     if (fileName == "U")
                     {
                         newStr += "<vector>\n";
@@ -619,7 +615,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "p")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -638,7 +634,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "T")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -657,7 +653,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "rho")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -676,7 +672,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "phi")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -722,7 +718,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "alphat")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -741,7 +737,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "epsilon")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -760,7 +756,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "k")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -779,7 +775,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "nut")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = *ca_patchSize[ipatch];
+                        int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -800,7 +796,7 @@ int comFoam::createFieldFiles
                     {
                         newStr += "<vector>\n";
                         
-                        int npoints = *ca_patchPointToPointMap_size[ipatch];
+                        int npoints = ca_patchPointToPointMap_size[ipatch];
                         newStr += std::to_string(npoints);
                         newStr += "\n(\n";
 
@@ -1018,11 +1014,11 @@ int comFoam::createPointsFile(const std::string& rootAddr)
         fullAddr = fullDir+"/points";
 
         std::string locationStr = "location";
-        size_t locationStart = findLoc(fullAddr, content, locationStr);
+        size_t locationStart = findWord(fullAddr, content, locationStr);
         if (locationStart != std::string::npos)
         {
             std::string scStr = ";";
-            size_t locationEnd = findLoc(fullAddr, content, scStr, locationStart);
+            size_t locationEnd = findChar(fullAddr, content, scStr, locationStart);
             size_t length = locationEnd-locationStart;
             content.erase(locationStart, length);
 
@@ -1083,7 +1079,7 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
     content += " nFaces: ";
     content += std::to_string(*ca_nFaces);
     content += " nInternalFaces: ";
-    content += std::to_string(*ca_patchStart[0]);
+    content += std::to_string(ca_patchStart[0]);
     content += "\";\n";
     content += "    location    \""+localDir+"\";\n";
     content += "    object      owner;\n}\n";
@@ -1154,14 +1150,14 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
     content += " nFaces: ";
     content += std::to_string(*ca_nFaces);
     content += " nInternalFaces: ";
-    content += std::to_string(*ca_patchStart[0]);
+    content += std::to_string(ca_patchStart[0]);
     content += "\";\n";
     content += "    location    \""+localDir+"\";\n";
     content += "    object      neighbour;\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
 
     content += "\n\n";
-    int nfaces = *ca_patchStart[0];
+    int nfaces = ca_patchStart[0];
     content += std::to_string(nfaces);
     content += "\n(\n";
 
@@ -1324,9 +1320,9 @@ int comFoam::createBoundaryFile
                 int startTmp = 0;
                 while (!found)
                 {
-                    patchStart = findOnlyLoc(fullAddr, content, patchName, startTmp);
-                    brckStart = findLoc(fullAddr, content, brckOpen, patchStart);
-                    brckEnd   = findLoc(fullAddr, content, brckClose, brckStart);
+                    patchStart = findWordOnly(fullAddr, content, patchName, startTmp);
+                    brckStart = findChar(fullAddr, content, brckOpen, patchStart);
+                    brckEnd   = findChar(fullAddr, content, brckClose, brckStart);
 
                     if (patchStart != std::string::npos)
                     {
@@ -1353,8 +1349,8 @@ int comFoam::createBoundaryFile
                 // Update nFaces of each patch in boundary file
                 std::string itemStr = "nFaces";
                 std::string scStr = ";";
-                size_t itemStart = findOnlyLoc(fullAddr, content, itemStr, brckStart, brckEnd);
-                size_t itemEnd = findLoc(fullAddr, content, scStr, itemStart);
+                size_t itemStart = findWordOnly(fullAddr, content, itemStr, brckStart, brckEnd);
+                size_t itemEnd = findChar(fullAddr, content, scStr, itemStart);
 
                 if(itemStart == std::string::npos ||
                    !(brckStart<=itemStart && itemStart<=brckEnd) ||
@@ -1375,14 +1371,14 @@ int comFoam::createBoundaryFile
                 {
                 }
                 int tmpInt = std::stoi(tmpStr);
-                if (tmpInt != *ca_patchSize[ipatch])
+                if (tmpInt != ca_patchSize[ipatch])
                 {
                     length = itemEnd-itemStart;
                     content.erase(itemStart, length);
 
                     tmpStr.clear();
                     tmpStr  = "nFaces          ";
-                    tmpStr += std::to_string(*ca_patchSize[ipatch]);
+                    tmpStr += std::to_string(ca_patchSize[ipatch]);
                
                     content.insert(itemStart, tmpStr);
                 }
@@ -1390,8 +1386,8 @@ int comFoam::createBoundaryFile
                 // Update startFace of each patch in boundary file
                 itemStr = "startFace";
                 scStr = ";";
-                itemStart = findOnlyLoc(fullAddr, content, itemStr, brckStart, brckEnd);
-                itemEnd = findLoc(fullAddr, content, scStr, itemStart);
+                itemStart = findWordOnly(fullAddr, content, itemStr, brckStart, brckEnd);
+                itemEnd = findChar(fullAddr, content, scStr, itemStart);
 
                 if(itemStart == std::string::npos ||
                    !(brckStart<=itemStart && itemStart<=brckEnd) ||
@@ -1416,14 +1412,14 @@ int comFoam::createBoundaryFile
                 }
                 tmpInt = std::stoi(tmpStr);
 
-                if (tmpInt != *ca_patchStart[ipatch])
+                if (tmpInt != ca_patchStart[ipatch])
                 {
                     length = itemEnd-itemStart;
                     content.erase(itemStart, length);
 
                     tmpStr.clear();
                     tmpStr  = "startFace       ";
-                    tmpStr += std::to_string(*ca_patchStart[ipatch]);
+                    tmpStr += std::to_string(ca_patchStart[ipatch]);
                
                     content.insert(itemStart, tmpStr);
                 }
@@ -1545,7 +1541,7 @@ std::string comFoam::createBaseFile
     {
         std::string patchName = patchNameStr[ipatch];
         std::string patchType = patchTypeStr[ipatch];
-        int nFaces = *ca_patchSize[ipatch];
+        int nFaces = ca_patchSize[ipatch];
         
         content += "    "+patchName+"\n";
         content += "    {\n";
@@ -1624,11 +1620,11 @@ int comFoam::registerFilesData(const char *name)
                << volName
                << std::endl;
 
-    int paneID = Pstream::myProcNo()+1;// Use this paneID for file data
+    int paneID = ca_myRank+1;// Use this paneID for file data
 
-    Info << "procID = " << Pstream::myProcNo()
-         << ", paneID = " << paneID
-         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+    std::cout << "procID = " << ca_myRank
+              << ", paneID = " << paneID
+              << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
 
 
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1688,7 +1684,7 @@ int comFoam::registerFilesData(const char *name)
 
     for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "  procID = " << Pstream::myProcNo()
+        std::cout << "  procID = " << ca_myRank
                   << ", " << ca_filePath[ifile]
                   << "/" << ca_fileName[ifile]
                   << " registered." << std::endl;
@@ -1706,12 +1702,12 @@ int comFoam::reconstFilesData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     std::cout << "rocFoam.reconstructInitFiles, proID = "
-              << Pstream::myProcNo()
+              << ca_myRank
               << ", Retreiving file data form window "
               << volName << "."
               << std::endl;
 
-    int paneID = Pstream::myProcNo()+1;// Use this paneID for files
+    int paneID = ca_myRank+1;// Use this paneID for files
 
     std::string regNames;
     int numDataItems=0;
@@ -1731,7 +1727,6 @@ int comFoam::reconstFilesData(const char *name)
         if (subName == "file" || subName == "nFil")
         {
             dataItemNames.push_back(nameTmp);
-            //Info << "  DataItem[" << i << "] = " << nameTmp << endl;
         }
     }
     std::cout << "  Number of items = " << dataItemNames.size()
@@ -2055,7 +2050,6 @@ int comFoam::deleteFilesData()
     return 0;
 }
 
-
 int comFoam::findGlobalIndex(int* arr, const int& size,  const int& elem)
 {
     int index = -1;
@@ -2070,45 +2064,27 @@ int comFoam::findGlobalIndex(int* arr, const int& size,  const int& elem)
         std::cout << "========== WARNING ===============" << std::endl
                   << "Element is not found." << std::endl;
     }
-    
     return index;
 }
 
-size_t comFoam::findLoc
+
+
+size_t comFoam::findChar
 (
     const std::string& fullAddr,
     const std::string& content,
     const std::string& exp,
-    size_t start
+    size_t startPos,
+    size_t endPos
 )
 {
-    size_t expStart = content.find(exp, start);
-    if (expStart==std::string::npos)
-    {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file"
-                  << fullAddr << std::endl;
-    }
-
-    return expStart;
-}
-
-size_t comFoam::findLoc
-(
-    const std::string& fullAddr,
-    const std::string& content,
-    const std::string& exp,
-    size_t start,
-    size_t end
-)
-{
-    size_t expStart = content.find(exp, start);
-    if (expStart==std::string::npos || expStart>end)
+    size_t expStart = content.find(exp, startPos);
+    if (expStart==std::string::npos || expStart>endPos)
     {
         std::cout << "Warning: Cannot find \""
                   << exp+"\" keyword"
-                  << " in the range "+std::to_string(start)
-                  << " and "+std::to_string(end)
+                  << " in the range "+std::to_string(startPos)
+                  << " and "+std::to_string(endPos)
                   << " in file "
                   << fullAddr << std::endl;
     }
@@ -2117,7 +2093,69 @@ size_t comFoam::findLoc
 }
 
 
-size_t comFoam::findOnlyLoc
+
+size_t comFoam::findWord
+(
+    const std::string& fullAddr,
+    const std::string& content,
+    const std::string& exp,
+    size_t startPos,
+    size_t endPos
+)
+{
+    size_t firstLoc=0;
+    int count=0;
+    size_t expStart=0;
+
+    while (expStart!=std::string::npos && expStart<endPos)
+    {
+        expStart = min( content.find(exp, startPos), endPos);
+
+        if (expStart != std::string::npos)
+        {
+            size_t startTmp  = std::max(static_cast<size_t>(0),
+                                        expStart-exp.length());
+            size_t endTmp    = std::min(expStart+2*exp.length(),
+                                        std::string::npos);
+            size_t lengthTmp = endTmp-startTmp+1;
+
+            std::stringstream iStr(content.substr(startTmp, lengthTmp));
+            std::string lookUp;
+
+            while(iStr >> lookUp)
+            {
+                if (lookUp == exp)
+                {
+                    count++;
+                    if (count == 1) firstLoc = expStart;
+                    break;
+                }
+            }
+        }
+        startPos = expStart+exp.length();
+        if (count == 1) break;
+    }
+
+    if (count == 0)
+    {
+        std::cout << "Warning: Cannot find \""
+                  << exp+"\" keyword in file "
+                 << fullAddr << std::endl;
+         //exit(-1);
+    }
+    else if (count > 1)
+    {
+        std::cout << "Warning: Found more than one \""
+                  << exp+"\" keyword in file "
+                    << fullAddr << std::endl;
+        //exit(-1);
+    }
+
+    return firstLoc;
+}
+
+
+size_t comFoam::findWordOnly
 (
     const std::string& fullAddr,
     const std::string& content,
@@ -2161,14 +2199,14 @@ size_t comFoam::findOnlyLoc
     if (count == 0)
     {
         std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file"
+                  << exp+"\" keyword in file "
                  << fullAddr << std::endl;
          exit(-1);
     }
     else if (count > 1)
     {
         std::cout << "Warning: Found more than one \""
-                  << exp+"\" keyword in file"
+                  << exp+"\" keyword in file "
                     << fullAddr << std::endl;
         exit(-1);
     }

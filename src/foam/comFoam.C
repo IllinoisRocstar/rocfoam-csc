@@ -37,148 +37,12 @@ int comFoam::updateCSCdata()
 
 int comFoam::registerCSCdata(const char *name)
 {
+
     registerStatusData(name);
     registerFilesData(name);
     registerVolumeData(name);
     registerFaceData(name);
     registerSurfaceData(name);
-
-    if (false)
-    {
-        for (int count=0; count<3; count++)
-        {
-            std::string volName;
-            if (count == 0)
-            {
-                volName = name;
-            }
-            else if (count ==1)
-            {
-                volName = name+std::string("VOL");
-            }
-            else if (count ==2)
-            {
-                volName = name+std::string("SURF");
-            }
-
-            std::string regNames;
-            int numDataItems=0;
-            COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-            //std::cout << "  numDataItems = " << numDataItems << std::endl;
-
-            std::vector<std::string> dataItemNames;
-            dataItemNames.clear();
-            std::istringstream Istr(regNames);
-            for (int i=0; i<numDataItems; ++i)
-            {
-                std::string nameTmp;
-                Istr >> nameTmp;
-                dataItemNames.push_back(nameTmp);
-            }
-
-            dataItemNames.push_back("nc");
-            numDataItems++;
-
-
-            int nPanes;
-            int* paneList;
-            COM_get_panes(volName.c_str(), &nPanes, &paneList);
-            std::cout << "  Number of Panes = " << nPanes << std::endl;
-
-            for (int ipane=0; ipane<=nPanes; ipane++)
-            {
-                int paneID;
-                if ( ipane == 0 )
-                {
-                    paneID = 0;
-                }
-                else
-                {
-                    paneID = paneList[ipane-1];
-                }
-                
-                std::cout << "WindoName = " << volName
-                          << ", Pane[" << ipane << "], paneID = " << paneID
-                          << " ^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-
-                for (int i=0; i<numDataItems; i++)
-                {
-                
-                    std::string nameTmp = dataItemNames[i];
-
-                    char loc[50];
-                    COM_Type type;
-                    int ncomp;
-                    std::string unit;
-                    int size{0};
-
-
-                    std::string regName = volName+std::string(".")+nameTmp;
-                    if (ipane == 0)
-                    {
-                        COM_get_dataitem(regName.c_str(), loc, &type, &ncomp, &unit);
-                    }
-                    else
-                    {
-                        COM_get_dataitem(regName.c_str(), loc, &type, &ncomp, &unit);
-                    }
-
-                    if 
-                    (
-                        (*loc == 'w' && ipane == 0) ||
-                        (*loc == 'p' && ipane != 0)
-                    )
-                    {
-                        COM_get_size(regName.c_str(), paneID, &size);
-                        if (size>0)
-                        {
-                            std::cout << "  DataItem[" << i << "] = " << nameTmp
-                                      << ", loc = " << *loc
-                                      << ", type = " << type
-                                      << ", paneID = " << paneID
-                                      << ", size = " << size
-                                      << ", ncomp = " << ncomp
-                                      << ", unit = " << unit
-                                      << std::endl;
-                        }
-                    }
-                }
-                
-                if (ipane != 0)
-                {
-                    std::string  dataName = std::string("nc");
-                    std::string regName = volName+std::string(".")+dataName;
-                    int nPoints;
-                    int nComp;
-                    COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
-                    COM_get_size(regName.c_str(), paneID, &nPoints);
-                    std::cout << "  " << dataName.c_str() << " nPoints = " << nPoints
-                              << ", components = " << nComp << std::endl;                
-
-                    int nConn;
-                    int numElem;
-                    std::string connNames;
-                    COM_get_connectivities(volName.c_str(), paneID, &nConn, connNames);
-                    std::istringstream connISS(connNames);
-                    for (int icon=0; icon<nConn; ++icon)
-                    {
-                        std::string connName;
-                        connISS >> connName;
-                        //connNames.push_back(connName);
-
-                        dataName = volName+std::string(".")+connName;
-                        //nameExists(dataItemNames, dataName);
-                        COM_get_array(dataName.c_str(), paneID, &ca_cellToPointConn[icon], &nComp);
-                        COM_get_size(dataName.c_str(), paneID, &numElem);
-
-                        std::cout << "    Connectivity[" << icon << "] = " << connName
-                                  << ", elements = " << numElem
-                                  << ", components =" << nComp << std::endl;
-                    }
-                }
-            }
-        }
-    }
 
     return 0;
 }
@@ -209,6 +73,7 @@ int comFoam::reconstCSCdata(const char *name)
         reconstSurfaceData(name);
         reconstFilesData(name);
     }
+    MPI_Barrier(winComm);
 
     return 0;
 }
@@ -460,10 +325,10 @@ void comFoam::initialize
         argv = nullptr;
     }
 
-    if (*manInitHandle > 0)
-        COM_call_function(*manInitHandle,
-                          newSurfName.c_str(),
-                          newVolName.c_str());
+    //if (*manInitHandle > 0)
+    //    COM_call_function(*manInitHandle,
+    //                      newSurfName.c_str(),
+    //                      newVolName.c_str());
 }
 
 void comFoam::update_solution
@@ -474,7 +339,6 @@ void comFoam::update_solution
     int* gmHandle
 )
 {
-
     Info << "rocFoam.flowStepRocStar: Stepping flow solver."
          << endl;
          
@@ -491,8 +355,12 @@ void comFoam::update_solution
              << " are not the same " << *ca_time 
              << " vs " << *currentTime << endl;
 
-    double alpha{1};
-    COM_call_function(*gmHandle, &alpha);
+    if (*gmHandle>=0)
+    {
+        double alpha{1};
+        COM_call_function(*gmHandle, &alpha);
+    }
+        
     updateSurfaceData_incoming();
     step(timeStep);
     updateCSCdata();

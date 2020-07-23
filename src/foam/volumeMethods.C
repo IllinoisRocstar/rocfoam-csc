@@ -425,8 +425,8 @@ int comFoam::reconstVolumeData(const char *name)
     std::string volName = name+std::string("VOL");
 
     std::cout << "rocFoam.reconstCaVolumeData, procID = "
-              << Pstream::myProcNo()
-              << ", Retreiving surface data form window "
+              << ca_myRank
+              << ", Retreiving volume data form window "
               << volName << "."
               << std::endl;
 
@@ -470,8 +470,8 @@ int comFoam::reconstVolumeData(const char *name)
               << std::endl << std::endl;
 
     // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
-    std::cout << "  procID = " << Pstream::myProcNo()
+    int paneID = ca_myRank+1;// Use this paneID for volume connectivity
+    std::cout << "  procID = " << ca_myRank
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
 
