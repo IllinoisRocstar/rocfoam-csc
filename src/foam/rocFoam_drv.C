@@ -415,6 +415,8 @@ int comDrvRestart(int argc, char *argv[])
     int IN_read = COM_get_function_handle("IN.read_by_control_file");
     for (int count=0; count<2; count++)
     {
+        MPI_Barrier(newComm);
+
         std::string strTmp;
         if (count == 0 )
         {
@@ -449,7 +451,7 @@ int comDrvRestart(int argc, char *argv[])
         std::string whatToRead = fullPath; //+ "*";
 
         std::cout << "Proc " << myRank << ": "
-                  << "Beging reading "
+                  << "Begin reading "
                   << whatToRead << "."
                   << std::endl;
 

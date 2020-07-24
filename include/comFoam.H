@@ -21,9 +21,6 @@ private:
     const std::string tmpFluidDir{"./fluidTmp"};
     const std::string movingWallName = "blade";
 
-    size_t maxNameLength{0};
-    size_t maxTypeLength{0};
-
 protected:
     const int nComponents{3};
     const int genCharSize{20};
@@ -196,6 +193,10 @@ private:
 
     // COM Patch Arrays^^^^^^^^^^^^^^^^^^^^^^^^^^
     // General data
+    int* ca_maxNameLength{nullptr};
+    int* ca_maxTypeLength{nullptr};
+
+
 
     std::string* patchNameStr{nullptr};
     std::string* patchTypeStr{nullptr};
@@ -209,7 +210,7 @@ private:
     int* ca_patchSize{nullptr};
 
     // PointToPoint Mapping
-    int* ca_patchPointToPointMap_size{nullptr};
+    int** ca_patchPointToPointMap_size{nullptr}; //single value for the last
     int** ca_patchPointToPointMap{nullptr};
 
     // FaceToFace Mapping
@@ -254,7 +255,6 @@ private:
     char** ca_fileName{nullptr};
     char** ca_filePath{nullptr};
     char** ca_fileContent{nullptr};
-
     //-------------------------------------------
 
     // Status data

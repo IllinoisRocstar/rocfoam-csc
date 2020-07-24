@@ -319,7 +319,15 @@ int comFoam::createFieldFiles
                 else if (fileName == "phi")
                 {
                     newStr += "<scalar>\n";
-                    int nfaces = ca_patchStart[0];
+
+                    int procStartIndex{0};
+                    for (int iproc=0; iproc<ca_myRank; iproc++)
+                    {
+                        procStartIndex += ca_nPatches[iproc];
+                    }
+                    int index  = procStartIndex + 0; //ipatch;
+                    int nfaces = ca_patchStart[index];
+
                     newStr += std::to_string(nfaces);
                     newStr += "\n(\n";
 
@@ -341,7 +349,16 @@ int comFoam::createFieldFiles
                 else if (fileName == "rhoUf")
                 {
                     newStr += "<vector>\n";
-                    int nfaces = ca_patchStart[0];
+
+                    int procStartIndex{0};
+                    for (int iproc=0; iproc<ca_myRank; iproc++)
+                    {
+                        procStartIndex += ca_nPatches[iproc];
+                    }
+                    int index  = procStartIndex + 0; //ipatch;
+                    int nfaces = ca_patchStart[index];
+
+
                     newStr += std::to_string(nfaces);
                     newStr += "\n(\n";
 
@@ -517,7 +534,14 @@ int comFoam::createFieldFiles
                     fileName == "pointDisplacementNew"
                    )
                 {
-                    int nfaces = ca_patchSize[ipatch];
+                    int procStartIndex{0};
+                    for (int iproc=0; iproc<ca_myRank; iproc++)
+                    {
+                        procStartIndex += ca_nPatches[iproc];
+                    }
+                    int index  = procStartIndex + ipatch;
+                    int nfaces = ca_patchSize[index];
+
                     if (nfaces<=0)
                     {
                         continue;
@@ -615,7 +639,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "p")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -634,7 +658,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "T")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -653,7 +677,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "rho")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -672,7 +696,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "phi")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -718,7 +742,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "alphat")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -737,7 +761,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "epsilon")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -756,7 +780,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "k")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -775,7 +799,7 @@ int comFoam::createFieldFiles
                     else if (fileName == "nut")
                     {
                         newStr += "<scalar>\n";
-                        int nfaces = ca_patchSize[ipatch];
+                        //int nfaces = ca_patchSize[ipatch];
                         newStr += std::to_string(nfaces);
                         newStr += "\n(\n";
 
@@ -796,7 +820,7 @@ int comFoam::createFieldFiles
                     {
                         newStr += "<vector>\n";
                         
-                        int npoints = ca_patchPointToPointMap_size[ipatch];
+                        int npoints = *ca_patchPointToPointMap_size[ipatch];
                         newStr += std::to_string(npoints);
                         newStr += "\n(\n";
 
@@ -1079,7 +1103,16 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
     content += " nFaces: ";
     content += std::to_string(*ca_nFaces);
     content += " nInternalFaces: ";
-    content += std::to_string(ca_patchStart[0]);
+
+    int procStartIndex{0};
+    for (int iproc=0; iproc<ca_myRank; iproc++)
+    {
+        procStartIndex += ca_nPatches[iproc];
+    }
+    int index  = procStartIndex + 0; //ipatch;
+    int nfacesInternal = ca_patchStart[index];
+
+    content += std::to_string(nfacesInternal);
     content += "\";\n";
     content += "    location    \""+localDir+"\";\n";
     content += "    object      owner;\n}\n";
@@ -1150,18 +1183,26 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
     content += " nFaces: ";
     content += std::to_string(*ca_nFaces);
     content += " nInternalFaces: ";
-    content += std::to_string(ca_patchStart[0]);
+
+    int procStartIndex{0};
+    for (int iproc=0; iproc<ca_myRank; iproc++)
+    {
+        procStartIndex += ca_nPatches[iproc];
+    }
+    int index  = procStartIndex + 0; //ipatch;
+    int nfacesInternal = ca_patchStart[index];
+
+    content += std::to_string(nfacesInternal);
     content += "\";\n";
     content += "    location    \""+localDir+"\";\n";
     content += "    object      neighbour;\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
 
     content += "\n\n";
-    int nfaces = ca_patchStart[0];
-    content += std::to_string(nfaces);
+    content += std::to_string(nfacesInternal);
     content += "\n(\n";
 
-    for(int iface=0; iface<nfaces; iface++)
+    for(int iface=0; iface<nfacesInternal; iface++)
     {
         int faceIndex = ca_faceToFaceMap_inverse[iface];
 
@@ -1371,14 +1412,22 @@ int comFoam::createBoundaryFile
                 {
                 }
                 int tmpInt = std::stoi(tmpStr);
-                if (tmpInt != ca_patchSize[ipatch])
+
+                int procStartIndex{0};
+                for (int iproc=0; iproc<ca_myRank; iproc++)
+                {
+                    procStartIndex += ca_nPatches[iproc];
+                }
+                int index  = procStartIndex + ipatch;
+                int nfaces = ca_patchSize[index];
+                if (tmpInt != nfaces)
                 {
                     length = itemEnd-itemStart;
                     content.erase(itemStart, length);
 
                     tmpStr.clear();
                     tmpStr  = "nFaces          ";
-                    tmpStr += std::to_string(ca_patchSize[ipatch]);
+                    tmpStr += std::to_string(nfaces);
                
                     content.insert(itemStart, tmpStr);
                 }
@@ -1412,14 +1461,15 @@ int comFoam::createBoundaryFile
                 }
                 tmpInt = std::stoi(tmpStr);
 
-                if (tmpInt != ca_patchStart[ipatch])
+                int patchStart_ = ca_patchStart[index];
+                if (tmpInt != patchStart_)
                 {
                     length = itemEnd-itemStart;
                     content.erase(itemStart, length);
 
                     tmpStr.clear();
                     tmpStr  = "startFace       ";
-                    tmpStr += std::to_string(ca_patchStart[ipatch]);
+                    tmpStr += std::to_string(patchStart_);
                
                     content.insert(itemStart, tmpStr);
                 }
@@ -1541,7 +1591,14 @@ std::string comFoam::createBaseFile
     {
         std::string patchName = patchNameStr[ipatch];
         std::string patchType = patchTypeStr[ipatch];
-        int nFaces = ca_patchSize[ipatch];
+
+        int procStartIndex{0};
+        for (int iproc=0; iproc<ca_myRank; iproc++)
+        {
+            procStartIndex += ca_nPatches[iproc];
+        }
+        int index  = procStartIndex + ipatch;
+        int nfaces = ca_patchSize[index];
         
         content += "    "+patchName+"\n";
         content += "    {\n";
@@ -1569,7 +1626,7 @@ std::string comFoam::createBaseFile
                 content += "        type            calculated;\n";
             }
 
-            if (nFaces>0)
+            if (nfaces>0)
             {
                 if (type == "Scalar")
                 {
