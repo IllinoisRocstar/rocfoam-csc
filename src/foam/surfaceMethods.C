@@ -938,7 +938,7 @@ int comFoam::updateSurfaceData_incoming()
                     int localIndex = jcomp+ipoint*nComponents;
                     
                     pointDisplacementNew[globalPointID][jcomp]
-                        = ca_patchDisp[ipatch][localIndex];
+                        += ca_patchDisp[ipatch][localIndex];
                 }
             }
             break;
