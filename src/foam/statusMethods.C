@@ -19,11 +19,11 @@ int comFoam::createStatusData()
     if (ca_timeIndex == nullptr)
         ca_timeIndex = new int{0};
 
-    if (ca_movingMesh == nullptr)
-        ca_movingMesh = new int{0};
+    if (ca_isDynamicFvMesh == nullptr)
+        ca_isDynamicFvMesh = new int{0};
 
-    if (ca_dynamicFvMesh == nullptr)
-        ca_dynamicFvMesh = new char[genCharSize]{'0'};
+    if (ca_dynamicSolverType == nullptr)
+        ca_dynamicSolverType = new char[genCharSize]{' '};
 
     if (ca_timeName == nullptr)
         ca_timeName = new char[genCharSize]{'0'};
@@ -51,49 +51,57 @@ int comFoam::updateStatusData()
     if (ca_timeIndex != nullptr)
         *ca_timeIndex = runTime.timeIndex();
 
-    if (ca_movingMesh != nullptr)
-        *ca_movingMesh = mesh.moving();
+    if (ca_isDynamicFvMesh != nullptr)
+        ca_isDynamicFvMesh = new int(0);
 
-    if (ca_dynamicFvMesh != nullptr)
-    {
-        for (int i=0; i<genCharSize; i++)
-            ca_dynamicFvMesh[i] = ' ';
-            
-
-        IOdictionary dynamicMeshDict
-        (
-            IOobject
-            (
-                "dynamicMeshDict",
-                runTime.constant(),
-                mesh,
-                IOobject::READ_IF_PRESENT,
-                IOobject::NO_WRITE
-            )
-        );
-        //word dynamicFvMesh1_ = dynamicMeshDict.lookup("dynamicFvMesh");
-        
-        std::string dynamicFvMesh2_; // = dynamicFvMesh1_;
-        int length = dynamicFvMesh2_.length()+1;
-        if (length > genCharSize)
-        {
-            std::cout << "Warning:: genCharSize is not big enough,"
-                      << " genCharSize = " << genCharSize
-                      << " dynamicFvMesh2_.size = "
-                      << length
-                      << std::endl;
-        }
-        std::strcpy(ca_dynamicFvMesh, dynamicFvMesh2_.c_str());
-        //( std::string(ca_dynamicFvMesh) == "dynamicMotionSolverFvMesh")
-    }
+    if (ca_dynamicSolverType != nullptr)
+        ca_dynamicSolverType = new char[genCharSize]{' '};
     
+    dictionary meshDict(mesh.dynamicMeshDict());
+    if (meshDict.found("dynamicFvMesh"))
+    {
+       *ca_isDynamicFvMesh = 1;
+       
+        if (meshDict.found("solver"))
+        {
+            word solver = meshDict.lookup("solver");
+
+            //solver = "displacementLaplacian"
+            std::string solver_ = solver;
+
+
+            if (solver_.length() >= genCharSize)
+            {
+                std::cout << "Warning:: genCharSize is not big enough,"
+                          << " genCharSize = " << genCharSize
+                          << " solver_.length() = "
+                          << solver_.length()
+                          << std::endl;
+                exit(-1);
+            }
+
+            for (size_t i=0; i<solver_.length(); i++)
+            {
+                ca_dynamicSolverType[i] = solver_[i];
+            }
+            ca_dynamicSolverType[ solver_.length() ] = '\0';
+
+            for (size_t i=solver_.length()+1; i<genCharSize; i++)
+            {
+                ca_dynamicSolverType[i] = ' ';
+            }
+            //std::strcpy(ca_dynamicSolverType, solver_.c_str());
+        }
+    }
+
+   
     if (ca_timeName != nullptr)
     {
-        for (int i=0; i<genCharSize; i++)
+        for (size_t i=0; i<genCharSize; i++)
             ca_timeName[i] = ' ';
 
         std::string timeNameStr = runTime.timeName();
-        int length = timeNameStr.length()+1;
+        size_t length = timeNameStr.length()+1;
         if (length > genCharSize)
         {
             std::cout << "Warning:: genCharSize is not big enough,"
@@ -156,16 +164,16 @@ int comFoam::registerStatusData(const char *name)
     COM_set_array(    dataName, 0, ca_runStat);
     Info << dataName << " registered." << endl;
 
-    dataName = volName+std::string(".movingMesh");
+    dataName = volName+std::string(".isDynamicFvMesh");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
-    COM_set_array(    dataName, 0, ca_movingMesh);
+    COM_set_array(    dataName, 0, ca_isDynamicFvMesh);
     Info << dataName << " registered." << endl;
 
-    dataName = volName+std::string(".dynamicFvMesh");
+    dataName = volName+std::string(".dynamicSolverType");
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
-    COM_set_array(    dataName, 0, ca_dynamicFvMesh);
+    COM_set_array(    dataName, 0, ca_dynamicSolverType);
     Info << dataName << " registered." << endl;
 
     COM_window_init_done(volName);
@@ -251,18 +259,18 @@ int comFoam::reconstStatusData(const char *name)
     COM_get_array(regName.c_str(), 0, &ca_runStat);
     std::cout << "    " << dataName.c_str() << " = " << *ca_runStat << std::endl;
 
-    dataName = std::string("movingMesh");
+    dataName = std::string("isDynamicFvMesh");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_movingMesh);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_movingMesh << std::endl;
+    COM_get_array(regName.c_str(), 0, &ca_isDynamicFvMesh);
+    std::cout << "    " << dataName.c_str() << " = " << *ca_isDynamicFvMesh << std::endl;
 
-    dataName = std::string("dynamicFvMesh");
+    dataName = std::string("dynamicSolverType");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
-    COM_get_array(regName.c_str(), 0, &ca_dynamicFvMesh);
+    COM_get_array(regName.c_str(), 0, &ca_dynamicSolverType);
     COM_get_size(regName.c_str(), 0, &nComp);
-    std::cout << "    " << dataName.c_str() << " = " << ca_dynamicFvMesh << std::endl;
+    std::cout << "    " << dataName.c_str() << " = " << ca_dynamicSolverType << std::endl;
     //-------------------------------------------
 
     return 0;
@@ -296,21 +304,21 @@ int comFoam::deleteStatusData()
         delete ca_timeIndex;
         ca_timeIndex = nullptr;
     }
-    if (ca_movingMesh != nullptr)
+    if (ca_isDynamicFvMesh != nullptr)
     {
-        delete ca_movingMesh;
-        ca_movingMesh = nullptr;
+        delete ca_isDynamicFvMesh;
+        ca_isDynamicFvMesh = nullptr;
     }
 
-    if (ca_dynamicFvMesh != nullptr)
+    if (ca_dynamicSolverType != nullptr)
     {
-        delete ca_dynamicFvMesh;
-        ca_dynamicFvMesh = nullptr;
+        delete [] ca_dynamicSolverType;
+        ca_dynamicSolverType = nullptr;
     }
 
     if (ca_timeName != nullptr)
     {
-        delete ca_timeName;
+        delete [] ca_timeName;
         ca_timeName = nullptr;
     }
 

@@ -8,6 +8,11 @@ comFoam::comFoam()
 int comFoam::createCSCdata()
 {
     createStatusData();
+    updateStatusData();
+
+    std::string strTmp = "./";
+    readFilesData(strTmp);
+
     createVolumeConnectivities();
     createVolumeData();
     createFaceConnectivities();
@@ -15,8 +20,6 @@ int comFoam::createCSCdata()
     createSurfaceConnectivities();
     createSurfaceData();
     deleteTempFiles(tmpFluidDir);
-    std::string strTmp = "./";
-    readFilesData(strTmp);
 
     return 0;
 }
@@ -358,47 +361,7 @@ void comFoam::initialize
     std::string volName = std::string(volName_);
     std::string surfName = std::string(surfName_);
 
-    
-    /*
-    std::string volTmp = "_vol";
-    std::string surfTmp = "_srf";
-    size_t volStart = volName.find(volTmp, 0);
-    size_t surfStart = surfName.find(surfTmp, 0);
 
-
-    
-    if (volStart == std::string::npos ||
-        surfStart == std::string::npos)
-    {
-        std::cout << "WARNING: The name of input windows are not"
-                  << " consistent with what required names."
-                  << std::endl;
-        exit(-1);    
-    }
-    
-    if (volStart != surfStart)
-    {
-        std::cout << "WARNING: temp volume and surface windows"
-                  << " do not follow naming rule."
-                  << std::endl;
-        exit(-1);
-    }
-        
-    std::string subType = winName; //volName.substr(0, volStart);
-    char* name = const_cast<char*>(subType.c_str());
-    
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.initialize: Initializing "
-                  << "reconstructions of windows for "
-                  << name << std::endl;
-
-        std::cout << "ManInitHandle is "
-                  << std::string((*manInitHandle < 0) ? ("not set") : ("set"));
-        std::cout << "ObtainHandle is "
-                  << std::string((*obtainHandle < 0) ? ("not set") : ("set"));
-    }
-    */
 
     //loadInternal(name);
 
@@ -491,8 +454,13 @@ void comFoam::update_solution
              << " are not the same " << *ca_time 
              << " vs " << *currentTime << endl;
 
-    double alpha{1};
-    COM_call_function(*gmHandle, &alpha);
+    
+    if (*gmHandle >= 0)
+    {
+        double alpha{1};
+        COM_call_function(*gmHandle, &alpha);
+    }
+
     updateSurfaceData_incoming();
     step(timeStep);
     updateCSCdata();

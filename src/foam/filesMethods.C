@@ -1002,11 +1002,7 @@ int comFoam::createPointsFile(const std::string& rootAddr)
               << " created." << std::endl;
 
 
-    if
-    (
-        *ca_movingMesh ||
-        std::string(ca_dynamicFvMesh) == "dynamicMotionSolverFvMesh"
-    )
+    if (*ca_isDynamicFvMesh == 1)
     {
         std::string timeNameStr = std::string(ca_timeName);
         //std::string
@@ -1864,6 +1860,11 @@ int comFoam::readRecursive
                 tmpPath = localPath.filename();
                 std::string fileName = tmpPath.string();
 
+                if (fileName == "pointDisplacementNew")
+                {
+                    return 0;
+                }
+
                 if (fileShouldBeRead(locaParAddr, localAddr, fileName))
                 {
                     std::ifstream inputFile(localPath.string());
@@ -1886,7 +1887,7 @@ int comFoam::readRecursive
                         tmpFile.name = fileName;
                         tmpFile.path = localAddr;
                         tmpFile.size = size;
-                        tmpFile.content = string(content);
+                        tmpFile.content = std::string(content);
                         tmpFile.content.resize(size);
                         
                         vecFile.push_back(tmpFile);
@@ -1903,6 +1904,25 @@ int comFoam::readRecursive
                         }
 
                         fileCount++;
+
+                        if (tmpFile.name == "pointDisplacement")
+                        {
+                            fileContainer tmpFile_;
+                            tmpFile_.name = fileName+"New";
+                            tmpFile_.path = localAddr;
+                            tmpFile_.size = size;
+                            tmpFile_.content = tmpFile.content;
+
+                            std::ofstream newFile;
+                            newFile.open(fullAddr+"New",
+                                         std::ofstream::trunc);
+                            newFile << tmpFile_.content;
+                            newFile.close();
+
+                            vecFile.push_back(tmpFile_);
+
+                            fileCount++;
+                        }
                     }
                 }
             }

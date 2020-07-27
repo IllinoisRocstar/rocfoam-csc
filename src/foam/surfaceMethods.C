@@ -364,6 +364,19 @@ int comFoam::createSurfaceData()
  
     forAll(patches, ipatch)
     {
+        if (ca_bcflag != nullptr)
+            ca_bcflag[ipatch] = new int(2);
+
+        if (ca_bcflag != nullptr)
+        {
+            if (patchNameStr[ipatch] == movingWallName)
+            {
+                *ca_bcflag[ipatch] = 0;
+            }
+            else
+            {}
+        }
+
         // Points
         int npoints = *ca_patchPointToPointMap_size[ipatch];
         int nTotal = npoints * nComponents;
@@ -398,8 +411,6 @@ int comFoam::createSurfaceData()
         //-------------------------------------------
 
         // RocStar data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        if (ca_bcflag != nullptr)
-            ca_bcflag[ipatch] = new int(2);
         if (ca_patchNf != nullptr)
             ca_patchNf[ipatch] = new double[nTotal]{0};
         if (ca_patchSf != nullptr)
@@ -739,94 +750,97 @@ int comFoam::updateSurfaceData_incoming()
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
-    dynamicFvMesh& mesh(*meshPtr);
-    //const Time& t = mesh.time();
-    pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
-
-    const polyBoundaryMesh& patches = mesh.boundaryMesh();
-    int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
-    //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
-
-    Info << "rocFoam.updateSurfaceData_incoming:"
-         << " Assigning pointDisplacement to"
-         << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
-         << endl;
-
-    /*
-    const motionSolver& motion_ =
-        refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-    const pointField& pointDisplacement =
-            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-    */
-
-    //int patchID{-1};
-    forAll(patches, ipatch)
+    std::string dynamicSolverType = ca_dynamicSolverType;
+    if (*ca_isDynamicFvMesh == 1 &&
+        dynamicSolverType == "displacementLaplacian")
     {
-        const polyPatch& patch = patches[ipatch];
-        if (ipatch == patchFSIid)
-        {
-            // Loop over all nodes of boundary patch
-            const labelList& patchPoints = patch.meshPoints();
-            int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
-            
-            if (ca_npoints != patchPoints.size())
-            {
-                std::cout << "Warning: patchPoints.size() != ca_npoints "
-                          << patchPoints.size() << " vs " << ca_npoints
-                          << std::endl;
-                exit(-1);
-            }
+        dynamicFvMesh& mesh(*meshPtr);
+        pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
-            if (ca_npoints<=0 || patchPoints.size()<=0)
+        const polyBoundaryMesh& patches = mesh.boundaryMesh();
+        int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
+        //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
+
+        Info << "rocFoam.updateSurfaceData_incoming:"
+             << " Assigning pointDisplacement to"
+             << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
+             << endl;
+
+        /*
+        const motionSolver& motion_ =
+            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+        const pointField& pointDisplacement =
+                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+        */
+
+        //int patchID{-1};
+        forAll(patches, ipatch)
+        {
+            const polyPatch& patch = patches[ipatch];
+            if (ipatch == patchFSIid)
             {
-                std::cout << "Warning: ca_npoints = 0 "
-                          << std::endl;
+                // Loop over all nodes of boundary patch
+                const labelList& patchPoints = patch.meshPoints();
+                int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
+                
+                if (ca_npoints != patchPoints.size())
+                {
+                    std::cout << "Warning: patchPoints.size() != ca_npoints "
+                              << patchPoints.size() << " vs " << ca_npoints
+                              << std::endl;
+                    exit(-1);
+                }
+
+                if (ca_npoints<=0 || patchPoints.size()<=0)
+                {
+                    std::cout << "Warning: ca_npoints = 0 "
+                              << std::endl;
+                }
+                
+                forAll(patchPoints, ipoint)
+                {
+                    int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+                
+                    //const label& pointID = patch.meshPoints()[ipoint];  // Node index
+
+                    for(int jcomp=0; jcomp<nComponents; jcomp++)
+                    {
+
+                        int localIndex = jcomp+ipoint*nComponents;
+                        pointDisplacementNew[globalPointID][jcomp]
+                            = ca_patchDisp[ipatch][localIndex];
+                    }
+                }
+                break;
             }
-            
-            forAll(patchPoints, ipoint)
+        }
+
+        /*
+        forAll(patches, ipatch)
+        {
+            if (*ca_bcflag[ipatch] == 2)
+                continue;
+
+            int npoints = *ca_patchPointToPointMap_size[ipatch];
+
+            int localIndex = 0;
+            for(int ipoint=0; ipoint<npoints; ipoint++)
             {
                 int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
-            
-                //const label& pointID = patch.meshPoints()[ipoint];  // Node index
 
                 for(int jcomp=0; jcomp<nComponents; jcomp++)
                 {
 
-                    int localIndex = jcomp+ipoint*nComponents;
-                    
-                    pointDisplacementNew[globalPointID][jcomp]
+                    newPointDisplacement[globalPointID][jcomp]
                         = ca_patchDisp[ipatch][localIndex];
+
+                    localIndex++;
                 }
             }
-            break;
         }
+        */
     }
-
-    /*
-    forAll(patches, ipatch)
-    {
-        if (*ca_bcflag[ipatch] == 2)
-            continue;
-
-        int npoints = *ca_patchPointToPointMap_size[ipatch];
-
-        int localIndex = 0;
-        for(int ipoint=0; ipoint<npoints; ipoint++)
-        {
-            int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
-
-            for(int jcomp=0; jcomp<nComponents; jcomp++)
-            {
-
-                newPointDisplacement[globalPointID][jcomp]
-                    = ca_patchDisp[ipatch][localIndex];
-
-                localIndex++;
-            }
-        }
-    }
-    */
-
+    
     return 0;
 }
 
