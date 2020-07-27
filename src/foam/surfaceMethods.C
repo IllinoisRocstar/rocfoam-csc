@@ -480,21 +480,27 @@ int comFoam::createSurfaceData()
     ca_patchFlameT   = new double*[nPatches]{};
     ca_patchMomentum = new double*[nPatches]{};
     //-------------------------------------------
- 
+
+
+    std::string dynamicSolverType = ca_dynamicSolverType;
     forAll(patches, ipatch)
     {
         if (ca_bcflag != nullptr)
+        {
             ca_bcflag[ipatch] = new int(2);
 
-        if (ca_bcflag != nullptr)
-        {
-            if (patchNameStr[ipatch] == movingWallName)
+            if (*ca_isDynamicFvMesh == 1 &&
+                dynamicSolverType == "displacementLaplacian")
             {
-                *ca_bcflag[ipatch] = 0;
+                if (patchNameStr[ipatch] == movingWallName)
+                {
+                    *ca_bcflag[ipatch] = 0;
+                }
+                else
+                {}
             }
-            else
-            {}
         }
+
 
         // Points
         int procStartIndex{0};
@@ -614,6 +620,7 @@ int comFoam::updateSurfaceData_outgoing()
     tmp<volScalarField> muEff(turbulence.muEff());
     volTensorField viscStress(muEff * (gradU + dev2(Foam::T(gradU))) - p*I);
 
+    std::string dynamicSolverType = ca_dynamicSolverType;
     forAll(patches, ipatch)
     {
         double ca_patchVel_time{0};
@@ -644,13 +651,17 @@ int comFoam::updateSurfaceData_outgoing()
         // Interacting BCs should be set according to the BC name??!!
         if (ca_bcflag != nullptr)
         {
-            if (patchNameStr[ipatch] == movingWallName)
+            *ca_bcflag[ipatch] = 2;
+            
+            if (*ca_isDynamicFvMesh == 1 &&
+                dynamicSolverType == "displacementLaplacian")
             {
-                *ca_bcflag[ipatch] = 0;
-            }
-            else
-            {
-                *ca_bcflag[ipatch] = 2;
+                if (patchNameStr[ipatch] == movingWallName)
+                {
+                    *ca_bcflag[ipatch] = 0;
+                }
+                else
+                {}
             }
         }
 
@@ -899,7 +910,36 @@ int comFoam::updateSurfaceData_incoming()
         dynamicSolverType == "displacementLaplacian")
     {
         dynamicFvMesh& mesh(*meshPtr);
+        
+        if (pointDisplacementNewPtr == nullptr)
+        {
+
+            pointDisplacementNewPtr = new pointVectorField
+            (
+                IOobject
+                (
+                    "pointDisplacementNew",
+                    mesh.time().timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                pointMesh::New(mesh)
+            );
+        }   
         pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
+
+        
+        const motionSolver& motion_ =
+            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+        const pointField& pointDisplacement =
+                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+        
+        const pointField&    points = mesh.points();
+        forAll(points, ipoint)
+        {
+            pointDisplacementNew[ipoint] = pointDisplacement[ipoint];
+        }
 
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
         int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
@@ -910,12 +950,7 @@ int comFoam::updateSurfaceData_incoming()
              << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
              << endl;
 
-        /*
-        const motionSolver& motion_ =
-            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-        const pointField& pointDisplacement =
-                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-        */
+
         //int patchID{-1};
         forAll(patches, ipatch)
         {

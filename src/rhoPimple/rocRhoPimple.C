@@ -465,33 +465,6 @@ int rhoPimple::createFields()
         dimensionedScalar(p.dimensions() / dimTime, 0)
     );
 
-    dictionary meshDict(mesh.dynamicMeshDict());
-    if (meshDict.found("dynamicFvMesh"))
-    {
-        if (meshDict.found("solver"))
-        {
-            word solver_ = meshDict.lookup("solver");
-            
-            if (solver_ == "displacementLaplacian")
-            {
-
-                pointDisplacementNewPtr = new pointVectorField
-                (
-                    IOobject
-                    (
-                        "pointDisplacementNew",
-                        mesh.time().timeName(),
-                        mesh,
-                        IOobject::NO_READ,
-                        IOobject::NO_WRITE
-                    ),
-                    pointMesh::New(mesh)
-                );
-            }   
-        }
-    }
-    
-
     Info << "Creating field kinetic energy K\n" << endl;
     KPtr = new volScalarField("K", 0.5 * magSqr(U));
 

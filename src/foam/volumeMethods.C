@@ -94,6 +94,13 @@ int comFoam::createVolumeData()
 {
     int nTotal = *ca_nPoints * nComponents;
     ca_Points = new double[nTotal]{0};
+
+    std::string dynamicSolverType = ca_dynamicSolverType;
+    if (*ca_isDynamicFvMesh == 1 &&
+        dynamicSolverType == "displacementLaplacian")
+    {
+        ca_Disp = new double[nTotal]{0};
+    }
     
     // Field-data
     nTotal = *ca_nCells * nComponents;
@@ -142,7 +149,6 @@ int comFoam::updateVolumeData_outgoing()
     // Point data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     const dynamicFvMesh& mesh(*meshPtr);
     const pointField&    points = mesh.points();
-
     //if (*isDynamicFvMesh == 1
     {
         forAll(points, ipoint)

@@ -119,7 +119,7 @@ int comFoam::createFieldFiles
     if (ca_Rho != nullptr) nTotal++;
     if (ca_Phi != nullptr) nTotal++;
     if (ca_RhoUf != nullptr) nTotal++;
-    //if (ca_Disp != nullptr) nTotal +=2;
+    if (ca_Disp != nullptr) nTotal++;
     
     for (int ifile=0; ifile<nTotal; ifile++)
     {
@@ -177,7 +177,19 @@ int comFoam::createFieldFiles
                         "[1 -2 -1 0 0 0 0]"
                       );
         }
-
+        else if (ifile==*ca_nFiles+3)
+        {
+            fileName = "pointDisplacementNew";
+            localDir = locaParAddr+"0";
+            content = createBaseFile
+                      (
+                        "pointDisplacementNew",
+                        "point",
+                        "Vector",
+                        "[0 1 0 0 0 0 0]"
+                      );
+        }
+        
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
 
@@ -186,7 +198,7 @@ int comFoam::createFieldFiles
         {
             std::string locationStr = "location";
             size_t locationStart = findWord(fullAddr, content, locationStr);
-            if (locationStart != std::string::npos)
+            if (locationStart !=0 && locationStart != std::string::npos)
             {
                 std::string scStr = ";";
                 size_t locationEnd = findChar(fullAddr, content, scStr, locationStart);
@@ -212,14 +224,14 @@ int comFoam::createFieldFiles
                 fileName == "pointDisplacementNew"
                )
             {   
-                // Modify the internalField
+
                 std::string intFieldStr = "internalField";
                 std::string scStr = ";";
                 size_t intFieldStart= findWordOnly(fullAddr, content, intFieldStr);
                 size_t intFieldEnd  = findChar(fullAddr, content, scStr, intFieldStart);
                 size_t length = intFieldEnd-intFieldStart;
                 content.erase(intFieldStart, length);
-                
+
                 std::string newStr = "internalField   nonuniform List";
                 if (fileName == "U")
                 {
@@ -1035,7 +1047,7 @@ int comFoam::createPointsFile(const std::string& rootAddr)
 
         std::string locationStr = "location";
         size_t locationStart = findWord(fullAddr, content, locationStr);
-        if (locationStart != std::string::npos)
+        if (locationStart != 0 && locationStart != std::string::npos)
         {
             std::string scStr = ";";
             size_t locationEnd = findChar(fullAddr, content, scStr, locationStart);
@@ -1912,10 +1924,10 @@ int comFoam::readRecursive
                 tmpPath = localPath.filename();
                 std::string fileName = tmpPath.string();
 
-                if (fileName == "pointDisplacementNew")
-                {
-                    return 0;
-                }
+                //if (fileName == "pointDisplacementNew")
+                //{
+                //    return 0;
+                //}
 
                 if (fileShouldBeRead(locaParAddr, localAddr, fileName))
                 {
@@ -1957,6 +1969,7 @@ int comFoam::readRecursive
 
                         fileCount++;
 
+                        /*
                         if (tmpFile.name == "pointDisplacement")
                         {
                             fileContainer tmpFile_;
@@ -1975,6 +1988,7 @@ int comFoam::readRecursive
 
                             fileCount++;
                         }
+                        */
                     }
                 }
             }

@@ -9,18 +9,16 @@ int comFoam::createCSCdata()
 {
     createStatusData();
     updateStatusData();
-
-    std::string strTmp = "./";
-    readFilesData(strTmp);
-
     createVolumeConnectivities();
     createVolumeData();
     createFaceConnectivities();
     createFaceData();
     createSurfaceConnectivities();
     createSurfaceData();
-    deleteTempFiles(tmpFluidDir);
 
+    std::string strTmp = "./";
+    readFilesData(strTmp);
+    deleteTempFiles(tmpFluidDir);
     return 0;
 }
 
