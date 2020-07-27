@@ -23,7 +23,7 @@ private:
 
 protected:
     const int nComponents{3};
-    const int genCharSize{20};
+    const size_t genCharSize{50};
 
     pointVectorField* pointDisplacementNewPtr{nullptr};
 
@@ -265,8 +265,8 @@ private:
     double* ca_deltaT{nullptr};
     double* ca_deltaT0{nullptr};
     
-    int* ca_movingMesh{nullptr};
-    char* ca_dynamicFvMesh{nullptr};
+    int* ca_isDynamicFvMesh{nullptr};
+    char* ca_dynamicSolverType{nullptr};
     
 
 protected:

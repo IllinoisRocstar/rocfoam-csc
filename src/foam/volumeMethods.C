@@ -94,8 +94,7 @@ int comFoam::createVolumeData()
 {
     int nTotal = *ca_nPoints * nComponents;
     ca_Points = new double[nTotal]{0};
-    ca_Disp   = new double[nTotal]{0};
-
+    
     // Field-data
     nTotal = *ca_nCells * nComponents;
     ca_Vel = new double[nTotal]{0};
@@ -144,30 +143,35 @@ int comFoam::updateVolumeData_outgoing()
     const dynamicFvMesh& mesh(*meshPtr);
     const pointField&    points = mesh.points();
 
-    forAll(points, ipoint)
-    {
-        for(int jcomp=0; jcomp<nComponents; jcomp++)
-        {
-            ca_Points[ipoint*nComponents+jcomp]
-                = points[ipoint][jcomp];
-        }
-    }
-
-
-    const motionSolver& motion_ =
-        refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-    const pointField& PointDisplacement =
-            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-
-    if (PointDisplacement.size())
+    //if (*isDynamicFvMesh == 1
     {
         forAll(points, ipoint)
         {
             for(int jcomp=0; jcomp<nComponents; jcomp++)
             {
-                ca_Disp[ipoint*nComponents+jcomp]
-                    = PointDisplacement[ipoint][jcomp];
+                ca_Points[ipoint*nComponents+jcomp]
+                    = points[ipoint][jcomp];
+            }
+        }
+    }
+
+    if (ca_Disp != nullptr)
+    {
+        const motionSolver& motion_ =
+            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+        const pointField& PointDisplacement =
+                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
+        if (PointDisplacement.size())
+        {
+            forAll(points, ipoint)
+            {
+                for(int jcomp=0; jcomp<nComponents; jcomp++)
+                {
+                    ca_Disp[ipoint*nComponents+jcomp]
+                        = PointDisplacement[ipoint][jcomp];
+                }
             }
         }
     }

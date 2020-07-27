@@ -212,6 +212,78 @@ int rhoPimple::initFOAM(int argc, char *argv[])
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
 
+
+//dynamicFvMesh &mesh(*meshPtr);
+//dictionary meshDict(mesh.dynamicMeshDict());
+//Info << meshDict << endl;
+//if (meshDict.found("dynamicFvMesh"))
+//{
+//    word dynamicFvMesh = meshDict.lookup("dynamicFvMesh");
+//    Info << "dynamicFvMesh = " << dynamicFvMesh << endl;
+//    if (meshDict.found("solver"))
+//    {
+//        word solver = meshDict.lookup("solver");
+//        Info << "solver = " << solver << endl;
+//        if (solver=="displacementLaplacian")
+//        {
+//            dictionary solverDic(meshDict.subDict("displacementLaplacianCoeffs"));
+//            Info << "solverDic = " << solverDic << endl;
+//            word kind = solverDic.lookup("diffusivity");
+//            Info << "diffusivity = " << kind << endl;
+//Info << "solverDic.isDict() " << solverDic.isDict() << endl;
+//Foam::Time &runTime(*runTimePtr);
+
+//const motionSolver& motionTest =
+//    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+//const pointField& dispTest =
+//    refCast<const displacementMotionSolver>(motionTest).pointDisplacement();
+//volVectorField &U(*UPtr);
+//Foam::IOdictionary controlDict(dispTest);
+//      Foam::IOobject("U", runTime.timeName(), mesh,
+//                     Foam::IOobject::MUST_READ, Foam::IOobject::NO_WRITE));
+//        IOobject tesst
+//        (
+//            "U",
+//            runTime.timeName(),
+//            mesh,
+//            IOobject::MUST_READ,
+//            IOobject::AUTO_WRITE
+//        );
+
+/*
+IOdictionary dispDict
+             (
+                IOobject
+                (
+                    "U",
+                    runTime.timeName(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                )
+            );
+*/
+
+            
+//        }
+//    }
+//}
+
+//Info << "meshDict.isDict() " << meshDict.isDict("") << endl;
+//Info << "meshDict.found(dynamicFvMesh) " << meshDict.found("dynamicFvMesh") << endl;
+//Info << "meshDict.isDict(motionSolverLibs) " << meshDict.isDict("motionSolverLibs") << endl;
+//Info << "meshDict.isDict(solver) " << meshDict.isDict("solver") << endl;
+//Info << "meshDict.isDict(displacementLaplacianCoeffs) " << meshDict.isDict("displacementLaplacianCoeffs") << endl;
+
+
+//if (meshDict.isDict(""))
+//{}
+
+
+//std::cin.get();
+
+
 /*
 dynamicFvMesh &mesh(*meshPtr);
 const motionSolver& motionTest =
@@ -328,6 +400,17 @@ int rhoPimple::createFields()
 
     Info << "Reading field U\n" << endl;
 
+//IOobject tesst
+//(
+//    "U",
+//    runTime.timeName(),
+//    mesh,
+//    IOobject::MUST_READ
+//);
+//Info << "1\n" << endl;
+//IOdictionary T_File(tesst);
+//Info << "2\n" << endl;
+
     UPtr = new volVectorField
     (
         IOobject
@@ -382,18 +465,32 @@ int rhoPimple::createFields()
         dimensionedScalar(p.dimensions() / dimTime, 0)
     );
 
-    pointDisplacementNewPtr = new pointVectorField
-    (
-        IOobject
-        (
-            "pointDisplacementNew",
-            mesh.time().timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        pointMesh::New(mesh)
-    );
+    dictionary meshDict(mesh.dynamicMeshDict());
+    if (meshDict.found("dynamicFvMesh"))
+    {
+        if (meshDict.found("solver"))
+        {
+            word solver_ = meshDict.lookup("solver");
+            
+            if (solver_ == "displacementLaplacian")
+            {
+
+                pointDisplacementNewPtr = new pointVectorField
+                (
+                    IOobject
+                    (
+                        "pointDisplacementNew",
+                        mesh.time().timeName(),
+                        mesh,
+                        IOobject::NO_READ,
+                        IOobject::NO_WRITE
+                    ),
+                    pointMesh::New(mesh)
+                );
+            }   
+        }
+    }
+    
 
     Info << "Creating field kinetic energy K\n" << endl;
     KPtr = new volScalarField("K", 0.5 * magSqr(U));
