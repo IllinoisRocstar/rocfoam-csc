@@ -492,7 +492,13 @@ int comFoam::createSurfaceData()
             if (*ca_isDynamicFvMesh == 1 &&
                 dynamicSolverType == "displacementLaplacian")
             {
-                if (patchNameStr[ipatch] == movingWallName)
+                const motionSolver& motion_ =
+                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+                const pointVectorField& pointDisplacement =
+                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
+
+                if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
                     *ca_bcflag[ipatch] = 0;
                 }
@@ -656,7 +662,13 @@ int comFoam::updateSurfaceData_outgoing()
             if (*ca_isDynamicFvMesh == 1 &&
                 dynamicSolverType == "displacementLaplacian")
             {
-                if (patchNameStr[ipatch] == movingWallName)
+                const motionSolver& motion_ =
+                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+                const pointVectorField& pointDisplacement =
+                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
+
+                if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
                     *ca_bcflag[ipatch] = 0;
                 }
@@ -909,8 +921,9 @@ int comFoam::updateSurfaceData_incoming()
     if (*ca_isDynamicFvMesh == 1 &&
         dynamicSolverType == "displacementLaplacian")
     {
+        Info << "rocFoam.updateSurfaceData_incoming:" << endl;
+
         dynamicFvMesh& mesh(*meshPtr);
-        
         if (pointDisplacementNewPtr == nullptr)
         {
 
@@ -932,31 +945,27 @@ int comFoam::updateSurfaceData_incoming()
         
         const motionSolver& motion_ =
             refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-        const pointField& pointDisplacement =
-                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+        const pointVectorField& pointDisplacement =
+            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
         
-        const pointField&    points = mesh.points();
+        const pointField& points = mesh.points();
         forAll(points, ipoint)
         {
             pointDisplacementNew[ipoint] = pointDisplacement[ipoint];
         }
 
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
-        int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
-        //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
-
-        Info << "rocFoam.updateSurfaceData_incoming:"
-             << " Assigning pointDisplacement to"
-             << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
-             << endl;
-
-
-        //int patchID{-1};
         forAll(patches, ipatch)
         {
             const polyPatch& patch = patches[ipatch];
-            if (ipatch == patchFSIid)
+
+            if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
             {
+                Info << " Assigning pointDisplacement to"
+                        << " patch[" << ipatch << "]="
+                        << movingWallTypeName << " patch."
+                        << endl;
+
                 // Loop over all nodes of boundary patch
                 const labelList& patchPoints = patch.meshPoints();
                 int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
@@ -1766,7 +1775,7 @@ int comFoam::reconstSurfaceData(const char *name)
 
     dataName = std::string("bcflag");
     if (nameExists(dataItemNames, dataName))
-        ca_bcflag   = new int*[nPatches]{};
+        ca_bcflag = new int*[nPatches]{};
 
     ca_patchPointToPointMap_size = new int*[nPatches]{};
     ca_patchPointToPointMap = new int*[nPatches]{};
