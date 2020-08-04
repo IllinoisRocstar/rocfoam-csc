@@ -183,7 +183,7 @@ int comFoam::createFieldFiles
             localDir = locaParAddr+"0";
             content = createBaseFile
                       (
-                        "pointDisplacementNew",
+                        "pointDisplacement",
                         "point",
                         "Vector",
                         "[0 1 0 0 0 0 0]"
@@ -218,6 +218,7 @@ int comFoam::createFieldFiles
                 fileName == "rhoUf" ||
                 fileName == "alphat" ||
                 fileName == "epsilon" ||
+                fileName == "omega" ||
                 fileName == "k" ||
                 fileName == "nut" ||
                 fileName == "pointDisplacement" ||
@@ -441,6 +442,28 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
+                else if (fileName == "omega")
+                {
+                    newStr += "<scalar>\n";
+                    int ncells = *ca_nCells;
+                    newStr += std::to_string(ncells);
+                    newStr += "\n(\n";
+                    
+                    for(int icell=0; icell<ncells; icell++)
+                    {
+                        int cellIndex = ca_cellToCellMap_inverse[icell];
+
+                        std::ostringstream doubleToOs;                            
+                        doubleToOs << std::scientific << std::setprecision(IODigits);
+                        doubleToOs << ca_Omega[cellIndex];
+
+                        newStr += removeTrailZero(doubleToOs.str()); //doubleToOs.str();
+                        newStr += "\n";
+                    }
+                    newStr += ")\n";
+                    
+                    content.insert(intFieldStart, newStr);
+                }
                 else if (fileName == "k")
                 {
                     newStr += "<scalar>\n";
@@ -526,6 +549,7 @@ int comFoam::createFieldFiles
                 std::cout << "========== WARNING ===============" << std::endl
                           << "Solution field for file " 
                           << fileName << " is not found." << std::endl;
+                continue;
             }
             
             for(int ipatch=0; ipatch<ca_nPatches[ca_myRank]; ipatch++)
@@ -540,6 +564,7 @@ int comFoam::createFieldFiles
                     fileName == "rhoUf" ||
                     fileName == "alphat" ||
                     fileName == "epsilon" ||
+                    fileName == "omega" ||
                     fileName == "k" ||
                     fileName == "nut"||
                     fileName == "pointDisplacement" ||
@@ -784,6 +809,25 @@ int comFoam::createFieldFiles
                             std::ostringstream doubleToOs;                            
                             doubleToOs << std::scientific << std::setprecision(IODigits);
                             doubleToOs << ca_patchEpsilon[ipatch][faceIndex];
+                            newStr += removeTrailZero(doubleToOs.str());
+                            newStr += "\n";
+                        }
+                        newStr += ")\n";
+                    }
+                    else if (fileName == "omega")
+                    {
+                        newStr += "<scalar>\n";
+                        //int nfaces = ca_patchSize[ipatch];
+                        newStr += std::to_string(nfaces);
+                        newStr += "\n(\n";
+
+                        for(int iface=0; iface<nfaces; iface++)
+                        {
+                            int faceIndex = ca_patchFaceToFaceMap_inverse[ipatch][iface];
+
+                            std::ostringstream doubleToOs;                            
+                            doubleToOs << std::scientific << std::setprecision(IODigits);
+                            doubleToOs << ca_patchOmega[ipatch][faceIndex];
                             newStr += removeTrailZero(doubleToOs.str());
                             newStr += "\n";
                         }
@@ -1524,7 +1568,11 @@ int comFoam::createConnectivityFiles
             fileName == "boundaryProcAddressing" ||
             fileName == "cellProcAddressing" ||
             fileName == "faceProcAddressing" ||
-            fileName == "pointProcAddressing"
+            fileName == "pointProcAddressing"||
+
+            fileName  == "cellZones" || //should be directly generated
+            fileName  == "faceZones" || //should be directly generated
+            fileName  == "pointZones"   //should be directly generated
            )
         {
             std::string content = vecFile[ifile].content;
@@ -1766,7 +1814,7 @@ int comFoam::registerFilesData(const char *name)
 int comFoam::reconstFilesData(const char *name)
 {
     std::string volName = name+std::string("VOL");
-    std::cout << "rocFoam.reconstructInitFiles, proID = "
+    std::cout << "rocFoam.reconstructInitFiles, procID = "
               << ca_myRank
               << ", Retreiving file data form window "
               << volName << "."

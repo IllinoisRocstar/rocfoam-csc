@@ -413,7 +413,7 @@ int rhoCentral::loop()
 }
 
 
-int rhoCentral::step(double* newDeltaT)
+int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 {
     dynamicFvMesh &mesh(*meshPtr);
     Foam::Time &runTime(*runTimePtr);

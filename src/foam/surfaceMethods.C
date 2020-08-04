@@ -463,9 +463,23 @@ int comFoam::createSurfaceData()
         if (RASModel == "kEpsilon")
         {
             ca_patchAlphaT = new double*[nPatches]{};
-            ca_patchEpsilon = new double*[nPatches]{};
             ca_patchK = new double*[nPatches]{};
+            ca_patchEpsilon = new double*[nPatches]{};
             ca_patchNuT = new double*[nPatches]{};
+        }
+        else if (RASModel == "kOmegaSST")
+        {
+            ca_patchAlphaT = new double*[nPatches]{};
+            ca_patchK = new double*[nPatches]{};
+            ca_patchOmega = new double*[nPatches]{};
+            ca_patchNuT = new double*[nPatches]{};
+        }
+        else
+        {
+            Info << "Warning: turbulence model not recongnized by the CSC Module."
+                 << endl;
+             
+            exit(-1);
         }
     }
     //-------------------------------------------
@@ -480,7 +494,6 @@ int comFoam::createSurfaceData()
     ca_patchFlameT   = new double*[nPatches]{};
     ca_patchMomentum = new double*[nPatches]{};
     //-------------------------------------------
-
 
     std::string dynamicSolverType = ca_dynamicSolverType;
     forAll(patches, ipatch)
@@ -501,7 +514,6 @@ int comFoam::createSurfaceData()
             }
         }
 
-
         // Points
         int procStartIndex{0};
         for (int iproc=0; iproc<ca_myRank; iproc++)
@@ -510,6 +522,7 @@ int comFoam::createSurfaceData()
         }
         int index  = procStartIndex + ipatch;
         int nfaces = ca_patchSize[index];
+
         if (nfaces == 0)
             continue;
 
@@ -518,10 +531,11 @@ int comFoam::createSurfaceData()
         int nTotal  = nfaces * nComponents;
         
         ca_patchPoints[ipatch] = new double[nTotal_]{};
-        
+
         // Field-data
         ca_patchVel[ipatch] = new double[nTotal]{};
         ca_patchP[ipatch]   = new double[nfaces]{};
+
         if (ca_patchRho != nullptr)
             ca_patchRho[ipatch] = new double[nfaces]{};
 
@@ -537,10 +551,16 @@ int comFoam::createSurfaceData()
         // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
         if (simulationType == "RAS")
         {
-            ca_patchAlphaT[ipatch] = new double[nfaces]{};
-            ca_patchEpsilon[ipatch] = new double[nfaces]{};
-            ca_patchK[ipatch] = new double[nfaces]{};
-            ca_patchNuT[ipatch] = new double[nfaces]{};
+            if (ca_patchAlphaT != nullptr)
+                ca_patchAlphaT[ipatch] = new double[nfaces]{};
+            if (ca_patchK != nullptr)
+                ca_patchK[ipatch] = new double[nfaces]{};
+            if (ca_patchEpsilon != nullptr)
+                ca_patchEpsilon[ipatch] = new double[nfaces]{};
+            if (ca_patchOmega != nullptr)
+                ca_patchOmega[ipatch] = new double[nfaces]{};
+            if (ca_patchNuT != nullptr)
+                ca_patchNuT[ipatch] = new double[nfaces]{};
         }
         //-------------------------------------------
 
@@ -614,6 +634,7 @@ int comFoam::updateSurfaceData_outgoing()
     const surfaceVectorField& Sf = mesh.Sf();
     const compressible::turbulenceModel& turbulence(*turbulencePtr);
 
+
     // Check the formulation bellow:
     // https://www.openfoam.com/documentation/guides/latest/doc/guide-turbulence-ras.html
     volTensorField gradU(fvc::grad(U));
@@ -633,6 +654,7 @@ int comFoam::updateSurfaceData_outgoing()
         double ca_patchTrac_time{0};
         double ca_patchAlphaT_time{0};
         double ca_patchEpsilon_time{0};
+        double ca_patchOmega_time{0};
         double ca_patchK_time{0};
         double ca_patchNuT_time{0};
 
@@ -706,10 +728,12 @@ int comFoam::updateSurfaceData_outgoing()
                     // Turbulence data ^^^^^^^^^^^^^^^^^^^^
                     if (ca_patchAlphaT != nullptr)
                         ca_patchAlphaT[ipatch][faceIndex] = 0;
-                    if (ca_patchEpsilon != nullptr)
-                        ca_patchEpsilon[ipatch][faceIndex] = 0;
                     if (ca_patchK != nullptr)
                         ca_patchK[ipatch][faceIndex] = 0;
+                    if (ca_patchEpsilon != nullptr)
+                        ca_patchEpsilon[ipatch][faceIndex] = 0;
+                    if (ca_patchOmega != nullptr)
+                        ca_patchOmega[ipatch][faceIndex] = 0;
                     if (ca_patchNuT != nullptr)
                         ca_patchNuT[ipatch][faceIndex] = 0;
                     //-------------------------------------
@@ -765,6 +789,32 @@ int comFoam::updateSurfaceData_outgoing()
                         }
                     }
                     ca_patchP[ipatch][faceIndex] = p.boundaryField()[ipatch][localFaceID];
+
+if (*ca_bcflag[ipatch]<2)
+{
+    int globalFaceID = localFaceID + patches[ipatch].start();
+
+    const pointField&    points = mesh.points();
+    const faceList& faces = mesh.faces();
+    const labelList& pointsList = faces[globalFaceID];
+    
+ca_patchP[ipatch][faceIndex] = 10000000; //patches[ipatch].faceCentres()[localFaceID].z();
+
+forAll(pointsList, ipoint)
+{
+    const int& pointID = pointsList[ipoint];
+
+    if (points[pointID][0] > -0.025)
+    {
+        ca_patchP[ipatch][faceIndex] = 0;
+        break;
+    }
+}
+
+std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] << std::endl;
+}
+
+
 
                     if (ca_patchT != nullptr)
                     {
@@ -828,12 +878,23 @@ int comFoam::updateSurfaceData_outgoing()
                         double timeIn = MPI_Wtime();
 
                         const tmp<volScalarField>& alphat = turbulence.alphat();
-
                         ca_patchAlphaT[ipatch][faceIndex] =
                             alphat().boundaryField()[ipatch][localFaceID];
 
                         double timeOut = MPI_Wtime();
                         ca_patchAlphaT_time += (timeOut - timeIn);
+                    }
+
+                    if (ca_patchK != nullptr)
+                    {
+                        double timeIn = MPI_Wtime();
+                        
+                        const tmp<volScalarField>& k = turbulence.k();
+                        ca_patchK[ipatch][faceIndex] =
+                            k().boundaryField()[ipatch][localFaceID];
+
+                        double timeOut = MPI_Wtime();
+                        ca_patchK_time += (timeOut - timeIn);
                     }
 
                     if (ca_patchEpsilon != nullptr)
@@ -848,16 +909,20 @@ int comFoam::updateSurfaceData_outgoing()
                         ca_patchEpsilon_time += (timeOut - timeIn);
                     }
 
-                    if (ca_patchK != nullptr)
+                    if (ca_patchOmega != nullptr)
                     {
                         double timeIn = MPI_Wtime();
                         
-                        const tmp<volScalarField>& k = turbulence.k();
-                        ca_patchK[ipatch][faceIndex] =
-                            k().boundaryField()[ipatch][localFaceID];
+                        const tmp<volScalarField>& omega = 
+                            mesh.objectRegistry::lookupObject<volScalarField>
+                            (
+                                "omega"
+                            );
+                        ca_patchOmega[ipatch][faceIndex] =
+                            omega().boundaryField()[ipatch][localFaceID];
 
                         double timeOut = MPI_Wtime();
-                        ca_patchK_time += (timeOut - timeIn);
+                        ca_patchOmega_time += (timeOut - timeIn);
                     }
 
                     if (ca_patchNuT != nullptr)
@@ -890,11 +955,14 @@ int comFoam::updateSurfaceData_outgoing()
         Info << "  ca_patchPhi_time =     " << ca_patchPhi_time << " (s)" << endl;
         Info << "  ca_patchTrac_time =    " << ca_patchTrac_time << " (s)" << endl;
         Info << "  ca_patchAlphaT_time =  " << ca_patchAlphaT_time << " (s)" << endl;
-        Info << "  ca_patchEpsilon_time = " << ca_patchEpsilon_time << " (s)" << endl;
         Info << "  ca_patchK_time =       " << ca_patchK_time << " (s)" << endl;
+        Info << "  ca_patchEpsilon_time = " << ca_patchEpsilon_time << " (s)" << endl;
+        Info << "  ca_patchOmega_time = " << ca_patchOmega_time << " (s)" << endl;
         Info << "  ca_patchNuT_time =     " << ca_patchNuT_time << " (s)" << endl;
         */
     }
+
+std::cin.get();
     
     return 0;
 }
@@ -975,14 +1043,26 @@ int comFoam::updateSurfaceData_incoming()
                 
                     //const label& pointID = patch.meshPoints()[ipoint];  // Node index
 
+
+std::cout << "ca_patchDisp[" << ipatch <<"]["
+          << ipoint << "] = ";
+
                     for(int jcomp=0; jcomp<nComponents; jcomp++)
                     {
 
                         int localIndex = jcomp+ipoint*nComponents;
                         pointDisplacementNew[globalPointID][jcomp]
                             = +ca_patchDisp[ipatch][localIndex];
+
+std::cout << ca_patchDisp[ipatch][localIndex] << " " ;
+
                     }
+std::cout << std::endl;
+
                 }
+
+std::cin.get();
+
                 break;
             }
         }
@@ -1140,16 +1220,22 @@ int comFoam::registerSurfaceData(const char *name)
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m/s");
     }
 
+    if (ca_patchK != nullptr)
+    {
+        dataName = surfName+std::string(".k");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
+    }
+
     if (ca_patchEpsilon != nullptr)
     {
         dataName = surfName+std::string(".epsilon");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^3");
     }
 
-    if (ca_patchK != nullptr)
+    if (ca_patchOmega != nullptr)
     {
-        dataName = surfName+std::string(".k");
-        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
+        dataName = surfName+std::string(".omega");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "1/s");
     }
 
     if (ca_patchNuT != nullptr)
@@ -1378,6 +1464,13 @@ int comFoam::registerSurfaceData(const char *name)
                 std::cout << "  " << dataName.c_str() << " registered." << std::endl;
             }
 
+            if (ca_patchK != nullptr)
+            {
+                dataName = surfName+std::string(".k");
+                COM_set_array(dataName, paneID, ca_patchK[ipatch], 1);
+                std::cout << "  " << dataName.c_str() << " registered." << std::endl;
+            }
+
             if (ca_patchEpsilon != nullptr)
             {
                 dataName = surfName+std::string(".epsilon");
@@ -1385,10 +1478,10 @@ int comFoam::registerSurfaceData(const char *name)
                 std::cout << "  " << dataName.c_str() << " registered." << std::endl;
             }
 
-            if (ca_patchK != nullptr)
+            if (ca_patchOmega != nullptr)
             {
-                dataName = surfName+std::string(".k");
-                COM_set_array(dataName, paneID, ca_patchK[ipatch], 1);
+                dataName = surfName+std::string(".omega");
+                COM_set_array(dataName, paneID, ca_patchOmega[ipatch], 1);
                 std::cout << "  " << dataName.c_str() << " registered." << std::endl;
             }
 
@@ -1803,13 +1896,17 @@ int comFoam::reconstSurfaceData(const char *name)
     if (nameExists(dataItemNames, dataName))
         ca_patchAlphaT = new double*[nPatches]{};
 
+    dataName = std::string("k"); //("rho");
+    if (nameExists(dataItemNames, dataName))
+        ca_patchK = new double*[nPatches]{};
+
     dataName = std::string("epsilon"); //("rho");
     if (nameExists(dataItemNames, dataName))
         ca_patchEpsilon = new double*[nPatches]{};
 
-    dataName = std::string("k"); //("rho");
+    dataName = std::string("omega"); //("rho");
     if (nameExists(dataItemNames, dataName))
-        ca_patchK = new double*[nPatches]{};
+        ca_patchOmega = new double*[nPatches]{};
 
     dataName = std::string("nuT"); //("rho");
     if (nameExists(dataItemNames, dataName))
@@ -2058,6 +2155,16 @@ int comFoam::reconstSurfaceData(const char *name)
                  << ", components = " << nComp << std::endl;
         }
 
+        dataName = std::string("k");
+        if (nameExists(dataItemNames, dataName))
+        {
+            regName = surfName+std::string(".")+dataName;
+            COM_get_array(regName.c_str(), paneID, &ca_patchK[ipatch], &nComp);
+            COM_get_size(regName.c_str(), paneID, &numElem);
+            std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                 << ", components = " << nComp << std::endl;
+        }
+
         dataName = std::string("epsilon");
         if (nameExists(dataItemNames, dataName))
         {
@@ -2068,11 +2175,11 @@ int comFoam::reconstSurfaceData(const char *name)
                  << ", components = " << nComp << std::endl;
         }
 
-        dataName = std::string("k");
+        dataName = std::string("omega");
         if (nameExists(dataItemNames, dataName))
         {
             regName = surfName+std::string(".")+dataName;
-            COM_get_array(regName.c_str(), paneID, &ca_patchK[ipatch], &nComp);
+            COM_get_array(regName.c_str(), paneID, &ca_patchOmega[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
             std::cout << "    " << dataName.c_str() << " elements = " << numElem
                  << ", components = " << nComp << std::endl;
@@ -2503,6 +2610,20 @@ int comFoam::deleteSurfaceData()
         ca_patchAlphaT = nullptr;
     }
 
+    if (ca_patchK != nullptr)
+    {
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
+        {
+            if (ca_patchK[ipatch] != nullptr)
+            {
+                delete [] ca_patchK[ipatch];
+                ca_patchK[ipatch] = nullptr;
+            }
+        }
+        delete [] ca_patchK;
+        ca_patchK = nullptr;
+    }
+
     if (ca_patchEpsilon != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
@@ -2517,18 +2638,18 @@ int comFoam::deleteSurfaceData()
         ca_patchEpsilon = nullptr;
     }
 
-    if (ca_patchK != nullptr)
+    if (ca_patchOmega != nullptr)
     {
         for(int ipatch=0; ipatch<nPatches; ipatch++)
         {
-            if (ca_patchK[ipatch] != nullptr)
+            if (ca_patchOmega[ipatch] != nullptr)
             {
-                delete [] ca_patchK[ipatch];
-                ca_patchK[ipatch] = nullptr;
+                delete [] ca_patchOmega[ipatch];
+                ca_patchOmega[ipatch] = nullptr;
             }
         }
-        delete [] ca_patchK;
-        ca_patchK = nullptr;
+        delete [] ca_patchOmega;
+        ca_patchOmega = nullptr;
     }
 
     if (ca_patchNuT != nullptr)

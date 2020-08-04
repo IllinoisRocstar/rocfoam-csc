@@ -19,7 +19,7 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallName = "blade";
+    const std::string movingWallName = "flap";
 
 protected:
     const int nComponents{3};
@@ -71,7 +71,11 @@ private:
     int createSurfaceConnectivities();
     int createSurfaceData();
     int deleteSurfaceData();
+
+protected:
     int updateSurfaceData_incoming();
+
+private:
     int updateSurfaceData_outgoing();
     int registerSurfaceData(const char *name);
     int reconstSurfaceData(const char *name);
@@ -170,8 +174,9 @@ private:
 
     // Turbulence data
     double* ca_AlphaT{nullptr};
-    double* ca_Epsilon{nullptr};
     double* ca_K{nullptr};
+    double* ca_Epsilon{nullptr};
+    double* ca_Omega{nullptr};
     double* ca_NuT{nullptr};
     //-------------------------------------------
     
@@ -234,8 +239,9 @@ private:
 
     // Turbulence data
     double** ca_patchAlphaT{nullptr};
-    double** ca_patchEpsilon{nullptr};
     double** ca_patchK{nullptr};
+    double** ca_patchEpsilon{nullptr};
+    double** ca_patchOmega{nullptr};
     double** ca_patchNuT{nullptr};
     
     // Agent data

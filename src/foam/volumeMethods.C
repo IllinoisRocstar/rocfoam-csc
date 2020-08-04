@@ -135,9 +135,23 @@ int comFoam::createVolumeData()
         if (RASModel == "kEpsilon")
         {
             ca_AlphaT = new double[*ca_nCells]{0};
-            ca_Epsilon = new double[*ca_nCells]{0};
             ca_K = new double[*ca_nCells]{0};
+            ca_Epsilon = new double[*ca_nCells]{0};
             ca_NuT = new double[*ca_nCells]{0};
+        }
+        else if (RASModel == "kOmegaSST")
+        {
+            ca_AlphaT = new double[*ca_nCells]{0};
+            ca_K = new double[*ca_nCells]{0};
+            ca_Omega = new double[*ca_nCells]{0};
+            ca_NuT = new double[*ca_nCells]{0};
+        }
+        else
+        {
+            Info << "Warning: turbulence model not recongnized by the CSC Module."
+                 << endl;
+             
+            exit(-1);
         }
     }
 
@@ -220,16 +234,26 @@ int comFoam::updateVolumeData_outgoing()
                 ca_AlphaT[cellIndex] = alphat()[cellID];
             }
 
+            if (ca_K != nullptr)
+            {
+                const tmp<volScalarField>& k = turbulence.k();
+                ca_K[cellIndex] = k()[cellID];
+            }
+
             if (ca_Epsilon != nullptr)
             {
                 const tmp<volScalarField>& epsilon = turbulence.epsilon();
                 ca_Epsilon[cellIndex] = epsilon()[cellID];
             }
 
-            if (ca_K != nullptr)
+            if (ca_Omega != nullptr)
             {
-                const tmp<volScalarField>& k = turbulence.k();
-                ca_K[cellIndex] = k()[cellID];
+                const tmp<volScalarField>& omega = 
+                    mesh.objectRegistry::lookupObject<volScalarField>
+                    (
+                        "omega"
+                    );
+                ca_Omega[cellIndex] = omega()[cellID];
             }
 
             if (ca_NuT != nullptr)
@@ -399,6 +423,14 @@ int comFoam::registerVolumeData(const char *name)
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
+    if (ca_K != nullptr)
+    {
+        dataName = volName+std::string(".k");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
+        COM_set_array(    dataName, paneID, ca_K, 1);
+        Info << "  " << dataName.c_str() << " registered." << endl;
+    }
+
     if (ca_Epsilon != nullptr)
     {
         dataName = volName+std::string(".epsilon");
@@ -407,11 +439,11 @@ int comFoam::registerVolumeData(const char *name)
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
-    if (ca_K != nullptr)
+    if (ca_Omega != nullptr)
     {
-        dataName = volName+std::string(".k");
-        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
-        COM_set_array(    dataName, paneID, ca_K, 1);
+        dataName = volName+std::string(".omega");
+        COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "1/s");
+        COM_set_array(    dataName, paneID, ca_Omega, 1);
         Info << "  " << dataName.c_str() << " registered." << endl;
     }
 
@@ -468,6 +500,7 @@ int comFoam::reconstVolumeData(const char *name)
             nameTmp == "disp" ||
             nameTmp == "alphaT" ||
             nameTmp == "epsilon" ||
+            nameTmp == "omega" ||
             nameTmp == "k" ||
             nameTmp == "nuT"
             )
@@ -637,6 +670,16 @@ int comFoam::reconstVolumeData(const char *name)
                   << ", components = " << nComp << std::endl;
     }
 
+    dataName = std::string("k");
+    if (nameExists(dataItemNames, dataName))
+    {
+        regName = volName+std::string(".")+dataName;
+        COM_get_array(regName.c_str(), paneID, &ca_K, &nComp);
+        COM_get_size(regName.c_str(), paneID, &numElem);
+        std::cout << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp << std::endl;
+    }    
+
     dataName = std::string("epsilon");
     if (nameExists(dataItemNames, dataName))
     {
@@ -647,15 +690,15 @@ int comFoam::reconstVolumeData(const char *name)
                   << ", components = " << nComp << std::endl;
     }
 
-    dataName = std::string("k");
+    dataName = std::string("omega");
     if (nameExists(dataItemNames, dataName))
     {
         regName = volName+std::string(".")+dataName;
-        COM_get_array(regName.c_str(), paneID, &ca_K, &nComp);
+        COM_get_array(regName.c_str(), paneID, &ca_Omega, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
         std::cout << "    " << dataName.c_str() << " elements = " << numElem
                   << ", components = " << nComp << std::endl;
-    }    
+    }
 
     dataName = std::string("nuT");
     if (nameExists(dataItemNames, dataName))
@@ -776,16 +819,22 @@ int comFoam::deleteVolumeData()
         ca_AlphaT = nullptr;
     }
 
+    if (ca_K != nullptr)
+    {
+        delete [] ca_K;
+        ca_K = nullptr;
+    }
+
     if (ca_Epsilon != nullptr)
     {
         delete [] ca_Epsilon;
         ca_Epsilon = nullptr;
     }
 
-    if (ca_K != nullptr)
+    if (ca_Omega != nullptr)
     {
-        delete [] ca_K;
-        ca_K = nullptr;
+        delete [] ca_Omega;
+        ca_Omega = nullptr;
     }
 
     if (ca_NuT != nullptr)

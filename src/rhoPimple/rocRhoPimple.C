@@ -763,7 +763,7 @@ int rhoPimple::loop()
 }
 
 
-int rhoPimple::step(double* incomingDeltaT)
+int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -776,18 +776,14 @@ int rhoPimple::step(double* incomingDeltaT)
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
-
-
-    double mandatedTime{};
+    double mandatedTime{0};
     if (incomingDeltaT != nullptr)
     {
         mandatedTime = runTime.value() + *incomingDeltaT;
     }
 
-
-
-
     int count{0};
+    double alpha{0};
     bool continueIter{true};
     while
     (
@@ -837,24 +833,36 @@ int rhoPimple::step(double* incomingDeltaT)
             
             if (incomingDeltaT != nullptr)
             {
+                /*
+                // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                // THIS SHOULD BE FIXED LATER |
+                // ============================
                 if (expectedTime > mandatedTime)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
-                    runTime.setDeltaT(newDeltaT);
-                    Info << "NewdeltaT = " << runTime.deltaTValue()
+                    
+                    runTime.setDeltaTNoAdjust(newDeltaT);
+                    Info << "NewdeltaT = " << newDeltaT << " " << runTime.deltaTValue()
                          << endl;
                          
                     continueIter = false;
                 }
-                else if (expectedTime == mandatedTime)
+                else */
+                if (expectedTime >= mandatedTime)
                 {
                     continueIter = false;
                 }
-                //else if (expectedTime < mandatedTime)
-                //{
-                //    continueIter = true;
-                //}
-                 
+                if (std::abs( expectedTime - mandatedTime ) < 0.001*flowDeltaT)
+                {
+                    continueIter = false;
+                }
+
+                double incomingDeltaT_{*incomingDeltaT};
+                flowDeltaT = runTime.deltaTValue();
+                
+                alpha +=  flowDeltaT / incomingDeltaT_;
+                COM_call_function(*gmHandle, &alpha);
+                updateSurfaceData_incoming();
             }
             else
             {

@@ -62,19 +62,20 @@ int comFoam::deleteCSCdata()
 int comFoam::reconstCSCdata(const char *name)
 {
     deleteTempFiles(tmpFluidDir);
-    for (int iproc=0; iproc<ca_nProc; iproc++)
-    {
-        MPI_Barrier(winComm);
-        if(iproc!=ca_myRank)
-            continue;
+    MPI_Barrier(winComm);
+    //for (int iproc=0; iproc<ca_nProc; iproc++)
+    //{
+    //    MPI_Barrier(winComm);
+    //    if(iproc!=ca_myRank)
+    //        continue;
 
         reconstStatusData(name);
         reconstVolumeData(name);
         reconstFaceData(name);
         reconstSurfaceData(name);
         reconstFilesData(name);
-    }
-    MPI_Barrier(winComm);
+    //}
+    //MPI_Barrier(winComm);
 
     return 0;
 }
@@ -286,10 +287,10 @@ void comFoam::initialize
         argv = nullptr;
     }
 
-    //if (*manInitHandle > 0)
-    //    COM_call_function(*manInitHandle,
-    //                      newSurfName.c_str(),
-    //                      newVolName.c_str());
+    if (*manInitHandle > 0)
+        COM_call_function(*manInitHandle,
+                          newSurfName.c_str(),
+                          newVolName.c_str());
 }
 
 void comFoam::update_solution
@@ -316,14 +317,15 @@ void comFoam::update_solution
              << " are not the same " << *ca_time 
              << " vs " << *currentTime << endl;
 
-    if (*gmHandle >= 0)
-    {
-        double alpha{1};
-        COM_call_function(*gmHandle, &alpha);
-    }
+//MOVED TO SOLVER STEP METHOD
+//    if (*gmHandle >= 0)
+//    {
+//        double alpha{1};
+//        COM_call_function(*gmHandle, &alpha);
+//        updateSurfaceData_incoming();
+//    }
 
-    updateSurfaceData_incoming();
-    step(timeStep);
+    step(timeStep, gmHandle);
     updateCSCdata();
 }
 
