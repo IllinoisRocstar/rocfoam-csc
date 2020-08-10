@@ -1000,27 +1000,14 @@ int comFoam::updateSurfaceData_incoming(const int& count)
         Info << "rocFoam.updateSurfaceData_incoming:" << endl;
 
         dynamicFvMesh& mesh(*meshPtr);
-        
 
-//const motionSolver& motion_ =
-//    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-//const pointField& pointDisplacement =
-//    refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-
+        const motionSolver& motion_ =
+            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+        const pointVectorField& pointDisplacement =
+            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
 
         if (pointDisplacementNewPtr == nullptr)
         {
-
-//std::cout << "ALLOCATING. PRESS ENTER ";
-//std::cin.get();
-
-
-            const motionSolver& motion_ =
-                refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-            const pointField& pointDisplacement =
-                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-
-
             pointDisplacementNewPtr = new pointVectorField
             (
                 IOobject
@@ -1044,15 +1031,6 @@ int comFoam::updateSurfaceData_incoming(const int& count)
         pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
-        int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
-        //const fvPatch& patchWallFaces = mesh.boundary()[patchWallID];
-
-        Info << "rocFoam.updateSurfaceData_incoming:"
-             << " Assigning pointDisplacement to"
-             << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
-             << endl;
-
-        //int patchID{-1};
         forAll(patches, ipatch)
         {
             const polyPatch& patch = patches[ipatch];
@@ -1081,27 +1059,6 @@ int comFoam::updateSurfaceData_incoming(const int& count)
                     int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
                 
                     //const label& pointID = patch.meshPoints()[ipoint];  // Node index
-
-/*
-if (globalPointID == 5)
-{
-std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-std::cout << "XYZ[" << globalPointID << "] = "
-          << mesh.points()[globalPointID][0] << " "
-          << mesh.points()[globalPointID][1] << " "
-          << mesh.points()[globalPointID][2] << std::endl;
-}
-
-if (globalPointID == 5)
-{
-std::cout << "Disp[" 
-          << globalPointID << "] = " 
-          << pointDisplacement[globalPointID][0] << " "
-          << pointDisplacement[globalPointID][1] << " "
-          << pointDisplacement[globalPointID][2] << std::endl;
-}
-
-*/
                     if (count == 1)
                     {
                         for(int jcomp=0; jcomp<nComponents; jcomp++)
@@ -1118,45 +1075,13 @@ std::cout << "Disp["
                             += ca_patchDisp[ipatch][localIndex] - patchDispOld[ipatch][localIndex];
                     }
 
-/*
-if (globalPointID == 5)
-{
-
-std::cout << "------------------------------------" << std::endl;
-
-std::cout << "count = " << count << std::endl;
-
-std::cout << "ca_patchDisp[" << ipatch <<"]["
-          << ipoint << "] = " 
-          << ca_patchDisp[ipatch][ipoint*nComponents+0] << " "
-          << ca_patchDisp[ipatch][ipoint*nComponents+1] << " "
-          << ca_patchDisp[ipatch][ipoint*nComponents+2] << std::endl;
-
-std::cout << "patchDispOld[" << ipatch <<"]["
-          << ipoint << "] = " 
-          << patchDispOld[ipatch][ipoint*nComponents+0] << " "
-          << patchDispOld[ipatch][ipoint*nComponents+0] << " "
-          << patchDispOld[ipatch][ipoint*nComponents+0] << std::endl;
-
-std::cout << "DispNew[" << globalPointID 
-          << "] = "
-          << pointDisplacementNew[globalPointID][0] << " "
-          << pointDisplacementNew[globalPointID][1] << " "
-          << pointDisplacementNew[globalPointID][2] << std::endl;
-
-std::cout << "------------------------------------" << std::endl;
-std::cout << std::endl;
-}
-*/
-                        for(int jcomp=0; jcomp<nComponents; jcomp++)
-                        {
-                            int localIndex = jcomp+ipoint*nComponents;
-                            patchDispOld[ipatch][localIndex] =
-                                ca_patchDisp[ipatch][localIndex];
-                        }
-
+                    for(int jcomp=0; jcomp<nComponents; jcomp++)
+                    {
+                        int localIndex = jcomp+ipoint*nComponents;
+                        patchDispOld[ipatch][localIndex] =
+                            ca_patchDisp[ipatch][localIndex];
+                    }
                 }
-                break;
             }
         }
     }
