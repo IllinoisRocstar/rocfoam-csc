@@ -291,9 +291,17 @@ int comDrvOutput(std::string winName_, std::string suffix_)
 
         std::string path = std::string("./")
                            + winName+"/";
+        if (count==0)
+        {
+            if (myRank == 0)
+            {
+                std::string a = "rmdir /s /q " + path;
+                system(a.c_str());
+            }
+            MPI_Barrier(newComm);
+        }
 
         std::string fullPath = path + targetName+std::string("_");
-
         std::cout << "  Target window = " << lookUpWindow << std::endl;
         std::cout << "  What to write = " << whatToWrite << std::endl;
         std::cout << "  Path = " << fullPath << std::endl;

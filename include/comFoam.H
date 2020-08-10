@@ -19,7 +19,7 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallName = "flap";
+    const std::string movingWallName = "blade";
 
 protected:
     const int nComponents{3};
@@ -73,7 +73,7 @@ private:
     int deleteSurfaceData();
 
 protected:
-    int updateSurfaceData_incoming();
+    int updateSurfaceData_incoming(const int& count = 1);
 
 private:
     int updateSurfaceData_outgoing();
@@ -249,7 +249,10 @@ private:
     double** ca_patchNf{nullptr};
     double** ca_patchSf{nullptr};
     double** ca_patchTrac{nullptr};
+
     double** ca_patchDisp{nullptr};     //Displacement
+    double** patchDispOld{nullptr};     //Displacement
+
     double** ca_patchMassFlux{nullptr}; //Mass flux (scalar)
     double** ca_patchMomentum{nullptr}; //Momentum flux (vector)
     double** ca_patchFlameT{nullptr};   //Flame Temperature (scalar)

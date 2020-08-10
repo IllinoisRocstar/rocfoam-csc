@@ -628,7 +628,7 @@ int comFoam::createFieldFiles
                                              brckStart,
                                              brckEnd);
 
-                        if (valueStart<=brckStart || brckEnd>=valueStart)
+                        if (valueStart<=brckStart || brckEnd<=valueStart)
                             continue;
                     }
                     else

@@ -490,6 +490,8 @@ int comFoam::createSurfaceData()
     //ca_patchSf = new double*[nPatches];
     ca_patchTrac = new double*[nPatches]{};
     ca_patchDisp = new double*[nPatches]{};
+    patchDispOld = new double*[nPatches]{};
+
     ca_patchMassFlux = new double*[nPatches]{};
     ca_patchFlameT   = new double*[nPatches]{};
     ca_patchMomentum = new double*[nPatches]{};
@@ -575,6 +577,10 @@ int comFoam::createSurfaceData()
         // input quantities to the fluid module
         if (ca_patchDisp != nullptr)
             ca_patchDisp[ipatch] = new double[nTotal_]{};
+
+        if (patchDispOld != nullptr)
+            patchDispOld[ipatch] = new double[nTotal_]{};
+
         if (ca_patchMassFlux != nullptr)
             ca_patchMassFlux[ipatch] = new double[nfaces]{};
 
@@ -790,6 +796,8 @@ int comFoam::updateSurfaceData_outgoing()
                     }
                     ca_patchP[ipatch][faceIndex] = p.boundaryField()[ipatch][localFaceID];
 
+
+/*
 if (*ca_bcflag[ipatch]<2)
 {
     int globalFaceID = localFaceID + patches[ipatch].start();
@@ -813,7 +821,7 @@ forAll(pointsList, ipoint)
 
 std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] << std::endl;
 }
-
+*/
 
 
                     if (ca_patchT != nullptr)
@@ -962,12 +970,12 @@ std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] 
         */
     }
 
-std::cin.get();
+//std::cin.get();
     
     return 0;
 }
 
-int comFoam::updateSurfaceData_incoming()
+int comFoam::updateSurfaceData_incoming(const int& count)
 {
     //ca_patchDisp: Displacement
     //ca_patchMassFlux: Mass flux (scalar)
@@ -979,8 +987,25 @@ int comFoam::updateSurfaceData_incoming()
     {
         dynamicFvMesh& mesh(*meshPtr);
         
+
+//const motionSolver& motion_ =
+//    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+//const pointField& pointDisplacement =
+//    refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
+
         if (pointDisplacementNewPtr == nullptr)
         {
+
+//std::cout << "ALLOCATING. PRESS ENTER ";
+//std::cin.get();
+
+
+            const motionSolver& motion_ =
+                refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+            const pointField& pointDisplacement =
+                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+
 
             pointDisplacementNewPtr = new pointVectorField
             (
@@ -994,20 +1019,15 @@ int comFoam::updateSurfaceData_incoming()
                 ),
                 pointMesh::New(mesh)
             );
+
+            pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
+            //const pointField&    points = mesh.points();
+            forAll(pointDisplacement, ipoint)
+            {
+                pointDisplacementNew[ipoint] = pointDisplacement[ipoint];
+            }
         }   
         pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
-
-        
-        const motionSolver& motion_ =
-            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-        const pointField& pointDisplacement =
-                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-        
-        const pointField&    points = mesh.points();
-        forAll(points, ipoint)
-        {
-            pointDisplacementNew[ipoint] = pointDisplacement[ipoint];
-        }
 
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
         int patchFSIid = mesh.boundaryMesh().findPatchID(movingWallName);
@@ -1017,7 +1037,6 @@ int comFoam::updateSurfaceData_incoming()
              << " Assigning pointDisplacement to"
              << " patch[" << patchFSIid << "]=" << movingWallName << " patch."
              << endl;
-
 
         //int patchID{-1};
         forAll(patches, ipatch)
@@ -1043,26 +1062,80 @@ int comFoam::updateSurfaceData_incoming()
                 
                     //const label& pointID = patch.meshPoints()[ipoint];  // Node index
 
+/*
+if (globalPointID == 5)
+{
+std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+std::cout << "XYZ[" << globalPointID << "] = "
+          << mesh.points()[globalPointID][0] << " "
+          << mesh.points()[globalPointID][1] << " "
+          << mesh.points()[globalPointID][2] << std::endl;
+}
 
-std::cout << "ca_patchDisp[" << ipatch <<"]["
-          << ipoint << "] = ";
+if (globalPointID == 5)
+{
+std::cout << "Disp[" 
+          << globalPointID << "] = " 
+          << pointDisplacement[globalPointID][0] << " "
+          << pointDisplacement[globalPointID][1] << " "
+          << pointDisplacement[globalPointID][2] << std::endl;
+}
+
+*/
+                    if (count == 1)
+                    {
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localIndex = jcomp+ipoint*nComponents;
+                            patchDispOld[ipatch][localIndex] = 0;
+                        }
+                    }
 
                     for(int jcomp=0; jcomp<nComponents; jcomp++)
                     {
-
                         int localIndex = jcomp+ipoint*nComponents;
                         pointDisplacementNew[globalPointID][jcomp]
-                            = +ca_patchDisp[ipatch][localIndex];
-
-std::cout << ca_patchDisp[ipatch][localIndex] << " " ;
-
+                            += ca_patchDisp[ipatch][localIndex] - patchDispOld[ipatch][localIndex];
                     }
+
+/*
+if (globalPointID == 5)
+{
+
+std::cout << "------------------------------------" << std::endl;
+
+std::cout << "count = " << count << std::endl;
+
+std::cout << "ca_patchDisp[" << ipatch <<"]["
+          << ipoint << "] = " 
+          << ca_patchDisp[ipatch][ipoint*nComponents+0] << " "
+          << ca_patchDisp[ipatch][ipoint*nComponents+1] << " "
+          << ca_patchDisp[ipatch][ipoint*nComponents+2] << std::endl;
+
+std::cout << "patchDispOld[" << ipatch <<"]["
+          << ipoint << "] = " 
+          << patchDispOld[ipatch][ipoint*nComponents+0] << " "
+          << patchDispOld[ipatch][ipoint*nComponents+0] << " "
+          << patchDispOld[ipatch][ipoint*nComponents+0] << std::endl;
+
+std::cout << "DispNew[" << globalPointID 
+          << "] = "
+          << pointDisplacementNew[globalPointID][0] << " "
+          << pointDisplacementNew[globalPointID][1] << " "
+          << pointDisplacementNew[globalPointID][2] << std::endl;
+
+std::cout << "------------------------------------" << std::endl;
 std::cout << std::endl;
+}
+*/
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localIndex = jcomp+ipoint*nComponents;
+                            patchDispOld[ipatch][localIndex] =
+                                ca_patchDisp[ipatch][localIndex];
+                        }
 
                 }
-
-std::cin.get();
-
                 break;
             }
         }
@@ -1928,7 +2001,10 @@ int comFoam::reconstSurfaceData(const char *name)
 
     dataName = std::string("du_alp");
     if (nameExists(dataItemNames, dataName))
+    {
         ca_patchDisp = new double*[nPatches]{};
+        patchDispOld = new double*[nPatches]{};
+    }
 
     dataName = std::string("mdot_alp");
     if (nameExists(dataItemNames, dataName))
@@ -2026,6 +2102,9 @@ int comFoam::reconstSurfaceData(const char *name)
         COM_get_size(regName.c_str(), paneID, &nPoints);
         std::cout << "    " << dataName.c_str() << " points = " << nPoints
              << ", components = " << nComp << std::endl;
+
+        if (patchDispOld != nullptr)
+            patchDispOld[ipatch] = new double[nPoints*nComp]{};
 
         int nConn;
         int numElem;
@@ -2736,6 +2815,20 @@ int comFoam::deleteSurfaceData()
         }
         delete [] ca_patchDisp;
         ca_patchDisp = nullptr;
+    }
+
+    if (patchDispOld != nullptr)
+    {
+        for(int ipatch=0; ipatch<nPatches; ipatch++)
+        {
+            if (patchDispOld[ipatch] != nullptr)
+            {
+                delete [] patchDispOld[ipatch];
+                patchDispOld[ipatch] = nullptr;
+            }
+        }
+        delete [] patchDispOld;
+        patchDispOld = nullptr;
     }
 
     if (ca_patchMassFlux != nullptr)
