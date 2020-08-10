@@ -763,7 +763,7 @@ int rhoPimple::loop()
 }
 
 
-int rhoPimple::step(double* incomingDeltaT)
+int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -776,18 +776,14 @@ int rhoPimple::step(double* incomingDeltaT)
     compressible::turbulenceModel &turbulence(*turbulencePtr);
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
-
-
-    double mandatedTime{};
+    double mandatedTime{0};
     if (incomingDeltaT != nullptr)
     {
         mandatedTime = runTime.value() + *incomingDeltaT;
     }
 
-
-
-
     int count{0};
+    double alpha{0};
     bool continueIter{true};
     while
     (
@@ -837,30 +833,74 @@ int rhoPimple::step(double* incomingDeltaT)
             
             if (incomingDeltaT != nullptr)
             {
+                /*
+                // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                // THIS SHOULD BE FIXED LATER |
+                // ============================
                 if (expectedTime > mandatedTime)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
-                    runTime.setDeltaT(newDeltaT);
-                    Info << "NewdeltaT = " << runTime.deltaTValue()
+                    
+                    runTime.setDeltaTNoAdjust(newDeltaT);
+                    Info << "NewdeltaT = " << newDeltaT << " " << runTime.deltaTValue()
                          << endl;
                          
                     continueIter = false;
                 }
-                else if (expectedTime == mandatedTime)
+                else */
+                if (expectedTime >= mandatedTime)
                 {
                     continueIter = false;
                 }
-                //else if (expectedTime < mandatedTime)
-                //{
-                //    continueIter = true;
-                //}
-                 
+                if (std::abs( expectedTime - mandatedTime ) < 0.001*flowDeltaT)
+                {
+                    continueIter = false;
+                }
+
+                double incomingDeltaT_{*incomingDeltaT};
+                flowDeltaT = runTime.deltaTValue();
+                
+                alpha +=  flowDeltaT / incomingDeltaT_;
+                COM_call_function(*gmHandle, &alpha);
+
+//std::cout << " ALPHA = " << alpha << std::endl;
+
+                updateSurfaceData_incoming(count);
+
+/*
+const polyBoundaryMesh& patches = mesh.boundaryMesh();
+forAll(patches, ipatch)
+{
+    if (*ca_bcflag[ipatch] == 2)
+        continue;
+
+    const polyPatch& patch = patches[ipatch];
+    const labelList& patchPoints = patch.meshPoints();
+    int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
+    forAll(patchPoints, ipoint)
+    {
+        int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+
+        if (globalPointID == 5)
+        {
+        std::cout << "ca_patchDisp[" << ipatch <<"]["
+                << ipoint << "] = " 
+                << ca_patchDisp[ipatch][ipoint*nComponents+0] << " "
+                << ca_patchDisp[ipatch][ipoint*nComponents+1] << " "
+                << ca_patchDisp[ipatch][ipoint*nComponents+2] << std::endl;
+        }
+    }
+}
+*/
+
             }
             else
             {
                 continueIter = false;
             }
         }
+
+//std::cin.get();
 
         runTime++;
 
@@ -952,6 +992,10 @@ int rhoPimple::step(double* incomingDeltaT)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl
              << endl;
+
+
+//std::cin.get();
+
     }
 
     stepStat = 0;

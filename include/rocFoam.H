@@ -71,7 +71,9 @@ protected:
     virtual int initFOAM() { return 0; };
     virtual int initFOAM(int argc, char *argv[]) { return 0; };
     virtual int loop() { return 0; };
-    virtual int step(double* newDeltaT = nullptr) { return 0; };
+    //virtual int step(double* newDeltaT = nullptr) { return 0; };
+    virtual int step(double* newDeltaT = nullptr,
+                     int* handle = nullptr){ return 0; };
     virtual int finalizeFoam();
     //--------------------------------------
 

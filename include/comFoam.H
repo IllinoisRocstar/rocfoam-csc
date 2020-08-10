@@ -71,7 +71,11 @@ private:
     int createSurfaceConnectivities();
     int createSurfaceData();
     int deleteSurfaceData();
-    int updateSurfaceData_incoming();
+
+protected:
+    int updateSurfaceData_incoming(const int& count = 1);
+
+private:
     int updateSurfaceData_outgoing();
     int registerSurfaceData(const char *name);
     int reconstSurfaceData(const char *name);
@@ -170,8 +174,9 @@ private:
 
     // Turbulence data
     double* ca_AlphaT{nullptr};
-    double* ca_Epsilon{nullptr};
     double* ca_K{nullptr};
+    double* ca_Epsilon{nullptr};
+    double* ca_Omega{nullptr};
     double* ca_NuT{nullptr};
     //-------------------------------------------
     
@@ -234,8 +239,9 @@ private:
 
     // Turbulence data
     double** ca_patchAlphaT{nullptr};
-    double** ca_patchEpsilon{nullptr};
     double** ca_patchK{nullptr};
+    double** ca_patchEpsilon{nullptr};
+    double** ca_patchOmega{nullptr};
     double** ca_patchNuT{nullptr};
     
     // Agent data
@@ -243,7 +249,10 @@ private:
     double** ca_patchNf{nullptr};
     double** ca_patchSf{nullptr};
     double** ca_patchTrac{nullptr};
+
     double** ca_patchDisp{nullptr};     //Displacement
+    double** patchDispOld{nullptr};     //Displacement
+
     double** ca_patchMassFlux{nullptr}; //Mass flux (scalar)
     double** ca_patchMomentum{nullptr}; //Momentum flux (vector)
     double** ca_patchFlameT{nullptr};   //Flame Temperature (scalar)

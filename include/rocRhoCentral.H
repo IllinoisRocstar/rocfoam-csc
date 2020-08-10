@@ -58,7 +58,8 @@ public:
     //  Main methods ^^^^^^^^^^^^^^^^^^^^^^^
     int initFOAM(int argc, char *argv[]);
     int loop();
-    int step(double* newDeltaT = nullptr);
+    int step(double* newDeltaT = nullptr,
+             int* handle = nullptr);
     int finalizeFoam();
     //--------------------------------------
 };
