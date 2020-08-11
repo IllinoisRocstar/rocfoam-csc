@@ -1006,6 +1006,7 @@ int comFoam::updateSurfaceData_incoming(const int& count)
         const pointVectorField& pointDisplacement =
             refCast<const displacementMotionSolver>(motion_).pointDisplacement();
 
+        
         if (pointDisplacementNewPtr == nullptr)
         {
             pointDisplacementNewPtr = new pointVectorField
@@ -1027,7 +1028,7 @@ int comFoam::updateSurfaceData_incoming(const int& count)
             {
                 pointDisplacementNew[ipoint] = pointDisplacement[ipoint];
             }
-        }   
+        }
         pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
         const polyBoundaryMesh& patches = mesh.boundaryMesh();

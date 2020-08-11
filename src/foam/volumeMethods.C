@@ -99,7 +99,28 @@ int comFoam::createVolumeData()
     if (*ca_isDynamicFvMesh == 1 &&
         dynamicSolverType == "displacementLaplacian")
     {
-        ca_Disp = new double[nTotal]{0};
+
+        if (ca_Disp == nullptr)
+            ca_Disp = new double[nTotal]{0};
+
+        /*
+        dynamicFvMesh& mesh(*meshPtr);
+        if (pointDisplacementNewPtr == nullptr)
+        {
+            pointDisplacementNewPtr = new pointVectorField
+            (
+                IOobject
+                (
+                    "pointDisplacementNew",
+                    mesh.time().timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                pointMesh::New(mesh)
+            );
+        }
+        */
     }
     
     // Field-data
@@ -180,22 +201,30 @@ int comFoam::updateVolumeData_outgoing()
         const motionSolver& motion_ =
             refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
 
-        const pointField& PointDisplacement =
+        const pointVectorField& pointDisplacement_ =
                 refCast<const displacementMotionSolver>(motion_).pointDisplacement();
 
-        if (PointDisplacement.size())
+        if (pointDisplacement_.size())
         {
             forAll(points, ipoint)
             {
                 for(int jcomp=0; jcomp<nComponents; jcomp++)
                 {
                     ca_Disp[ipoint*nComponents+jcomp]
-                        = PointDisplacement[ipoint][jcomp];
+                        = pointDisplacement_[ipoint][jcomp];
                 }
             }
         }
+
+        if (pointDisplacementNewPtr != nullptr)
+        {
+            pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
+            forAll(pointDisplacement_, ipoint)
+            {
+                pointDisplacementNew[ipoint] = pointDisplacement_[ipoint];
+            }
+        }
     }
-    
     
     // Cell-centered data ^^^^^^^^^^^^^^^^^^^^^^^
     const volScalarField& p(*pPtr);
