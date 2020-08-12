@@ -295,7 +295,7 @@ int comDrvOutput(std::string winName_, std::string suffix_)
         {
             if (myRank == 0)
             {
-                std::string a = "rmdir /s /q " + path;
+                std::string a = "rm -r " + path;
                 system(a.c_str());
             }
             MPI_Barrier(newComm);

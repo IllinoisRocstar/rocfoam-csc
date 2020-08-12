@@ -1034,14 +1034,24 @@ int comFoam::updateSurfaceData_incoming(const int& count)
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
         forAll(patches, ipatch)
         {
-            const polyPatch& patch = patches[ipatch];
+            int procStartIndex{0};
+            for (int iproc=0; iproc<ca_myRank; iproc++)
+            {
+                procStartIndex += ca_nPatches[iproc];
+            }
+            int index  = procStartIndex + ipatch;
+            int nfacesTotal = ca_patchSize[index];
+            if (nfacesTotal == 0)
+                continue;
 
+            const polyPatch& patch = patches[ipatch];
             if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
             {
-                Info << " Assigning pointDisplacement to"
-                        << " patch[" << ipatch << "]="
-                        << movingWallTypeName << " patch."
-                        << endl;
+                // std::cout << " Proccessor " << ca_myRank
+                //           << ", Assigning pointDisplacement to"
+                //           << " patch[" << ipatch << "] = " << patchNameStr[ipatch]
+                //           //<< movingWallTypeName << " patch."
+                //           << std::endl;
 
                 // Loop over all nodes of boundary patch
                 const labelList& patchPoints = patch.meshPoints();
@@ -1053,6 +1063,7 @@ int comFoam::updateSurfaceData_incoming(const int& count)
                 {
                     std::cout << "Warning: ca_npoints = 0 "
                               << std::endl;
+                    exit(-1);
                 }
                 
                 forAll(patchPoints, ipoint)

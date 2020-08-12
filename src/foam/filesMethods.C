@@ -1899,9 +1899,9 @@ int comFoam::reconstFilesData(const char *name)
     // Register file status ^^^^^^^^^^^^^^^^^^^^^
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "    file[" << ifile << "], size = "
-                  << ca_fileSize[ifile] << ", "
-                  << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] 
+        std::cout << "    file[" << ifile << "], "
+                  << " path = " << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] << ", "
+                  << " size = " << ca_fileSize[ifile] 
                   << " retreived." << std::endl;
         /*
         std::cout << "    fileName[" << ifile << "] = "
