@@ -164,6 +164,7 @@ private:
     // Field Data
     double* ca_Points{nullptr};
     double* ca_Disp{nullptr};
+    bool*   pointUpdated{nullptr}; //Keep track of updated FSI points
 
     double* ca_Vel{nullptr};
     double* ca_P{nullptr};
@@ -250,8 +251,9 @@ private:
     double** ca_patchSf{nullptr};
     double** ca_patchTrac{nullptr};
 
-    double** ca_patchDisp{nullptr};     //Displacement
-    double** patchDispOld{nullptr};     //Displacement
+    double** ca_patchDisp{nullptr};      //Displacement
+    double** patchDispOld{nullptr};      //Displacement
+    //bool**   patchPointUpdated{nullptr}; //Keep track of updated pathcPoints
 
     double** ca_patchMassFlux{nullptr}; //Mass flux (scalar)
     double** ca_patchMomentum{nullptr}; //Momentum flux (vector)

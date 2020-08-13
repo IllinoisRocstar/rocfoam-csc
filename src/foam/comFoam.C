@@ -204,7 +204,6 @@ int comFoam::flowStep()
     Foam::Info << "rocFoam.flowStep: Stepping flow solver."
                << Foam::endl;
 
-    updateSurfaceData_incoming();
     step();
     updateCSCdata();
 

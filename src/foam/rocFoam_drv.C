@@ -296,7 +296,13 @@ int comDrvOutput(std::string winName_, std::string suffix_)
             if (myRank == 0)
             {
                 std::string a = "rm -r " + path;
-                system(a.c_str());
+                int status = system(a.c_str());
+
+                if (status == 0)
+                    std::cout << "Warning: The following command is not available"
+                              << std::endl
+                              << "\" " << a.c_str() << " \""
+                              << std::endl;
             }
             MPI_Barrier(newComm);
         }

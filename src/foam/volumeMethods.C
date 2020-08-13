@@ -92,7 +92,8 @@ int comFoam::createVolumeConnectivities()
 
 int comFoam::createVolumeData()
 {
-    int nTotal = *ca_nPoints * nComponents;
+    int npoints = *ca_nPoints;
+    int nTotal  = npoints * nComponents;
     ca_Points = new double[nTotal]{0};
 
     std::string dynamicSolverType = ca_dynamicSolverType;
@@ -102,6 +103,9 @@ int comFoam::createVolumeData()
 
         if (ca_Disp == nullptr)
             ca_Disp = new double[nTotal]{0};
+
+        if (pointUpdated == nullptr)
+            pointUpdated = new bool[npoints]{false};
 
         /*
         dynamicFvMesh& mesh(*meshPtr);
@@ -686,6 +690,9 @@ int comFoam::reconstVolumeData(const char *name)
         COM_get_size(regName.c_str(), paneID, &numElem);
         std::cout << "    " << dataName.c_str() << " elements = " << numElem
                   << ", components = " << nComp << std::endl;
+
+        if (pointUpdated == nullptr)
+            pointUpdated = new bool[numElem]{false};
     }
 
     // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -827,6 +834,12 @@ int comFoam::deleteVolumeData()
     {
         delete [] ca_Disp;
         ca_Disp = nullptr;
+    }
+
+    if (pointUpdated != nullptr)
+    {
+        delete [] pointUpdated;
+        pointUpdated = nullptr;
     }
 
     if (ca_nPoints!= nullptr)

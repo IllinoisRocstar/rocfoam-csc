@@ -424,6 +424,8 @@ int comFoam::createSurfaceData()
 
     // Field-data
     ca_patchPoints = new double*[nPatches]{};
+    // patchPointUpdated = new bool*[nPatches]{};
+
     ca_patchVel    = new double*[nPatches]{};
     ca_patchP      = new double*[nPatches]{};
 
@@ -491,6 +493,7 @@ int comFoam::createSurfaceData()
     ca_patchTrac = new double*[nPatches]{};
     ca_patchDisp = new double*[nPatches]{};
     patchDispOld = new double*[nPatches]{};
+    // patchPointUpdated = new bool*[nPatches]{};
 
     ca_patchMassFlux = new double*[nPatches]{};
     ca_patchFlameT   = new double*[nPatches]{};
@@ -586,6 +589,9 @@ int comFoam::createSurfaceData()
 
         if (patchDispOld != nullptr)
             patchDispOld[ipatch] = new double[nTotal_]{};
+
+        // if (patchPointUpdated != nullptr)
+        //     patchPointUpdated[ipatch] = new bool[npoints]{};
 
         if (ca_patchMassFlux != nullptr)
             ca_patchMassFlux[ipatch] = new double[nfaces]{};
@@ -1031,6 +1037,26 @@ int comFoam::updateSurfaceData_incoming(const int& count)
         }
         pointVectorField &pointDisplacementNew(*pointDisplacementNewPtr);
 
+        // This loop added to assure that each patchPoint is updated once;
+        // otherwise mutual points might get updated multiple times.
+        // Initilaization here, usage next loop
+        /*
+        const polyBoundaryMesh& patches = mesh.boundaryMesh();
+        forAll(patches, ipatch)
+        {
+            const polyPatch& patch = patches[ipatch];
+            const labelList& patchPoints = patch.meshPoints();
+            forAll(patchPoints, ipoint)
+            {
+                patchPointUpdated[ipatch][ipoint] = false;
+            }
+        }*/
+
+        forAll(pointDisplacement, ipoint)
+        {
+            pointUpdated[ipoint] = false;
+        }
+
         const polyBoundaryMesh& patches = mesh.boundaryMesh();
         forAll(patches, ipatch)
         {
@@ -1069,7 +1095,15 @@ int comFoam::updateSurfaceData_incoming(const int& count)
                 forAll(patchPoints, ipoint)
                 {
                     int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
-                
+
+                    if (pointUpdated[globalPointID] == true)
+                    {
+                        // std::cout << "Patch " << ipatch 
+                        //           << " Point " << ipoint
+                        //           << " already updated." << std::endl;
+                        continue;
+                    }
+
                     //const label& pointID = patch.meshPoints()[ipoint];  // Node index
                     if (count == 1)
                     {
@@ -1093,6 +1127,8 @@ int comFoam::updateSurfaceData_incoming(const int& count)
                         patchDispOld[ipatch][localIndex] =
                             ca_patchDisp[ipatch][localIndex];
                     }
+
+                    pointUpdated[globalPointID] = true;
                 }
             }
         }
@@ -1961,6 +1997,7 @@ int comFoam::reconstSurfaceData(const char *name)
     {
         ca_patchDisp = new double*[nPatches]{};
         patchDispOld = new double*[nPatches]{};
+        // patchPointUpdated = new bool*[nPatches]{};
     }
 
     dataName = std::string("mdot_alp");
@@ -2062,6 +2099,9 @@ int comFoam::reconstSurfaceData(const char *name)
 
         if (patchDispOld != nullptr)
             patchDispOld[ipatch] = new double[nPoints*nComp]{};
+
+        // if (patchPointUpdated != nullptr)
+        //     patchPointUpdated[ipatch] = new bool[nPoints]{};
 
         int nConn;
         int numElem;
@@ -2787,6 +2827,20 @@ int comFoam::deleteSurfaceData()
         delete [] patchDispOld;
         patchDispOld = nullptr;
     }
+
+    // if (patchPointUpdated != nullptr)
+    // {
+    //     for(int ipatch=0; ipatch<nPatches; ipatch++)
+    //     {
+    //         if (patchPointUpdated[ipatch] != nullptr)
+    //         {
+    //             delete [] patchPointUpdated[ipatch];
+    //             patchPointUpdated[ipatch] = nullptr;
+    //         }
+    //     }
+    //     delete [] patchPointUpdated;
+    //     patchPointUpdated = nullptr;
+    // }
 
     if (ca_patchMassFlux != nullptr)
     {
