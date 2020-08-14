@@ -861,46 +861,19 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 flowDeltaT = runTime.deltaTValue();
                 
                 alpha +=  flowDeltaT / incomingDeltaT_;
-                COM_call_function(*gmHandle, &alpha);
 
-//std::cout << " ALPHA = " << alpha << std::endl;
-
-                updateSurfaceData_incoming(count);
-
-/*
-const polyBoundaryMesh& patches = mesh.boundaryMesh();
-forAll(patches, ipatch)
-{
-    if (*ca_bcflag[ipatch] == 2)
-        continue;
-
-    const polyPatch& patch = patches[ipatch];
-    const labelList& patchPoints = patch.meshPoints();
-    int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
-    forAll(patchPoints, ipoint)
-    {
-        int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
-
-        if (globalPointID == 5)
-        {
-        std::cout << "ca_patchDisp[" << ipatch <<"]["
-                << ipoint << "] = " 
-                << ca_patchDisp[ipatch][ipoint*nComponents+0] << " "
-                << ca_patchDisp[ipatch][ipoint*nComponents+1] << " "
-                << ca_patchDisp[ipatch][ipoint*nComponents+2] << std::endl;
-        }
-    }
-}
-*/
-
+                if (gmHandle != nullptr && *gmHandle >= 0)
+                {
+                    COM_call_function(*gmHandle, &alpha);
+                    updateSurfaceData_incoming(count);
+                }
             }
             else
             {
+                updateSurfaceData_incoming();
                 continueIter = false;
             }
         }
-
-//std::cin.get();
 
         runTime++;
 
