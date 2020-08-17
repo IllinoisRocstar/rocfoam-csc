@@ -842,6 +842,12 @@ int comFoam::deleteVolumeData()
         pointUpdated = nullptr;
     }
 
+    if (pointDisplacementNewPtr != nullptr)
+    {
+        delete pointDisplacementNewPtr;
+        pointDisplacementNewPtr = nullptr;
+    }
+
     if (ca_nPoints!= nullptr)
     {
         delete ca_nPoints;

@@ -1003,7 +1003,7 @@ int comFoam::updateSurfaceData_incoming(const int& count)
     if (*ca_isDynamicFvMesh == 1 &&
         dynamicSolverType == "displacementLaplacian")
     {
-        Info << "rocFoam.updateSurfaceData_incoming:" << endl;
+        Info << "rocFoam.updateSurfaceData_incoming." << endl;
 
         dynamicFvMesh& mesh(*meshPtr);
 

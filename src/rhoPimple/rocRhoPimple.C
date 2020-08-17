@@ -795,6 +795,15 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
         Info << ">>MultiPhysics outer iteration "
              << count << "<<" << endl;
 
+        if (modifiedDeltaT)
+        {
+            runTime.setDeltaTNoAdjust(unmodifiedDeltaTvalue);
+        }
+
+//std::cout << "deltaTO = " << runTime.deltaT0Value() << std::endl;
+//std::cout << "deltaT  = " << runTime.deltaTValue() << std::endl;
+
+
         //  readDyMControls.H  ^^^^^^^^^^^
         readDyMControls();
         // -------------------------------
@@ -833,21 +842,31 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
             
             if (incomingDeltaT != nullptr)
             {
-                /*
                 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 // THIS SHOULD BE FIXED LATER |
                 // ============================
+                
+                modifiedDeltaT = false;
                 if (expectedTime > mandatedTime)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
                     
                     runTime.setDeltaTNoAdjust(newDeltaT);
-                    Info << "NewdeltaT = " << newDeltaT << " " << runTime.deltaTValue()
+                    Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
                          << endl;
-                         
+
+                    modifiedDeltaT = true;
+                    unmodifiedDeltaTvalue = flowDeltaT;
+
                     continueIter = false;
                 }
-                else */
+                else if (expectedTime == mandatedTime)
+                {
+                    continueIter = false;
+                }
+
+
+                /*
                 if (expectedTime >= mandatedTime)
                 {
                     continueIter = false;
@@ -856,16 +875,20 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 {
                     continueIter = false;
                 }
+                */
 
-                double incomingDeltaT_{*incomingDeltaT};
+                const double& incomingDeltaT_{*incomingDeltaT};
                 flowDeltaT = runTime.deltaTValue();
                 
                 alpha +=  flowDeltaT / incomingDeltaT_;
 
-                if (gmHandle != nullptr && *gmHandle >= 0)
+                if (gmHandle != nullptr)
                 {
-                    COM_call_function(*gmHandle, &alpha);
-                    updateSurfaceData_incoming(count);
+                    if (*gmHandle >= 0)
+                    {
+                        COM_call_function(*gmHandle, &alpha);
+                        updateSurfaceData_incoming(count);
+                    }
                 }
             }
             else
@@ -873,11 +896,23 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 updateSurfaceData_incoming();
                 continueIter = false;
             }
+
+            if (runTime.deltaTValue() < 0)
+            {
+                Info << "Unphysical deltaT. Exiting the simulation" << endl;
+                exit(-1);
+            }
+                
+
         }
 
         runTime++;
 
         Info << "Time = " << runTime.timeName() << nl << endl;
+
+//std::cout << "deltaTO = " << runTime.deltaT0Value() << std::endl;
+//std::cout << "deltaT  = " << runTime.deltaTValue() << std::endl;
+//std::cin.get();
 
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
@@ -1650,12 +1685,6 @@ int rhoPimple::finalizeFoam()
     {
         delete MRFPtr;
         MRFPtr = nullptr;
-    }
-
-    if (pointDisplacementNewPtr != nullptr)
-    {
-        delete pointDisplacementNewPtr;
-        pointDisplacementNewPtr = nullptr;
     }
 
     // delete meshPtr;
