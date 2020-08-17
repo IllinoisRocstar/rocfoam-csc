@@ -312,9 +312,18 @@ void comFoam::update_solution
          << endl;
 
     if (*currentTime != *ca_time)
+    {
         Info << "  Flow solver time and the input time"
              << " are not the same " << *ca_time 
-             << " vs " << *currentTime << endl;
+             << " vs " << *currentTime;
+
+        std::ostringstream doubleToOs;
+        doubleToOs << std::scientific 
+                   << std::setprecision(IODigits);
+        doubleToOs << std::abs(*ca_time - *currentTime);
+
+        Info << ", diff = " << doubleToOs.str() << endl;
+    }
 
 //MOVED TO SOLVER STEP METHOD
 //    if (*gmHandle >= 0)
