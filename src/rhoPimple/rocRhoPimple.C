@@ -849,7 +849,12 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 // ============================
                 
                 modifiedDeltaT = false;
-                if (expectedTime > mandatedTime)
+
+                if (std::abs( expectedTime - mandatedTime ) < 0.0001*flowDeltaT)
+                {
+                    continueIter = false;
+                }
+                else if (expectedTime > mandatedTime)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
                     
@@ -870,10 +875,6 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
                 /*
                 if (expectedTime >= mandatedTime)
-                {
-                    continueIter = false;
-                }
-                if (std::abs( expectedTime - mandatedTime ) < 0.001*flowDeltaT)
                 {
                     continueIter = false;
                 }
