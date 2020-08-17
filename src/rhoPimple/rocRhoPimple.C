@@ -797,7 +797,9 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
         if (modifiedDeltaT)
         {
-            runTime.setDeltaTNoAdjust(unmodifiedDeltaTvalue);
+            runTime.setDeltaT(unmodifiedDeltaTvalue);
+
+            runTime.controlDict().lookup("adjustTimeStep");
         }
 
 //std::cout << "deltaTO = " << runTime.deltaT0Value() << std::endl;
