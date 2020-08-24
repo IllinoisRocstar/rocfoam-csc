@@ -184,7 +184,7 @@ int rhoCentral::loop()
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     compressible::momentumTransportModel& turbulence(*turbulencePtr);
-    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+    fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
@@ -420,7 +420,7 @@ int rhoCentral::loop()
         turbulence.correct();
 
 #ifdef HAVE_OF8
-    thermoTransModel.correct();
+        thermoTransModel.correct();
 #endif
 
         runTime.write();
@@ -457,7 +457,7 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     compressible::momentumTransportModel& turbulence(*turbulencePtr);
-    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+    fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);

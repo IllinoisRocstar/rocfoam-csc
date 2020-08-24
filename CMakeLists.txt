@@ -41,21 +41,13 @@ endif()
 
 message(STATUS "OpenFOAM version ${OF_VERSION}")
 if(OF_VERSION EQUAL 7)
-    find_package(OpenFOAM REQUIRED COMPONENTS 
-                compressibleTransportModels
-                fluidThermophysicalModels
-                specie
-                turbulenceModels
-                compressibleTurbulenceModels
-                finiteVolume
-                dynamicFvMesh
-                topoChangerFvMesh
-                meshTools
-                sampling
-                fvOptions
-                Pstream)
+    find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+                compressibleTransportModels fluidThermophysicalModels specie
+                turbulenceModels compressibleTurbulenceModels dynamicFvMesh
+                topoChangerFvMesh meshTools Pstream)
 elseif(OF_VERSION EQUAL 8)
     find_package(OpenFOAM REQUIRED COMPONENTS 
+                OpenFOAM
                 fluidThermophysicalModels
                 specie
                 momentumTransportModels
@@ -68,14 +60,14 @@ elseif(OF_VERSION EQUAL 8)
                 sampling
                 fvOptions
                 Pstream)
-else()
-  # > 7.x series
-  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-      compressibleTransportModels
-      compressibleTurbulenceModels
-      fluidThermophysicalModels specie
-      turbulenceModels  dynamicFvMesh
-      topoChangerFvMesh meshTools Pstream)
+#else()
+#  # > 7.x series
+#  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+#      compressibleTransportModels
+#      compressibleTurbulenceModels
+#      fluidThermophysicalModels specie
+#      turbulenceModels  dynamicFvMesh
+#      topoChangerFvMesh meshTools Pstream)
 endif()
 message(STATUS "OpenFOAM include directory ${OPNF_INCLUDE_DIRS}")
 message(STATUS "OpenFOAM link directory ${OPNF_LIBRARY_DIRS}")
@@ -203,12 +195,12 @@ message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
 endif()
 
 # Building utilities #############################################################
-#add_executable(rocRhoCentral ${rocCntDrv_SRCS})
-#target_link_libraries(rocRhoCentral rocfoam)
-#target_include_directories(rocRhoCentral SYSTEM
-#    PUBLIC
-#        ${OPNF_INCLUDE_DIRS}
-#)
+add_executable(rocRhoCentral ${rocCntDrv_SRCS})
+target_link_libraries(rocRhoCentral rocfoam)
+target_include_directories(rocRhoCentral SYSTEM
+    PUBLIC
+        ${OPNF_INCLUDE_DIRS}
+)
 
 add_executable(rocRhoPimple ${rocPmpDrv_SRCS})
 target_link_libraries(rocRhoPimple rocfoam)
@@ -224,10 +216,11 @@ target_include_directories(rocFoam SYSTEM
         ${OPNF_INCLUDE_DIRS}
 )
 
-#install(TARGETS rocRhoCentral rocRhoPimple rocFoam
-#         RUNTIME DESTINATION bin
-#         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-#         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+install(TARGETS rocRhoCentral rocRhoPimple rocFoam
+         RUNTIME DESTINATION bin
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
 
 install(TARGETS rocRhoPimple rocFoam
          RUNTIME DESTINATION bin

@@ -129,7 +129,7 @@ if(OF_VERSION_ EQUAL 7)
         regionCoupling
         regionModels
         renumberMethods
-        rhoCentralFoam
+#        rhoCentralFoam
         rigidBodyDynamics
         rigidBodyMeshMotion
         sampling
@@ -238,7 +238,7 @@ elseif(OF_VERSION_ EQUAL 8)
         regionCoupling
         regionModels
         renumberMethods
-        rhoCentralFoam
+#        rhoCentralFoam
         rigidBodyDynamics
         rigidBodyMeshMotion
         sampling
@@ -374,12 +374,12 @@ macro(_remove_duplicates_from_beginning _list_name)
   list(REVERSE ${_list_name})
 endmacro()
 
-if(OPNF_INCLUDE_DIRS)
-  _remove_duplicates_from_beginning(OPNF_INCLUDE_DIRS)
-endif()
-if(OPNF_LIBRARY_DIRS)
-  _remove_duplicates_from_beginning(OPNF_LIBRARY_DIRS)
-endif()
+#if(OPNF_INCLUDE_DIRS)
+#  _remove_duplicates_from_beginning(OPNF_INCLUDE_DIRS)
+#endif()
+#if(OPNF_LIBRARY_DIRS)
+#  _remove_duplicates_from_beginning(OPNF_LIBRARY_DIRS)
+#endif()
 
 # final processing
 ##message(STATUS "OpenFOAM library location ${OPNF_LIBRARY_DIRS}")
