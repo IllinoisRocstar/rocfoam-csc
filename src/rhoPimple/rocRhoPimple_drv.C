@@ -6,7 +6,15 @@ int main(int argc, char *argv[])
 
 
     Info << "\nStarting time loop\n" << endl;
+
+#ifdef HAVE_OF7
     while (rocFoamPimple.runTimePtr->run())
+#elif defined(HAVE_OF8)
+    Foam::Time &runTime(*(rocFoamPimple.runTimePtr));
+    pimpleControl& pimCtrl(rocFoamPimple.getPimpleControl());
+
+    while ( pimCtrl.run(runTime) )
+#endif
     {
         rocFoamPimple.step();
     }

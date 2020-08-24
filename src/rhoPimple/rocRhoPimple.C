@@ -156,147 +156,64 @@ void rhoPimple::unload(const char *name)
 //^^^ Solver-specific methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int rhoPimple::initFOAM(int argc, char *argv[])
 {
-    // Not quite sure where this line should be
     createArgs(argc, argv);
 
-    //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  postProcess.H
     PostProcess(argc, argv);
-    // ------------------------------------------
+    // --------------
 
-    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^
+    //  setRootCaseLists.H
     setRootCaseLists();
-    // ------------------------------------------
+    // -------------------
 
-    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createTime.H
     createTime();
-    // ------------------------------------------
+    // -------------
 
-    //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^
+    //  createDynamicFvMesh.H
     createDynamicFvMesh();
-    // ------------------------------------------
+    // ----------------------
 
-    //  createDyMControls.H  ^^^^^^^^^^^^^^^^^^^^
+    //  createDyMControls.H
     createDyMControls();
-    // ------------------------------------------
+    // --------------------
 
-    //  initContinuityErrs.H  ^^^^^^^^^^^^^^^^^^^
+    //  initContinuityErrs.H
     initContinuityErrs();
-    // ------------------------------------------
+    // ---------------------
 
-    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createFields.H
     createFields();
-    // ------------------------------------------
+    // ---------------
 
-    //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^
+    //  createFieldRefs.H
     createFieldRefs();
-    // ------------------------------------------
+    // ------------------
 
-    //  createRhoUfIfPresent.H  ^^^^^^^^^^^^^^^^^
+    //  createRhoUfIfPresent.H
     createRhoUfIfPresent();
-    // ------------------------------------------
+    // -----------------------
 
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#if defined(HAVE_OF7)
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+#endif
 
     turbulence.validate();
 
     if (!LTS)
     {
-        //  compressibleCourantNo.H  ^^^^^^^^^^^^
+        //  compressibleCourantNo.H
         compressibleCourantNo();
-        // --------------------------------------
+        // ------------------------
 
-        //  setInitialDeltaT.H  ^^^^^^^^^^^^^^^^^
+        //  setInitialDeltaT.H
         setInitialDeltaT();
-        // --------------------------------------
+        // -------------------
     }
 
     Foam::Info << "End of initialization of rhoPimple." << Foam::endl;
-
-
-//dynamicFvMesh &mesh(*meshPtr);
-//dictionary meshDict(mesh.dynamicMeshDict());
-//Info << meshDict << endl;
-//if (meshDict.found("dynamicFvMesh"))
-//{
-//    word dynamicFvMesh = meshDict.lookup("dynamicFvMesh");
-//    Info << "dynamicFvMesh = " << dynamicFvMesh << endl;
-//    if (meshDict.found("solver"))
-//    {
-//        word solver = meshDict.lookup("solver");
-//        Info << "solver = " << solver << endl;
-//        if (solver=="displacementLaplacian")
-//        {
-//            dictionary solverDic(meshDict.subDict("displacementLaplacianCoeffs"));
-//            Info << "solverDic = " << solverDic << endl;
-//            word kind = solverDic.lookup("diffusivity");
-//            Info << "diffusivity = " << kind << endl;
-//Info << "solverDic.isDict() " << solverDic.isDict() << endl;
-//Foam::Time &runTime(*runTimePtr);
-
-//const motionSolver& motionTest =
-//    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-//const pointField& dispTest =
-//    refCast<const displacementMotionSolver>(motionTest).pointDisplacement();
-//volVectorField &U(*UPtr);
-//Foam::IOdictionary controlDict(dispTest);
-//      Foam::IOobject("U", runTime.timeName(), mesh,
-//                     Foam::IOobject::MUST_READ, Foam::IOobject::NO_WRITE));
-//        IOobject tesst
-//        (
-//            "U",
-//            runTime.timeName(),
-//            mesh,
-//            IOobject::MUST_READ,
-//            IOobject::AUTO_WRITE
-//        );
-
-/*
-IOdictionary dispDict
-             (
-                IOobject
-                (
-                    "U",
-                    runTime.timeName(),
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::AUTO_WRITE
-                )
-            );
-*/
-
-            
-//        }
-//    }
-//}
-
-//Info << "meshDict.isDict() " << meshDict.isDict("") << endl;
-//Info << "meshDict.found(dynamicFvMesh) " << meshDict.found("dynamicFvMesh") << endl;
-//Info << "meshDict.isDict(motionSolverLibs) " << meshDict.isDict("motionSolverLibs") << endl;
-//Info << "meshDict.isDict(solver) " << meshDict.isDict("solver") << endl;
-//Info << "meshDict.isDict(displacementLaplacianCoeffs) " << meshDict.isDict("displacementLaplacianCoeffs") << endl;
-
-
-//if (meshDict.isDict(""))
-//{}
-
-
-//std::cin.get();
-
-
-/*
-dynamicFvMesh &mesh(*meshPtr);
-const motionSolver& motionTest =
-    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-const pointField& points0 =
-    refCast<const displacementMotionSolver>(motionTest).points0();
-
-const pointField& dispTest =
-    refCast<const displacementMotionSolver>(motionTest).pointDisplacement();
-
-const pointField& dispTest = motionTest.pointDisplacement();
-*/
 
     initializeStat = 0;
     return initializeStat;
@@ -306,10 +223,10 @@ int rhoPimple::createControl()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
-    //  createPimpleControl.H  ^^^^^^^^^^^^^^^^^^
+    //  createPimpleControl.H
     // pimpleControl pimple(mesh);
     pimplePtr = new pimpleControl(mesh);
-    // ------------------------------------------
+    // ----------------------
 
     return 0;
 }
@@ -318,14 +235,14 @@ int rhoPimple::createDyMControls()
 {
     dynamicFvMesh &mesh(*meshPtr);
 
-    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createControl.H
     createControl();
-    // ------------------------------------------
+    // ----------------
     pimpleControl &pimple(*pimplePtr);
 
-    //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^
+    //  createTimeControls.H
     createTimeControls();
-    // ------------------------------------------
+    // ---------------------
 
     correctPhi = pimple.dict().lookupOrDefault
     (
@@ -400,17 +317,6 @@ int rhoPimple::createFields()
 
     Info << "Reading field U\n" << endl;
 
-//IOobject tesst
-//(
-//    "U",
-//    runTime.timeName(),
-//    mesh,
-//    IOobject::MUST_READ
-//);
-//Info << "1\n" << endl;
-//IOdictionary T_File(tesst);
-//Info << "2\n" << endl;
-
     UPtr = new volVectorField
     (
         IOobject
@@ -430,6 +336,7 @@ int rhoPimple::createFields()
     // -------------------------------
     surfaceScalarField &phi(*phiPtr);
 
+#if defined(HAVE_OF7)
     pressureControlPtr = new pressureControl
     (
         p,
@@ -437,10 +344,21 @@ int rhoPimple::createFields()
         pimple.dict(),
         false
     );
+#elif defined(HAVE_OF8)
+    pressureControlPtr = new pressureControl
+    (
+        p,
+        rho,
+        pimple.dict(),
+        thermo.incompressible()
+    );
+#endif
 
     mesh.setFluxRequired(p.name());
 
     Info << "Creating turbulence model\n" << endl;
+
+#if defined(HAVE_OF7)
     turbulencePtr = autoPtr<compressible::turbulenceModel>
     (
         compressible::turbulenceModel::New
@@ -451,6 +369,24 @@ int rhoPimple::createFields()
             thermo
         )
     );
+#elif defined(HAVE_OF8)
+    turbulencePtr = autoPtr<compressible::momentumTransportModel>
+    (
+        compressible::momentumTransportModel::New
+        (
+            rho,
+            U,
+            phi,
+            thermo
+        )
+    );
+
+    Info << "Creating thermophysical transport model\n" << endl;
+    thermophysicalTransportPtr = autoPtr<fluidThermophysicalTransportModel> 
+    (
+        fluidThermophysicalTransportModel::New(turbulencePtr(), thermo)
+    );
+#endif
 
     Info << "Creating field dpdt\n" << endl;
     dpdtPtr = new volScalarField
@@ -468,13 +404,24 @@ int rhoPimple::createFields()
     Info << "Creating field kinetic energy K\n" << endl;
     KPtr = new volScalarField("K", 0.5 * magSqr(U));
 
-    //  createMRF.H  ^^^^^^^^^^^^^^^^
-    createMRF();
-    // -------------------------------
+#ifdef HAVE_OF8
+    if (initialMassPtr == nullptr)
+    {
+        initialMassPtr = new dimensionedScalar(fvc::domainIntegrate(rho));
+    }
+    else
+    {
+        *initialMassPtr = fvc::domainIntegrate(rho);
+    }
+#endif
 
-    //  createFvOptions.H  ^^^^^^^^^^^
+    //  createMRF.H
+    createMRF();
+    // ------------
+
+    //  createFvOptions.H
     createFvOptions();
-    // -------------------------------
+    // ------------------
 
     return 0;
 }
@@ -622,16 +569,25 @@ int rhoPimple::loop()
     surfaceScalarField &phi(*phiPtr);
     fluidThermo &thermo(*pThermoPtr);
     IOMRFZoneList &MRF(*MRFPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
     Info << "\nStarting time loop\n" << endl;
 
+#ifdef HAVE_OF7
     while (runTime.run())
+#elif defined(HAVE_OF8)
+    while (pimple.run(runTime))
+#endif
     {
-        //  readDyMControls.H  ^^^^^^^^^^^
+        //  readDyMControls.H
         readDyMControls();
-        // -------------------------------
+        // ------------------
 
         // Store divrhoU from the previous mesh so that it can be mapped
         // and used in correctPhi to ensure the corrected phi has the
@@ -647,19 +603,19 @@ int rhoPimple::loop()
 
         if (LTS)
         {
-            //  setRDeltaT.H  ^^^^^^^^^^^^^^^
+            //  setRDeltaT.H
             setRDeltaT();
-            // -------------------------------
+            // -------------
         }
         else
         {
-            //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
+            //  compressibleCourantNo.H
             compressibleCourantNo();
-            // ---------------------------------------------
+            // ------------------------
 
-            //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  setDeltaT.H
             setDeltaT();
-            // ---------------------------------------------
+            // ------------
         }
 
         runTime++;
@@ -691,9 +647,9 @@ int rhoPimple::loop()
                         // from the mapped surface velocity
                         phi = mesh.Sf() & rhoUf();
 
-                        //  correctPhi.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        //  correctPhi.H
                         correctPhi_();
-                        // ---------------------------------------------
+                        // -------------
 
                         // Make the fluxes relative to the mesh-motion
                         fvc::makeRelative(phi, rho, U);
@@ -701,42 +657,53 @@ int rhoPimple::loop()
 
                     if (checkMeshCourantNo)
                     {
-                        //  meshCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        //  meshCourantNo.H
                         meshCourantNo();
-                        // ---------------------------------------------
+                        // ----------------
                     }
                 }
             }
 
+#ifdef HAVE_OF7
             if (pimple.firstPimpleIter() && !pimple.simpleRho())
+#elif defined(HAVE_OF8)
+            if
+            (
+                !mesh.steady()
+             && !pimple.simpleRho()
+             && pimple.firstPimpleIter()
+            )
+#endif
             {
-                //  rhoEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                //  rhoEqn.H
                 rhoEqn_();
-                // ---------------------------------------------
+                // ---------
             }
 
-            //  UEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  UEqn.H
             UEqn_();
-            // -------------------------------------------
+            // -------
 
-            //  EEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  EEqn.H
             EEqn_();
-            // --------------------------------------------
+            // -------
 
             // --- Pressure corrector loop
             while (pimple.correct())
+#ifdef HAVE_OF7
+            //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             {
                 if (pimple.consistent())
                 {
-                    //  pcEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    //  pcEqn.H
                     pcEqn();
-                    // --------------------------------------------
+                    // --------
                 }
                 else
                 {
-                    //  pEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    //  pEqn.H
                     pEqn_();
-                    // --------------------------------------------
+                    // -------
                 }
             }
 
@@ -747,6 +714,28 @@ int rhoPimple::loop()
         }
 
         rho = thermo.rho();
+        //-------------------------------------------
+#elif defined(HAVE_OF8)
+            //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            {
+                //  pEqn.H
+                pEqn_();
+                // --------
+            }
+
+            if (pimple.turbCorr())
+            {
+                turbulence.correct();
+                thermoTransModel.correct();
+            }
+        }
+
+        if (!mesh.steady())
+        {
+            rho = thermo.rho();
+        }
+        //-------------------------------------------
+#endif
 
         runTime.write();
 
@@ -773,7 +762,12 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
     surfaceScalarField &phi(*phiPtr);
     fluidThermo &thermo(*pThermoPtr);
     IOMRFZoneList &MRF(*MRFPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
     autoPtr<surfaceVectorField> &rhoUf(rhoUfPtr);
 
     double mandatedTime{0};
@@ -785,11 +779,20 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
     int count{0};
     double alpha{0};
     bool continueIter{true};
+
+#ifdef HAVE_OF7
     while
     (
-        runTime.run() && 
+        runTime.run() &&
         continueIter
     )
+#elif defined(HAVE_OF8)
+    while
+    (
+        pimple.run(runTime) &&
+        continueIter
+    )    
+#endif    
     {
         count++;
         Info << ">>MultiPhysics outer iteration "
@@ -802,13 +805,9 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
             runTime.controlDict().lookup("adjustTimeStep");
         }
 
-//std::cout << "deltaTO = " << runTime.deltaT0Value() << std::endl;
-//std::cout << "deltaT  = " << runTime.deltaTValue() << std::endl;
-
-
-        //  readDyMControls.H  ^^^^^^^^^^^
+        //  readDyMControls.H
         readDyMControls();
-        // -------------------------------
+        // ------------------
 
         // Store divrhoU from the previous mesh so that it can be mapped
         // and used in correctPhi to ensure the corrected phi has the
@@ -824,19 +823,19 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
         if (LTS)
         {
-            //  setRDeltaT.H  ^^^^^^^^^^^^^^^
+            //  setRDeltaT.H
             setRDeltaT();
-            // -------------------------------
+            // -------------
         }
         else //if (count==1)
         {
-            //  compressibleCourantNo.H  ^^^^^^^^^^^^^^^^^^^
+            //  compressibleCourantNo.H
             compressibleCourantNo();
-            // ---------------------------------------------
+            // ------------------------
 
-            //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  setDeltaT.H
             setDeltaT();
-            // ---------------------------------------------
+            // ------------
 
             double flowDeltaT = runTime.deltaTValue();
             double flowCurTime = runTime.value();
@@ -905,17 +904,11 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 Info << "Unphysical deltaT. Exiting the simulation" << endl;
                 exit(-1);
             }
-                
-
         }
 
         runTime++;
 
         Info << "Time = " << runTime.timeName() << nl << endl;
-
-//std::cout << "deltaTO = " << runTime.deltaT0Value() << std::endl;
-//std::cout << "deltaT  = " << runTime.deltaTValue() << std::endl;
-//std::cin.get();
 
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
@@ -941,9 +934,9 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                         // from the mapped surface velocity
                         phi = mesh.Sf() & rhoUf();
 
-                        //  correctPhi.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        //  correctPhi.H
                         correctPhi_();
-                        // ---------------------------------------------
+                        // -------------
 
                         // Make the fluxes relative to the mesh-motion
                         fvc::makeRelative(phi, rho, U);
@@ -951,42 +944,53 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
                     if (checkMeshCourantNo)
                     {
-                        //  meshCourantNo.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        //  meshCourantNo.H
                         meshCourantNo();
-                        // ---------------------------------------------
+                        // ----------------
                     }
                 }
             }
 
+#ifdef HAVE_OF7
             if (pimple.firstPimpleIter() && !pimple.simpleRho())
+#elif defined(HAVE_OF8)
+            if
+            (
+                !mesh.steady()
+             && !pimple.simpleRho()
+             && pimple.firstPimpleIter()
+            )
+#endif
             {
-                //  rhoEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                //  rhoEqn.H
                 rhoEqn_();
-                // ---------------------------------------------
+                // ---------
             }
 
-            //  UEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  UEqn.H
             UEqn_();
-            // -------------------------------------------
+            // -------
 
-            //  EEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //  EEqn.H
             EEqn_();
-            // --------------------------------------------
+            // -------
 
             // --- Pressure corrector loop
             while (pimple.correct())
+#ifdef HAVE_OF7
+            //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             {
                 if (pimple.consistent())
                 {
-                    //  pcEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    //  pcEqn.H
                     pcEqn();
-                    // --------------------------------------------
+                    // --------
                 }
                 else
                 {
-                    //  pEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    //  pEqn.H
                     pEqn_();
-                    // --------------------------------------------
+                    // -------
                 }
             }
 
@@ -997,6 +1001,28 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
         }
 
         rho = thermo.rho();
+        //-------------------------------------------
+#elif defined(HAVE_OF8)
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            {
+                //  pcEqn.H
+                pEqn_();
+                // --------
+            }
+
+            if (pimple.turbCorr())
+            {
+                turbulence.correct();
+                thermoTransModel.correct();
+            }
+        }
+
+        if (!mesh.steady())
+        {
+            rho = thermo.rho();
+        }
+        //-------------------------------------------
+#endif
 
         runTime.write();
 
@@ -1092,7 +1118,7 @@ int rhoPimple::setRDeltaT()
         );
     }
 
-    // Update tho boundary values of the reciprocal time-step
+    // Update the boundary values of the reciprocal time-step
     rDeltaT.correctBoundaryConditions();
 
     Info << "Flow time scale min/max = " << gMin(1 / rDeltaT.primitiveField())
@@ -1191,12 +1217,18 @@ int rhoPimple::UEqn_()
     surfaceScalarField &phi(*phiPtr);
     Foam::fv::options &fvOptions(*fvOptionsPtr);
     IOMRFZoneList &MRF(*MRFPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+#endif
     volScalarField &K(*KPtr);
     volScalarField &p(*pPtr);
 
     MRF.correctBoundaryVelocity(U);
 
+
+#ifdef HAVE_OF7
     tUEqnPtr = tmp<fvVectorMatrix>
     (
         fvm::ddt(rho, U) + fvm::div(phi, U)
@@ -1204,7 +1236,15 @@ int rhoPimple::UEqn_()
       + turbulence.divDevRhoReff(U)
      == fvOptions(rho, U)
     );
-
+#elif defined(HAVE_OF8)
+    tUEqnPtr = tmp<fvVectorMatrix>
+    (
+        fvm::ddt(rho, U) + fvm::div(phi, U)
+      + MRF.DDt(rho, U)
+      + turbulence.divDevTau(U)
+     == fvOptions(rho, U)
+    );
+#endif
 
     tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
 
@@ -1233,7 +1273,12 @@ int rhoPimple::EEqn_()
     surfaceScalarField &phi(*phiPtr);
     Foam::fv::options &fvOptions(*fvOptionsPtr);
     fluidThermo &thermo(*pThermoPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    //compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
     volScalarField &K(*KPtr);
     volScalarField &dpdt(*dpdtPtr);
     volScalarField &p(*pPtr);
@@ -1254,7 +1299,11 @@ int rhoPimple::EEqn_()
                 "div(phiv,p)"
             ) : -dpdt
         )
+#ifdef HAVE_OF7
       - fvm::laplacian(turbulence.alphaEff(), he)
+#elif defined(HAVE_OF8)
+      + thermoTransModel.divq(he)
+#endif
      == fvOptions(rho, he));
 
     EEqn.relax();
@@ -1270,6 +1319,7 @@ int rhoPimple::EEqn_()
     return 0;
 }
 
+#ifdef HAVE_OF7
 int rhoPimple::pcEqn()
 {
     dynamicFvMesh &mesh(*meshPtr);
@@ -1435,6 +1485,7 @@ int rhoPimple::pcEqn()
 
     return 0;
 }
+#endif
 
 int rhoPimple::compressibleContinuityErrs()
 {
@@ -1458,6 +1509,30 @@ int rhoPimple::compressibleContinuityErrs()
     return 0;
 }
 
+int rhoPimple::incompressibleContinuityErrs()
+{
+    dynamicFvMesh &mesh(*meshPtr);
+    Foam::Time &runTime(*runTimePtr);
+    surfaceScalarField &phi(*phiPtr);
+
+    volScalarField contErr(fvc::div(phi));
+
+    scalar sumLocalContErr = runTime.deltaTValue()*
+        mag(contErr)().weightedAverage(mesh.V()).value();
+
+    scalar globalContErr = runTime.deltaTValue()*
+        contErr.weightedAverage(mesh.V()).value();
+    cumulativeContErr += globalContErr;
+
+    Info<< "time step continuity errors : sum local = " << sumLocalContErr
+        << ", global = " << globalContErr
+        << ", cumulative = " << cumulativeContErr
+        << endl;
+
+    return 0;
+}
+
+
 int rhoPimple::pEqn_()
 {
     dynamicFvMesh &mesh(*meshPtr);
@@ -1477,6 +1552,8 @@ int rhoPimple::pEqn_()
     fvVectorMatrix &UEqn(*UEqnPtr);
     tmp<fvVectorMatrix> &tUEqn(tUEqnPtr);
 
+#ifdef HAVE_OF7
+    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     if (!pimple.simpleRho())
     {
         rho = thermo.rho();
@@ -1488,6 +1565,7 @@ int rhoPimple::pEqn_()
 
     volScalarField rAU(1.0 / UEqn.A());
     surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho * rAU));
+
     volVectorField HbyA(constrainHbyA(rAU * UEqn.H(), U, p));
 
     if (pimple.nCorrPiso() <= 1)
@@ -1531,7 +1609,6 @@ int rhoPimple::pEqn_()
 
             // Relax the pressure equation to ensure diagonal-dominance
             pEqn.relax();
-
             pEqn.solve();
 
             if (pimple.finalNonOrthogonalIter())
@@ -1552,7 +1629,6 @@ int rhoPimple::pEqn_()
         while (pimple.correctNonOrthogonal())
         {
             fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAUf, p));
-
             pEqn.solve();
 
             if (pimple.finalNonOrthogonalIter())
@@ -1572,13 +1648,13 @@ int rhoPimple::pEqn_()
         rho = thermo.rho();
     }
 
-    //  rhoEqn.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  rhoEqn.H
     rhoEqn_();
-    // ---------------------------------------------
+    // ---------
 
-    //  compressibleContinuityErrs.H  ^^^^^^^^^^^^^^
+    //  compressibleContinuityErrs.H
     compressibleContinuityErrs();
-    // ---------------------------------------------
+    // -----------------------------
 
     // Explicitly relax pressure for momentum corrector
     p.relax();
@@ -1605,6 +1681,214 @@ int rhoPimple::pEqn_()
             dpdt -= fvc::div(fvc::meshPhi(rho, U), p);
         }
     }
+    //-------------------------------------------
+#elif defined(HAVE_OF8)
+    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    const dimensionedScalar& initialMass(*initialMassPtr);
+
+    if ((!mesh.steady() && !pimple.simpleRho()) || pimple.consistent())
+    {
+        rho = thermo.rho();
+    }
+
+    // Thermodynamic density needs to be updated by psi*d(p) after the
+    // pressure solution
+    const volScalarField psip0(psi*p);
+
+    const volScalarField rAU("rAU", 1.0/UEqn.A());
+    const surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+
+    tmp<volScalarField> rAtU
+    (
+        pimple.consistent()
+    ? volScalarField::New("rAtU", 1.0/(1.0/rAU - UEqn.H1()))
+    : tmp<volScalarField>(nullptr)
+    );
+    tmp<surfaceScalarField> rhorAtUf
+    (
+        pimple.consistent()
+    ? surfaceScalarField::New("rhoRAtUf", fvc::interpolate(rho*rAtU()))
+    : tmp<surfaceScalarField>(nullptr)
+    );
+
+    const volScalarField& rAAtU = pimple.consistent() ? rAtU() : rAU;
+    const surfaceScalarField& rhorAAtUf =
+        pimple.consistent() ? rhorAtUf() : rhorAUf;
+
+    volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+
+    if (pimple.nCorrPiso() <= 1)
+    {
+        tUEqn.clear();
+    }
+
+    surfaceScalarField phiHbyA
+    (
+        "phiHbyA",
+        fvc::interpolate(rho)*fvc::flux(HbyA)
+    + MRF.zeroFilter(rhorAUf*fvc::ddtCorr(rho, U, phi, rhoUf))
+    );
+
+    fvc::makeRelative(phiHbyA, rho, U);
+    MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
+
+    bool adjustMass = false;
+
+    // Update the pressure BCs to ensure flux consistency
+    constrainPressure(p, rho, U, phiHbyA, rhorAAtUf, MRF);
+
+    if (pimple.transonic())
+    {
+        surfaceScalarField phid
+        (
+            "phid",
+            (fvc::interpolate(psi)/fvc::interpolate(rho))*phiHbyA
+        );
+
+        phiHbyA -= fvc::interpolate(psi*p)*phiHbyA/fvc::interpolate(rho);
+
+        if (pimple.consistent())
+        {
+            phiHbyA += (rhorAAtUf - rhorAUf)*fvc::snGrad(p)*mesh.magSf();
+            HbyA += (rAAtU - rAU)*fvc::grad(p);
+        }
+
+        fvScalarMatrix pDDtEqn
+        (
+            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
+        + fvc::div(phiHbyA) + fvm::div(phid, p)
+        ==
+            fvOptions(psi, p, rho.name())
+        );
+
+        while (pimple.correctNonOrthogonal())
+        {
+            fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAAtUf, p));
+
+            // Relax the pressure equation to ensure diagonal-dominance
+            pEqn.relax();
+
+            pEqn.setReference
+            (
+                pressureControl.refCell(),
+                pressureControl.refValue()
+            );
+
+            pEqn.solve();
+
+            if (pimple.finalNonOrthogonalIter())
+            {
+                phi = phiHbyA + pEqn.flux();
+            }
+        }
+    }
+    else
+    {
+        if (mesh.steady())
+        {
+            adjustMass = adjustPhi(phiHbyA, U, p);
+        }
+
+        if (pimple.consistent())
+        {
+            phiHbyA += (rhorAAtUf - rhorAUf)*fvc::snGrad(p)*mesh.magSf();
+            HbyA += (rAAtU - rAU)*fvc::grad(p);
+        }
+
+        fvScalarMatrix pDDtEqn
+        (
+            fvc::ddt(rho) + psi*correction(fvm::ddt(p))
+        + fvc::div(phiHbyA)
+        ==
+            fvOptions(psi, p, rho.name())
+        );
+
+        while (pimple.correctNonOrthogonal())
+        {
+            fvScalarMatrix pEqn(pDDtEqn - fvm::laplacian(rhorAAtUf, p));
+
+            pEqn.setReference
+            (
+                pressureControl.refCell(),
+                pressureControl.refValue()
+            );
+
+            pEqn.solve();
+
+            if (pimple.finalNonOrthogonalIter())
+            {
+                phi = phiHbyA + pEqn.flux();
+            }
+        }
+    }
+
+    if (mesh.steady())
+    {
+        incompressibleContinuityErrs();
+    }
+    else
+    {
+        const bool limitedp = pressureControl.limit(p);
+
+        // Thermodynamic density update
+        thermo.correctRho(psi*p - psip0);
+
+        if (limitedp)
+        {
+            rho = thermo.rho();
+        }
+
+        rhoEqn_();
+        compressibleContinuityErrs();
+    }
+
+    // Explicitly relax pressure for momentum corrector
+    p.relax();
+
+    U = HbyA - rAAtU*fvc::grad(p);
+    U.correctBoundaryConditions();
+    fvOptions.correct(U);
+    K = 0.5*magSqr(U);
+
+    if (mesh.steady())
+    {
+        pressureControl.limit(p);
+    }
+
+    // For steady compressible closed-volume cases adjust the pressure level
+    // to obey overall mass continuity
+    if (adjustMass && !thermo.incompressible())
+    {
+        p += (initialMass - fvc::domainIntegrate(thermo.rho()))
+            /fvc::domainIntegrate(psi);
+        p.correctBoundaryConditions();
+    }
+
+    if (mesh.steady() || pimple.simpleRho() || adjustMass)
+    {
+        rho = thermo.rho();
+    }
+
+    // Correct rhoUf if the mesh is moving
+    fvc::correctRhoUf(rhoUf, rho, U, phi);
+
+    if ((mesh.steady() || pimple.simpleRho()) && !pimple.transonic())
+    {
+        rho.relax();
+    }
+
+    if (thermo.dpdt())
+    {
+        dpdt = fvc::ddt(p);
+
+        if (mesh.moving())
+        {
+            dpdt -= fvc::div(fvc::meshPhi(rho, U), p);
+        }
+    }
+    //-------------------------------------------
+#endif
 
     return 0;
 }
@@ -1689,6 +1973,15 @@ int rhoPimple::finalizeFoam()
         delete MRFPtr;
         MRFPtr = nullptr;
     }
+
+#ifdef HAVE_OF8
+    if (initialMassPtr != nullptr)
+    {
+        delete initialMassPtr;
+        initialMassPtr = nullptr;
+    }
+#endif
+
 
     // delete meshPtr;
     // delete turbulencePtr;

@@ -29,20 +29,58 @@ endif()
 # checking OpenFOAM version
 string(FIND $ENV{WM_PROJECT_VERSION} "7" OF7)
 if(OF7 GREATER -1)
-  # OpenFOAM 7.x
-  # TODO: rmains to be tested on OF7
-  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-      compressibleTransportModels fluidThermophysicalModels specie
-      turbulenceModels compressibleTurbulenceModels dynamicFvMesh
-      topoChangerFvMesh meshTools Pstream)
+    set(OF_VERSION 7)
+##    target_compile_definitions(rocfoam PUBLIC HAVE_OF7)
+endif()
+
+string(FIND $ENV{WM_PROJECT_VERSION} "8" OF8)
+if(OF8 GREATER -1)
+    set(OF_VERSION 8)
+##    target_compile_definitions(rocfoam PUBLIC HAVE_OF8)
+endif()
+
+message(STATUS "OpenFOAM version ${OF_VERSION}")
+if(OF_VERSION EQUAL 7)
+    find_package(OpenFOAM REQUIRED COMPONENTS 
+                compressibleTransportModels
+                fluidThermophysicalModels
+                specie
+                turbulenceModels
+                compressibleTurbulenceModels
+                finiteVolume
+                dynamicFvMesh
+                topoChangerFvMesh
+                meshTools
+                sampling
+                fvOptions
+                Pstream)
+elseif(OF_VERSION EQUAL 8)
+    find_package(OpenFOAM REQUIRED COMPONENTS 
+                fluidThermophysicalModels
+                specie
+                momentumTransportModels
+                fluidThermoMomentumTransportModels
+                thermophysicalTransportModels
+                finiteVolume
+                dynamicFvMesh
+                topoChangerFvMesh
+                meshTools
+                sampling
+                fvOptions
+                Pstream)
 else()
   # > 7.x series
   find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-      compressibleTransportModels fluidThermophysicalModels specie
-      turbulenceModels compressibleTurbulenceModels dynamicFvMesh
+      compressibleTransportModels
+      compressibleTurbulenceModels
+      fluidThermophysicalModels specie
+      turbulenceModels  dynamicFvMesh
       topoChangerFvMesh meshTools Pstream)
 endif()
-message(STATUS "OpenFOAM libraries: ${OPNF_LIBRARIES}")
+message(STATUS "OpenFOAM include directory ${OPNF_INCLUDE_DIRS}")
+message(STATUS "OpenFOAM link directory ${OPNF_LIBRARY_DIRS}")
+
+
 
 #find_package(IMPACT COMPONENTS)
 find_package(IMPACT REQUIRED)
@@ -151,13 +189,26 @@ install(TARGETS rocfoam
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
+
+if(OF_VERSION EQUAL 7)
+    target_compile_definitions(rocfoam PUBLIC HAVE_OF7)
+message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
+endif() 
+
+if(OF_VERSION EQUAL 8)
+    target_compile_definitions(rocfoam PUBLIC HAVE_OF8)
+
+message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
+
+endif()
+
 # Building utilities #############################################################
-add_executable(rocRhoCentral ${rocCntDrv_SRCS})
-target_link_libraries(rocRhoCentral rocfoam)
-target_include_directories(rocRhoCentral SYSTEM
-    PUBLIC
-        ${OPNF_INCLUDE_DIRS}
-)
+#add_executable(rocRhoCentral ${rocCntDrv_SRCS})
+#target_link_libraries(rocRhoCentral rocfoam)
+#target_include_directories(rocRhoCentral SYSTEM
+#    PUBLIC
+#        ${OPNF_INCLUDE_DIRS}
+#)
 
 add_executable(rocRhoPimple ${rocPmpDrv_SRCS})
 target_link_libraries(rocRhoPimple rocfoam)
@@ -173,7 +224,12 @@ target_include_directories(rocFoam SYSTEM
         ${OPNF_INCLUDE_DIRS}
 )
 
-install(TARGETS rocRhoCentral rocRhoPimple rocFoam
+#install(TARGETS rocRhoCentral rocRhoPimple rocFoam
+#         RUNTIME DESTINATION bin
+#         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+#         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+
+install(TARGETS rocRhoPimple rocFoam
          RUNTIME DESTINATION bin
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE

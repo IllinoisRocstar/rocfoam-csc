@@ -444,6 +444,7 @@ int comFoam::createSurfaceData()
 
     // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
     const volVectorField& U(*UPtr);
+#ifdef HAVE_OF7
     IOdictionary turbProperties
     (
         IOobject
@@ -455,6 +456,19 @@ int comFoam::createSurfaceData()
             IOobject::NO_WRITE
         )
     );
+#elif defined(HAVE_OF8)
+    IOdictionary turbProperties
+    ( 
+        IOobject
+        (
+            momentumTransportModel::typeName,
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+#endif
 
     word simulationType = turbProperties.lookup("simulationType");
     if (simulationType == "RAS")
@@ -650,8 +664,13 @@ int comFoam::updateSurfaceData_outgoing()
     autoPtr<surfaceVectorField>& rhoUf(rhoUfPtr);
     const surfaceScalarField& magSf = mesh.magSf();
     const surfaceVectorField& Sf = mesh.Sf();
-    const compressible::turbulenceModel& turbulence(*turbulencePtr);
 
+#ifdef HAVE_OF7
+    const compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    const compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
 
     // Check the formulation bellow:
     // https://www.openfoam.com/documentation/guides/latest/doc/guide-turbulence-ras.html
@@ -903,7 +922,12 @@ std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] 
                     {
                         double timeIn = MPI_Wtime();
 
+#ifdef HAVE_OF7
                         const tmp<volScalarField>& alphat = turbulence.alphat();
+#elif defined(HAVE_OF8)
+                        const tmp<volScalarField>& alphat = thermoTransModel.alphaEff();
+#endif
+
                         ca_patchAlphaT[ipatch][faceIndex] =
                             alphat().boundaryField()[ipatch][localFaceID];
 

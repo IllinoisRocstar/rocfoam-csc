@@ -139,6 +139,8 @@ int comFoam::createVolumeData()
         ca_Rho = new double[*ca_nCells]{0};
 
     const volVectorField& U(*UPtr);
+
+#ifdef HAVE_OF7
     IOdictionary turbProperties
     (
         IOobject
@@ -150,6 +152,19 @@ int comFoam::createVolumeData()
             IOobject::NO_WRITE
         )
     );
+#elif defined(HAVE_OF8)
+    IOdictionary turbProperties
+    ( 
+        IOobject
+        (
+            momentumTransportModel::typeName,
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+#endif
 
     word simulationType = turbProperties.lookup("simulationType");
     if (simulationType == "RAS")
@@ -235,7 +250,13 @@ int comFoam::updateVolumeData_outgoing()
     const volVectorField& U(*UPtr);
     const volScalarField& T(*TPtr);
     const volScalarField& rho(*rhoPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+
+#ifdef HAVE_OF7
+    const compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    const compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
 
     int cellIndex = 0;
     for(int itype=0; itype<*ca_cellToPointConn_types; itype++)
@@ -263,7 +284,12 @@ int comFoam::updateVolumeData_outgoing()
             // Turbulence data ^^^^^^^^^^^^^^^^^^
             if (ca_AlphaT != nullptr)
             {
+#ifdef HAVE_OF7
                 const tmp<volScalarField>& alphat = turbulence.alphat();
+#elif defined(HAVE_OF8)
+                const tmp<volScalarField>& alphat = thermoTransModel.alphaEff();
+#endif
+
                 ca_AlphaT[cellIndex] = alphat()[cellID];
             }
 

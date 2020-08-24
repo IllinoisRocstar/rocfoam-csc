@@ -5,7 +5,14 @@
 #include "fvCFD.H"
 #include "fvcSmooth.H"
 #include "localEulerDdtScheme.H"
-#include "turbulentFluidThermoModel.H"
+
+#ifdef HAVE_OF7
+    #include "turbulentFluidThermoModel.H"
+#elif defined(HAVE_OF8)
+    #include "fluidThermoMomentumTransportModel.H"
+    #include "fluidThermophysicalTransportModel.H"
+#endif
+
 #include "PstreamGlobals.H"
 
 class rocFoam
@@ -60,10 +67,16 @@ protected:
     volScalarField* rhoEPtr{nullptr};
     surfaceScalarField* phiPtr{nullptr};
     autoPtr<surfaceVectorField> rhoUfPtr{nullptr};
-
     
     autoPtr<dynamicFvMesh> meshPtr{nullptr};
+
+#ifdef HAVE_OF7
     autoPtr<compressible::turbulenceModel> turbulencePtr{nullptr};
+#elif  defined(HAVE_OF8)
+    autoPtr<compressible::momentumTransportModel> turbulencePtr{nullptr};
+    autoPtr<fluidThermophysicalTransportModel> thermophysicalTransportPtr{nullptr};
+#endif
+
     tmp<volScalarField> trDeltaT{nullptr};
     //--------------------------------
 

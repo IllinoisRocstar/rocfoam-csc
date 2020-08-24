@@ -24,11 +24,16 @@ public:
     static void unload(const char *name);
     //--------------------------------------
 
+    pimpleControl& getPimpleControl()
+    {
+        return *pimplePtr;
+    }
+
 private:
+    pimpleControl* pimplePtr{nullptr};
     //int initSet();
 
     //  Solver pointers ^^^^^^^^^^^^^^^^^^^^
-    pimpleControl* pimplePtr{nullptr};
     pressureControl* pressureControlPtr{nullptr};
     volScalarField* dpdtPtr{nullptr};
     volScalarField* KPtr{nullptr};
@@ -39,6 +44,10 @@ private:
     autoPtr<fluidThermo> pThermoPtr{nullptr};
     autoPtr<volScalarField> divrhoUPtr{nullptr};
     tmp<fvVectorMatrix> tUEqnPtr{nullptr};
+
+#ifdef HAVE_OF8
+    dimensionedScalar* initialMassPtr{nullptr};
+#endif
     //--------------------------------------
 
     //  Control variables ^^^^^^^^^^^^^^^^^^
@@ -75,8 +84,13 @@ private:
     int rhoEqn_();
     int UEqn_();
     int EEqn_();
+
+#ifdef HAVE_OF7
     int pcEqn();
+#endif
+
     int compressibleContinuityErrs();
+    int incompressibleContinuityErrs();
     int pEqn_();
 
     double errorEvaluate(int argc, char *argv[]);

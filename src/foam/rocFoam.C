@@ -418,10 +418,17 @@ int rocFoam::listOutput()
 #elif defined(turbulentFluidThermoModel_H)
     if (args.optionFound("listTurbulenceModels"))
     {
+#ifdef HAVE_OF7
         Info << "Turbulence models"
              << compressible::turbulenceModel::dictionaryConstructorTablePtr_
                     ->sortedToc()
              << endl;
+#elif defined(HAVE_OF8)
+        Info << "Turbulence models"
+             << compressible::momentumTransportModel::dictionaryConstructorTablePtr_
+                    ->sortedToc()
+             << endl;
+#endif
 
         Info << "RAS models"
              << compressible::RASModel::dictionaryConstructorTablePtr_

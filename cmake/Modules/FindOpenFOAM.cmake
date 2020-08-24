@@ -39,117 +39,239 @@ include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
 
 # List of minimum required OpenFOAM library components
 set(OPNF_COMPONENT_BINDINGS)
-set(OPNF_VALID_COMPONENTS
-    barotropicCompressibilityModel
-    blockMesh
-    chemistryModel
-    coalCombustion
-    combustionModels
-    compressibleEulerianInterfacialModels
-    compressibleMultiphaseEulerianInterfacialModels
-    compressibleTransportModels
-    compressibleTurbulenceModels
-    compressibleTwoPhaseSystem
-    conversion
-    decompose
-    decompositionMethods
-    distributed
-    distributionModels
-    DPMTurbulenceModels
-    driftFluxRelativeVelocityModels
-    driftFluxTransportModels
-    DSMC
-    dynamicFvMesh
-    dynamicMesh
-    edgeMesh
-    engine
-    extrude2DMesh
-    extrudeModel
-    fieldFunctionObjects
-    fileFormats
-    finiteVolume
-    fluidThermophysicalModels
-    foamToVTK
-    forces
-    fvMotionSolvers
-    fvOptions
-    genericPatchFields
-    helpTypes
-    immiscibleIncompressibleTwoPhaseMixture
-    incompressibleTransportModels
-    incompressibleTurbulenceModels
-    interfaceProperties
-    lagrangianFunctionObjects
-    lagrangianIntermediate
-    lagrangian
-    lagrangianSpray
-    lagrangianTurbulence
-    laminarFlameSpeedModels
-    liquidMixtureProperties
-    liquidProperties
-    meshTools
-    molecularMeasurements
-    molecule
-    multiphaseInterFoam
-    multiphaseMixtureThermo
-    multiphaseReactingTurbulenceModels
-    multiphaseSystem
-    ODE
-    OpenFOAM
-    pairPatchAgglomeration
-    phaseChangeTwoPhaseMixtures
-    phaseCompressibleTurbulenceModels
-    potential
-    pyrolysisModels
-    radiationModels
-    randomProcesses
-    reactingEulerianInterfacialCompositionModels
-    reactingEulerianInterfacialModels
-    reactingMultiphaseSystem
-    reactingPhaseSystem
-    reactingTwoPhaseSystem
-    reactionThermophysicalModels
-    reconstruct
-    regionCoupled
-    regionCoupling
-    regionModels
-    renumberMethods
-    rhoCentralFoam
-    rigidBodyDynamics
-    rigidBodyMeshMotion
-    sampling
-    scotchDecomp
-    sixDoFRigidBodyMotion
-    SLGThermo
-    SloanRenumber
-    snappyHexMesh
-    solidChemistryModel
-    solidMixtureProperties
-    solidParticle
-    solidProperties
-    solidSpecie
-    solidThermo
-    solverFunctionObjects
-    specie
-    surfaceFilmDerivedFvPatchFields
-    surfaceFilmModels
-    surfMesh
-    tabulatedWallFunctions
-    thermalBaffleModels
-    thermophysicalFunctions
-    topoChangerFvMesh
-    triSurface
-    turbulenceModels
-    twoPhaseMixture
-    twoPhaseMixtureThermo
-    twoPhaseProperties
-    twoPhaseReactingTurbulenceModels
-    userd-foam
-    utilityFunctionObjects
 
-    # in the mpi subfolder
-    Pstream
-)
+set(OF_VERSION_ -1)
+
+string(FIND $ENV{WM_PROJECT_VERSION} "7" OF7_)
+if(OF7_ GREATER -1)
+    set(OF_VERSION_ 7)
+endif()
+
+string(FIND $ENV{WM_PROJECT_VERSION} "8" OF8_)
+if(OF8_ GREATER -1)
+    set(OF_VERSION_ 8)
+endif()
+
+if(OF_VERSION_ EQUAL 7)
+    set(OPNF_VALID_COMPONENTS
+        barotropicCompressibilityModel
+        blockMesh
+        chemistryModel
+        coalCombustion
+        combustionModels
+        compressibleEulerianInterfacialModels
+        compressibleMultiphaseEulerianInterfacialModels
+        compressibleTransportModels
+        compressibleTurbulenceModels
+        compressibleTwoPhaseSystem
+        conversion
+        decompose
+        decompositionMethods
+        distributed
+        distributionModels
+        DPMTurbulenceModels
+        driftFluxRelativeVelocityModels
+        driftFluxTransportModels
+        DSMC
+        dynamicFvMesh
+        dynamicMesh
+        edgeMesh
+        engine
+        extrude2DMesh
+        extrudeModel
+        fieldFunctionObjects
+        fileFormats
+        finiteVolume
+        fluidThermophysicalModels
+        foamToVTK
+        forces
+        fvMotionSolvers
+        fvOptions
+        genericPatchFields
+        helpTypes
+        immiscibleIncompressibleTwoPhaseMixture
+        incompressibleTransportModels
+        incompressibleTurbulenceModels
+        interfaceProperties
+        lagrangianFunctionObjects
+        lagrangianIntermediate
+        lagrangian
+        lagrangianSpray
+        lagrangianTurbulence
+        laminarFlameSpeedModels
+        liquidMixtureProperties
+        liquidProperties
+        meshTools
+        molecularMeasurements
+        molecule
+        multiphaseInterFoam
+        multiphaseMixtureThermo
+        multiphaseReactingTurbulenceModels
+        multiphaseSystem
+        ODE
+        OpenFOAM
+        pairPatchAgglomeration
+        phaseChangeTwoPhaseMixtures
+        phaseCompressibleTurbulenceModels
+        potential
+        Pstream
+        pyrolysisModels
+        radiationModels
+        randomProcesses
+        reactingEulerianInterfacialCompositionModels
+        reactingEulerianInterfacialModels
+        reactingMultiphaseSystem
+        reactingPhaseSystem
+        reactingTwoPhaseSystem
+        reactionThermophysicalModels
+        reconstruct
+        regionCoupled
+        regionCoupling
+        regionModels
+        renumberMethods
+        rhoCentralFoam
+        rigidBodyDynamics
+        rigidBodyMeshMotion
+        sampling
+        scotchDecomp
+        sixDoFRigidBodyMotion
+        SLGThermo
+        SloanRenumber
+        snappyHexMesh
+        solidChemistryModel
+        solidMixtureProperties
+        solidParticle
+        solidProperties
+        solidSpecie
+        solidThermo
+        solverFunctionObjects
+        specie
+        surfaceFilmDerivedFvPatchFields
+        surfaceFilmModels
+        surfMesh
+        tabulatedWallFunctions
+        thermalBaffleModels
+        thermophysicalFunctions
+        topoChangerFvMesh
+        triSurface
+        turbulenceModels
+        twoPhaseMixture
+        twoPhaseMixtureThermo
+        twoPhaseProperties
+        twoPhaseReactingTurbulenceModels
+        userd-foam
+        utilityFunctionObjects)
+elseif(OF_VERSION_ EQUAL 8)
+    set(OPNF_VALID_COMPONENTS
+        barotropicCompressibilityModel
+        blockMesh
+        chemistryModel
+        coalCombustion
+        combustionModels
+        compressibleEulerianInterfacialModels
+        compressibleMultiphaseEulerianInterfacialModels
+        compressibleTwoPhaseSystem
+        conversion
+        decompose
+        decompositionMethods
+        distributed
+        distributionModels
+        DPMTurbulenceModels
+        driftFluxRelativeVelocityModels
+        driftFluxTransportModels
+        DSMC
+        dynamicFvMesh
+        dynamicMesh
+        edgeMesh
+        engine
+        extrude2DMesh
+        extrudeModel
+        fieldFunctionObjects
+        fileFormats
+        finiteVolume
+        fluidThermoMomentumTransportModels
+        fluidThermophysicalModels
+        foamToVTK
+        forces
+        fvMotionSolvers
+        fvOptions
+        genericPatchFields
+        helpTypes
+        immiscibleIncompressibleTwoPhaseMixture
+        incompressibleTransportModels
+        incompressibleTurbulenceModels
+        interfaceProperties
+        lagrangianFunctionObjects
+        lagrangianIntermediate
+        lagrangian
+        lagrangianSpray
+        lagrangianTurbulence
+        laminarFlameSpeedModels
+        liquidMixtureProperties
+        liquidProperties
+        meshTools
+        molecularMeasurements
+        molecule
+        multiphaseInterFoam
+        multiphaseMixtureThermo
+        multiphaseReactingTurbulenceModels
+        multiphaseSystem
+        momentumTransportModels
+        ODE
+        OpenFOAM
+        pairPatchAgglomeration
+        phaseChangeTwoPhaseMixtures
+        phaseCompressibleTurbulenceModels
+        potential
+        Pstream
+        pyrolysisModels
+        radiationModels
+        randomProcesses
+        reactingEulerianInterfacialCompositionModels
+        reactingEulerianInterfacialModels
+        reactingMultiphaseSystem
+        reactingPhaseSystem
+        reactingTwoPhaseSystem
+        reactionThermophysicalModels
+        reconstruct
+        regionCoupled
+        regionCoupling
+        regionModels
+        renumberMethods
+        rhoCentralFoam
+        rigidBodyDynamics
+        rigidBodyMeshMotion
+        sampling
+        scotchDecomp
+        sixDoFRigidBodyMotion
+        SLGThermo
+        SloanRenumber
+        snappyHexMesh
+        solidChemistryModel
+        solidMixtureProperties
+        solidParticle
+        solidProperties
+        solidSpecie
+        solidThermo
+        solverFunctionObjects
+        specie
+        surfaceFilmDerivedFvPatchFields
+        surfaceFilmModels
+        surfMesh
+        tabulatedWallFunctions
+        thermalBaffleModels
+        thermophysicalFunctions
+        thermophysicalTransportModels
+        topoChangerFvMesh
+        triSurface
+        twoPhaseMixture
+        twoPhaseMixtureThermo
+        twoPhaseProperties
+        twoPhaseReactingTurbulenceModels
+        userd-foam
+        utilityFunctionObjects)
+endif()
+
 
 # set initial parameters from OpenFOAM environment variables
 # check existance and read variables, preps for search step
@@ -209,6 +331,7 @@ set(OPNF_INC_DIR
     ${OPNF_INST_DIR}/src/transportModels/compressible/lnInclude
     ${OPNF_INST_DIR}/src/thermophysicalModels/basic/lnInclude
     ${OPNF_INST_DIR}/src/thermophysicalModels/specie/lnInclude
+    ${OPNF_INST_DIR}/src/ThermophysicalTransportModels/lnInclude
     ${OPNF_INST_DIR}/src/TurbulenceModels/turbulenceModels/lnInclude
     ${OPNF_INST_DIR}/src/TurbulenceModels/compressible/lnInclude
     ${OPNF_INST_DIR}/src/finiteVolume/cfdTools
@@ -218,6 +341,8 @@ set(OPNF_INC_DIR
     ${OPNF_INST_DIR}/applications/solvers/compressible/rhoCentralFoam
     ${OPNF_INST_DIR}/applications/solvers/compressible/rhoCentralFoam/BCs/lnInclude
     ${OPNF_INST_DIR}/src/Pstream/mpi/lnInclude
+    ${OPNF_INST_DIR}/src/MomentumTransportModels/compressible/lnInclude
+    ${OPNF_INST_DIR}/src/MomentumTransportModels/momentumTransportModels/lnInclude/
 )
 
 # OpenFOAM has custom compiler definitions. All sourced from the OpenFOAM env.
@@ -257,7 +382,7 @@ if(OPNF_LIBRARY_DIRS)
 endif()
 
 # final processing
-message(STATUS "OpenFOAM library location ${OPNF_LIBRARY_DIRS}")
+##message(STATUS "OpenFOAM library location ${OPNF_LIBRARY_DIRS}")
 find_package_handle_standard_args(OpenFOAM
     REQUIRED_VARS OPNF_LIBRARIES OPNF_INCLUDE_DIRS
     VERSION_VAR OPNF_VERSION)

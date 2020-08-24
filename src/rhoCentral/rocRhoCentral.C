@@ -149,7 +149,11 @@ int rhoCentral::initFOAM(int argc, char *argv[])
     readFluxScheme();
     // ------------------------------------------
 
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+#endif
 
     turbulence.validate();
 
@@ -176,7 +180,12 @@ int rhoCentral::loop()
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#ifdef HAVE_OF7
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
 
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
 
@@ -383,14 +392,25 @@ int rhoCentral::loop()
 
         if (!inviscid)
         {
+#ifdef HAVE_OF7
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
                 fvm::laplacian(turbulence.alphaEff(), e)
             );
+#elif defined(HAVE_OF8)
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e)
+              + thermoTransModel.divq(e)
+            );
+            thermo.correct();
+            rhoE = rho*(e + 0.5*magSqr(U));            
             thermo.correct();
             rhoE = rho * (e + 0.5 * magSqr(U));
+#endif
         }
+
 
         p.ref() = rho() / psi();
 
@@ -398,6 +418,10 @@ int rhoCentral::loop()
         rho.boundaryFieldRef() == psi.boundaryField() * p.boundaryField();
 
         turbulence.correct();
+
+#ifdef HAVE_OF8
+    thermoTransModel.correct();
+#endif
 
         runTime.write();
 
@@ -429,7 +453,12 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
-    compressible::turbulenceModel &turbulence(*turbulencePtr);
+#if defined(HAVE_OF7)
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF8)
+    compressible::momentumTransportModel& turbulence(*turbulencePtr);
+    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+#endif
 
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
 
@@ -634,21 +663,35 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
         if (!inviscid)
         {
+#ifdef HAVE_OF7
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
                 fvm::laplacian(turbulence.alphaEff(), e)
             );
+#elif defined(HAVE_OF8)
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e)
+              + thermoTransModel.divq(e)
+            );
+            thermo.correct();
+            rhoE = rho*(e + 0.5*magSqr(U));            
             thermo.correct();
             rhoE = rho * (e + 0.5 * magSqr(U));
+#endif
         }
-
+        
         p.ref() = rho() / psi();
 
         p.correctBoundaryConditions();
         rho.boundaryFieldRef() == psi.boundaryField() * p.boundaryField();
 
         turbulence.correct();
+
+#ifdef HAVE_OF8
+    thermoTransModel.correct();
+#endif
 
         runTime.write();
 
@@ -771,6 +814,7 @@ int rhoCentral::createFields()
 
     Info << "Creating turbulence model\n" << endl;
 
+#ifdef HAVE_OF7
     turbulencePtr = autoPtr<compressible::turbulenceModel>
     (
         compressible::turbulenceModel::New
@@ -781,6 +825,24 @@ int rhoCentral::createFields()
             thermo
         )
     );
+#elif defined(HAVE_OF8)
+    turbulencePtr = autoPtr<compressible::momentumTransportModel>
+    (
+        compressible::momentumTransportModel::New
+        (
+            rho,
+            U,
+            phi,
+            thermo
+        )
+    );
+
+    Info << "Creating thermophysical transport model\n" << endl;
+    thermophysicalTransportPtr = autoPtr<fluidThermophysicalTransportModel> 
+    (
+        fluidThermophysicalTransportModel::New(turbulencePtr(), thermo)
+    );
+#endif
 
     return 0;
 }
@@ -879,7 +941,7 @@ int rhoCentral::setRDeltaT()
     rDeltaT.ref() = max(1 / dimensionedScalar(dimTime, maxDeltaT),
                         fvc::surfaceSum(amaxSf)()() / ((2 * maxCo) * mesh.V()));
 
-    // Update tho boundary values of the reciprocal time-step
+    // Update the boundary values of the reciprocal time-step
     rDeltaT.correctBoundaryConditions();
 
     fvc::smooth(rDeltaT, rDeltaTSmoothingCoeff);
