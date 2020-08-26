@@ -22,7 +22,7 @@ Ensure you have the latest version of GCC on your machine.
 [5] Set the installation path, by assigning it to the variable "ROCFOAM_INSTALL_PATH"
 [6] Execute the following command line for cmake:
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DCMAKE_INSTALL_PREFIX==$IMPACT_INSTALL_PATH -DCMAKE_C_COMPILER=mpicxx ..
+cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DCMAKE_IMPACT_DIR=$IMPACT_INSTALL_PATH -DCMAKE_CXX_COMPILER=mpicxx ..
 
 [7] Execute "make install" for serial compilation, or "make install -jX" (X being number of processors) for paralle compilation.
 

@@ -176,7 +176,7 @@ elseif(OF_VERSION_ EQUAL 8)
         decompositionMethods
         distributed
         distributionModels
-        DPMTurbulenceModels
+#        DPMTurbulenceModels
         driftFluxRelativeVelocityModels
         driftFluxTransportModels
         DSMC
@@ -199,7 +199,7 @@ elseif(OF_VERSION_ EQUAL 8)
         helpTypes
         immiscibleIncompressibleTwoPhaseMixture
         incompressibleTransportModels
-        incompressibleTurbulenceModels
+#        incompressibleTurbulenceModels
         interfaceProperties
         lagrangianFunctionObjects
         lagrangianIntermediate
@@ -214,14 +214,14 @@ elseif(OF_VERSION_ EQUAL 8)
         molecule
         multiphaseInterFoam
         multiphaseMixtureThermo
-        multiphaseReactingTurbulenceModels
+#        multiphaseReactingTurbulenceModels
         multiphaseSystem
         momentumTransportModels
         ODE
         OpenFOAM
         pairPatchAgglomeration
         phaseChangeTwoPhaseMixtures
-        phaseCompressibleTurbulenceModels
+#        phaseCompressibleTurbulenceModels
         potential
         Pstream
         pyrolysisModels
@@ -267,7 +267,7 @@ elseif(OF_VERSION_ EQUAL 8)
         twoPhaseMixture
         twoPhaseMixtureThermo
         twoPhaseProperties
-        twoPhaseReactingTurbulenceModels
+#        twoPhaseReactingTurbulenceModels
         userd-foam
         utilityFunctionObjects)
 endif()
@@ -374,12 +374,12 @@ macro(_remove_duplicates_from_beginning _list_name)
   list(REVERSE ${_list_name})
 endmacro()
 
-#if(OPNF_INCLUDE_DIRS)
-#  _remove_duplicates_from_beginning(OPNF_INCLUDE_DIRS)
-#endif()
-#if(OPNF_LIBRARY_DIRS)
-#  _remove_duplicates_from_beginning(OPNF_LIBRARY_DIRS)
-#endif()
+if(OPNF_INCLUDE_DIRS)
+  _remove_duplicates_from_beginning(OPNF_INCLUDE_DIRS)
+endif()
+if(OPNF_LIBRARY_DIRS)
+  _remove_duplicates_from_beginning(OPNF_LIBRARY_DIRS)
+endif()
 
 # final processing
 ##message(STATUS "OpenFOAM library location ${OPNF_LIBRARY_DIRS}")

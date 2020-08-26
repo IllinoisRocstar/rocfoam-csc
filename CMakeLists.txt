@@ -184,14 +184,12 @@ install(TARGETS rocfoam
 
 if(OF_VERSION EQUAL 7)
     target_compile_definitions(rocfoam PUBLIC HAVE_OF7)
-message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
+    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
 endif() 
 
 if(OF_VERSION EQUAL 8)
     target_compile_definitions(rocfoam PUBLIC HAVE_OF8)
-
-message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-
+    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
 endif()
 
 # Building utilities #############################################################
