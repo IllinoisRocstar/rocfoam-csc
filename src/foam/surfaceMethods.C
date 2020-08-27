@@ -89,7 +89,7 @@ int comFoam::createSurfaceConnectivities()
         maxNameLength = std::max( maxNameLength, static_cast<int>(strTmp.length())+1 );
     }
 
-    ca_maxNameLength = new int[nPatches];
+    ca_maxNameLength = new int[ca_nProc];
     MPI_Allgather(&maxNameLength, 1, MPI_INT,
                    ca_maxNameLength, 1, MPI_INT, winComm);
 
@@ -149,7 +149,7 @@ int comFoam::createSurfaceConnectivities()
     }
     
 
-    ca_maxTypeLength = new int[nPatches];
+    ca_maxTypeLength = new int[ca_nProc];
     MPI_Allgather(&maxTypeLength, 1, MPI_INT,
                    ca_maxTypeLength, 1, MPI_INT, winComm);
 
