@@ -890,6 +890,9 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
+
+                        Info << "alpha = " << alpha << ", ";
+
                         updateSurfaceData_incoming(count);
                     }
                 }
