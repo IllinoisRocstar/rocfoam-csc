@@ -999,6 +999,12 @@ int comFoam::updateSurfaceData_incoming(const int& count)
     //ca_patchMassFlux: Mass flux (scalar)
     //ca_patchMomentum: Momentum flux (vector)
 
+    if (ca_dynamicSolverType == nullptr)
+        return 0;
+
+    if (ca_isDynamicFvMesh == nullptr)
+        return 0;
+
     std::string dynamicSolverType = ca_dynamicSolverType;
     if (*ca_isDynamicFvMesh == 1 &&
         dynamicSolverType == "displacementLaplacian")

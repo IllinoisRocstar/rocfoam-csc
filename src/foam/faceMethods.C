@@ -403,11 +403,12 @@ int comFoam::reconstFaceData(const char *name)
     int numElem{0};
     for (int i=0; i<*ca_faceToPointConn_types; i++)
     {
-        if (i==0)
+        int typeID = ca_faceToPointConn_map[i];
+        if (typeID == 3)
         {
             dataName = std::string("facet3");
         }
-        else if (i==1)
+        else if (typeID == 4)
         {
             dataName = std::string("faceq4");
         }
