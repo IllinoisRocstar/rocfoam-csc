@@ -474,7 +474,11 @@ int comFoam::createSurfaceData()
     if (simulationType == "RAS")
     {
         const dictionary& subDict = turbProperties.subDict("RAS");
+#ifdef HAVE_OF7
         word RASModel = subDict.lookup("RASModel");
+#elif defined(HAVE_OF8)
+        word RASModel = subDict.lookup("model");
+#endif
 
         if (RASModel == "kEpsilon")
         {
@@ -669,7 +673,7 @@ int comFoam::updateSurfaceData_outgoing()
     const compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     const compressible::momentumTransportModel& turbulence(*turbulencePtr);
-    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+    //const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
     // Check the formulation bellow:
@@ -833,34 +837,6 @@ int comFoam::updateSurfaceData_outgoing()
                     }
                     ca_patchP[ipatch][faceIndex] = p.boundaryField()[ipatch][localFaceID];
 
-
-/*
-if (*ca_bcflag[ipatch]<2)
-{
-    int globalFaceID = localFaceID + patches[ipatch].start();
-
-    const pointField&    points = mesh.points();
-    const faceList& faces = mesh.faces();
-    const labelList& pointsList = faces[globalFaceID];
-    
-ca_patchP[ipatch][faceIndex] = 10000000; //patches[ipatch].faceCentres()[localFaceID].z();
-
-forAll(pointsList, ipoint)
-{
-    const int& pointID = pointsList[ipoint];
-
-    if (points[pointID][0] > -0.025)
-    {
-        ca_patchP[ipatch][faceIndex] = 0;
-        break;
-    }
-}
-
-std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] << std::endl;
-}
-*/
-
-
                     if (ca_patchT != nullptr)
                     {
                         double timeIn = MPI_Wtime();
@@ -925,7 +901,13 @@ std::cout << "ca_patchP[" << faceIndex << "]= " << ca_patchP[ipatch][faceIndex] 
 #ifdef HAVE_OF7
                         const tmp<volScalarField>& alphat = turbulence.alphat();
 #elif defined(HAVE_OF8)
-                        const tmp<volScalarField>& alphat = thermoTransModel.alphaEff();
+                        const tmp<volScalarField>& alphat = refCast<const volScalarField>
+                            (
+                                mesh.objectRegistry::lookupObject<volScalarField>
+                                (
+                                    "alphat"
+                                )
+                            );
 #endif
 
                         ca_patchAlphaT[ipatch][faceIndex] =

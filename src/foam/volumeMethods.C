@@ -170,7 +170,12 @@ int comFoam::createVolumeData()
     if (simulationType == "RAS")
     {
         const dictionary& subDict = turbProperties.subDict("RAS");
+
+#ifdef HAVE_OF7
         word RASModel = subDict.lookup("RASModel");
+#elif defined(HAVE_OF8)
+        word RASModel = subDict.lookup("model");
+#endif
 
         if (RASModel == "kEpsilon")
         {
@@ -255,7 +260,7 @@ int comFoam::updateVolumeData_outgoing()
     const compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     const compressible::momentumTransportModel& turbulence(*turbulencePtr);
-    const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
+    //const fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
     int cellIndex = 0;
@@ -287,7 +292,13 @@ int comFoam::updateVolumeData_outgoing()
 #ifdef HAVE_OF7
                 const tmp<volScalarField>& alphat = turbulence.alphat();
 #elif defined(HAVE_OF8)
-                const tmp<volScalarField>& alphat = thermoTransModel.alphaEff();
+                const tmp<volScalarField>& alphat = refCast<const volScalarField>
+                    (
+                        mesh.objectRegistry::lookupObject<volScalarField>
+                        (
+                            "alphat"
+                        )
+                    );
 #endif
 
                 ca_AlphaT[cellIndex] = alphat()[cellID];
