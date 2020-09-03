@@ -444,7 +444,19 @@ int comFoam::createSurfaceData()
 
     // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
     const volVectorField& U(*UPtr);
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    IOdictionary turbProperties
+    (
+        IOobject
+        (
+            turbulenceModel::propertiesName,
+            U.time().constant(),
+            U.db(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+#elif defined(HAVE_OF7)
     IOdictionary turbProperties
     (
         IOobject
@@ -474,7 +486,9 @@ int comFoam::createSurfaceData()
     if (simulationType == "RAS")
     {
         const dictionary& subDict = turbProperties.subDict("RAS");
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+        word RASModel = subDict.lookup("RASModel");
+#elif defined(HAVE_OF7)
         word RASModel = subDict.lookup("RASModel");
 #elif defined(HAVE_OF8)
         word RASModel = subDict.lookup("model");
@@ -669,7 +683,9 @@ int comFoam::updateSurfaceData_outgoing()
     const surfaceScalarField& magSf = mesh.magSf();
     const surfaceVectorField& Sf = mesh.Sf();
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    const compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF7)
     const compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     const compressible::momentumTransportModel& turbulence(*turbulencePtr);
@@ -898,7 +914,9 @@ int comFoam::updateSurfaceData_outgoing()
                     {
                         double timeIn = MPI_Wtime();
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+                        const tmp<volScalarField>& alphat = turbulence.alphat();
+#elif defined(HAVE_OF7)
                         const tmp<volScalarField>& alphat = turbulence.alphat();
 #elif defined(HAVE_OF8)
                         const tmp<volScalarField>& alphat = refCast<const volScalarField>

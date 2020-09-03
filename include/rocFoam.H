@@ -6,7 +6,10 @@
 #include "fvcSmooth.H"
 #include "localEulerDdtScheme.H"
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    #include "bound.H"
+    #include "turbulentFluidThermoModel.H"
+#elif defined(HAVE_OF7)
     #include "turbulentFluidThermoModel.H"
 #elif defined(HAVE_OF8)
     #include "fluidThermoMomentumTransportModel.H"
@@ -67,10 +70,12 @@ protected:
     volScalarField* rhoEPtr{nullptr};
     surfaceScalarField* phiPtr{nullptr};
     autoPtr<surfaceVectorField> rhoUfPtr{nullptr};
-    
+
     autoPtr<dynamicFvMesh> meshPtr{nullptr};
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    autoPtr<compressible::turbulenceModel> turbulencePtr{nullptr};
+#elif defined(HAVE_OF7)
     autoPtr<compressible::turbulenceModel> turbulencePtr{nullptr};
 #elif  defined(HAVE_OF8)
     autoPtr<compressible::momentumTransportModel> turbulencePtr{nullptr};
@@ -106,8 +111,14 @@ protected:
     int setRootCase();
 
     int setRootCaseLists();
-    int listOptionsFunc();
+
+#ifdef HAVE_OFE20
+    int setRootCaseListOptions();
+    int setRootCaseListOutput();
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+    int listOptions_();
     int listOutput();
+#endif
 
     int createTime();
     int createTimeControls();

@@ -149,7 +149,9 @@ int rhoCentral::initFOAM(int argc, char *argv[])
     readFluxScheme();
     // ------------------------------------------
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF7)
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     compressible::momentumTransportModel& turbulence(*turbulencePtr);
@@ -180,7 +182,9 @@ int rhoCentral::loop()
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF7)
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     compressible::momentumTransportModel& turbulence(*turbulencePtr);
@@ -392,7 +396,13 @@ int rhoCentral::loop()
 
         if (!inviscid)
         {
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e) -
+                fvm::laplacian(turbulence.alphaEff(), e)
+            );
+#elif defined(HAVE_OF7)
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
@@ -425,9 +435,13 @@ int rhoCentral::loop()
 
         runTime.write();
 
+#ifdef HAVE_OF20
+        runTime.printExecutionTime(Info);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl
              << endl;
+#endif
     }
 
     Info << "End\n" << endl;
@@ -663,7 +677,13 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
         if (!inviscid)
         {
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e) -
+                fvm::laplacian(turbulence.alphaEff(), e)
+            );
+#elif defined(HAVE_OF7)
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
@@ -814,7 +834,18 @@ int rhoCentral::createFields()
 
     Info << "Creating turbulence model\n" << endl;
 
-#ifdef HAVE_OF7
+#ifdef HAVE_OFE20
+    turbulencePtr = autoPtr<compressible::turbulenceModel>
+    (
+        compressible::turbulenceModel::New
+        (
+            rho,
+            U,
+            phi,
+            thermo
+        )
+    );
+#elif defined(HAVE_OF7)
     turbulencePtr = autoPtr<compressible::turbulenceModel>
     (
         compressible::turbulenceModel::New
@@ -973,16 +1004,26 @@ int rhoCentral::finalizeFoam()
     //delete argsPtr; Let it be the last thing to delete in the
     //                parrent class:rocFoam
 
-    //delete pThermoPtr;
-    //delete runTimePtr;
+
     //delete ePtr; a pointer
     //delete pPtr; a pointer
     //delete TPtr; a pointer
     //delete psiPtr; a pointer
 
+    //delete pThermoPtr;
     //delete meshPtr;
     //delete turbulencePtr;
     //delete trDeltaT;
+
+
+    meshPtr.clear();
+    turbulencePtr.clear();
+//#ifdef HAVE_OF8
+//    thermophysicalTransportPtr.clear();
+//#endif
+    trDeltaT.clear();
+    pThermoPtr.clear();
+
 
     finalizeStat = 0;
     

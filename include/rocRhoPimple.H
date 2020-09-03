@@ -48,6 +48,12 @@ private:
 #ifdef HAVE_OF8
     dimensionedScalar* initialMassPtr{nullptr};
 #endif
+
+#ifdef HAVE_OFE20
+    dimensionedScalar* rhoMaxPtr;
+    dimensionedScalar* rhoMinPtr;
+#endif
+
     //--------------------------------------
 
     //  Control variables ^^^^^^^^^^^^^^^^^^
@@ -67,6 +73,11 @@ private:
     int initContinuityErrs();
 
     int createFields();
+#ifdef HAVE_OFE20
+    void addCheckCaseOptions();
+    void createDpdt();
+    void createK();
+#endif
     int createMRF();
     int compressibleCreatePhi();
     int createFvOptions();
@@ -85,7 +96,7 @@ private:
     int UEqn_();
     int EEqn_();
 
-#ifdef HAVE_OF7
+#if defined(HAVE_OF7) || defined(HAVE_OFE20)
     int pcEqn();
 #endif
 

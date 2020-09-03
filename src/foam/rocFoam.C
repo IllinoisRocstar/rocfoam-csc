@@ -33,34 +33,199 @@ int rocFoam::finalizeFoam()
 }
 
 int rocFoam::PostProcess(int argc, char *argv[])
+#ifdef HAVE_OFE20
 {
     //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#ifndef CREATE_TIME
-#define CREATE_TIME createTime();
-#endif
+    #ifndef CREATE_TIME
+    #define CREATE_TIME createTime();
+    #endif
     // ------------------------------------------
 
     //  createMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#ifndef CREATE_MESH
-//#define CREATE_MESH createMesh();
-#define CREATE_MESH createDynamicFvMesh();
-#endif
+    #ifndef CREATE_MESH
+    //#define CREATE_MESH createMesh();
+    #define CREATE_MESH createDynamicFvMesh();
+    #endif
     // ------------------------------------------
 
     //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
-#ifndef CREATE_FIELDS
-#define CREATE_FIELDS createFields();
-#endif
+    #ifndef CREATE_FIELDS
+    #define CREATE_FIELDS createFields();
+    #endif
     // ------------------------------------------
 
     //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^
-#ifndef CREATE_CONTROL
-#define CREATE_CONTROL createControl();
-#endif
+    #ifndef CREATE_CONTROL
+    #define CREATE_CONTROL createControl();
+    #endif
     // ------------------------------------------
 
-#define INCLUDE_FILE(X) INCLUDE_FILE2(X)
-#define INCLUDE_FILE2(X) X
+    #define INCLUDE_FILE(X) INCLUDE_FILE2(X)
+    #define INCLUDE_FILE2(X) X
+
+    Foam::argList &args(*argsPtr);
+    Foam::Time &runTime(*runTimePtr);
+
+    Foam::argList::addBoolOption(argList::postProcessOptionName,
+                                 "Execute functionObjects only");
+
+    if (argList::postProcess(argc, argv))
+    {
+        Foam::timeSelector::addOptions();
+
+        //  addRegionOption.H  ^^^^^^^^^^^^^^^^^^
+        addRegionOption();
+        // --------------------------------------
+
+        //  addFunctionObjectOptions.H  ^^^^^^^^^
+        addFunctionObjectOptions();
+        // --------------------------------------
+
+        // Set functionObject post-processing mode
+        functionObject::postProcess = true;
+
+        //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^
+        setRootCase();
+        // --------------------------------------
+
+        if (args.found("list"))
+        {
+            functionObjectList::list();
+            return 0;
+        }
+
+        INCLUDE_FILE(CREATE_TIME)
+        Foam::instantList timeDirs = Foam::timeSelector::select0(runTime, args);
+        INCLUDE_FILE(CREATE_MESH)
+        dynamicFvMesh &mesh(*meshPtr);
+
+        #ifndef NO_CONTROL
+        INCLUDE_FILE(CREATE_CONTROL)
+        #endif
+
+        // Externally stored dictionary for functionObjectList
+        // if not constructed from runTime
+        dictionary functionsDict;
+
+        HashSet<wordRe> selectedFields;
+
+        // Construct functionObjectList
+        autoPtr<functionObjectList> functionsPtr
+        (
+            functionObjectList::New(args, runTime, functionsDict, selectedFields)
+        );
+
+        forAll(timeDirs, timei)
+        {
+            runTime.setTime(timeDirs[timei], timei);
+
+            Info << "Time = " << runTime.timeName() << endl;
+
+            switch (mesh.readUpdate())
+            {
+                case polyMesh::POINTS_MOVED:
+                {
+                    functionsPtr->movePoints(mesh);
+                    break;
+                }
+                case polyMesh::TOPO_CHANGE:
+                case polyMesh::TOPO_PATCH_CHANGE:
+                {
+                    mapPolyMesh mpm(mesh);
+                    functionsPtr->updateMesh(mpm);
+                    break;
+                }
+                case polyMesh::UNCHANGED:
+                {
+                    // No additional work
+                    break;
+                }
+                default:
+                {
+                    FatalErrorIn(args.executable())
+                        << "Unhandled enumeration"
+                        << abort(FatalError);
+                }
+            }
+
+            FatalIOError.throwExceptions();
+
+            try
+            {
+                INCLUDE_FILE(CREATE_FIELDS)
+
+                #ifdef CREATE_FIELDS_2
+                INCLUDE_FILE(CREATE_FIELDS_2)
+                #endif
+
+                #ifdef CREATE_FIELDS_3
+                INCLUDE_FILE(CREATE_FIELDS_3)
+                #endif
+
+                functionsPtr->execute();
+
+                // Execute the functionObject 'end()' function for the last time
+                if (timei == timeDirs.size()-1)
+                {
+                    functionsPtr->end();
+                }
+
+                // Report to output (avoid overwriting values from simulation)
+                profiling::print(Info);
+            }
+            catch (const IOerror& err)
+            {
+                Warning<< err << endl;
+            }
+
+            Info<< endl;
+        }
+
+        Info << "End\n" << endl;
+
+        return 0;
+    }
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    #undef INCLUDE_FILE
+    #undef INCLUDE_FILE2
+
+    #undef CREATE_MESH
+    #undef CREATE_FIELDS
+    #undef CREATE_CONTROL
+
+    return 0;
+}
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+{
+    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    #ifndef CREATE_TIME
+    #define CREATE_TIME createTime();
+    #endif
+    // ------------------------------------------
+
+    //  createMesh.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    #ifndef CREATE_MESH
+    //#define CREATE_MESH createMesh();
+    #define CREATE_MESH createDynamicFvMesh();
+    #endif
+    // ------------------------------------------
+
+    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    #ifndef CREATE_FIELDS
+    #define CREATE_FIELDS createFields();
+    #endif
+    // ------------------------------------------
+
+    //  createControl.H  ^^^^^^^^^^^^^^^^^^^^^^^^
+    #ifndef CREATE_CONTROL
+    #define CREATE_CONTROL createControl();
+    #endif
+    // ------------------------------------------
+
+    #define INCLUDE_FILE(X) INCLUDE_FILE2(X)
+    #define INCLUDE_FILE2(X) X
 
     Foam::argList &args(*argsPtr);
     Foam::Time &runTime(*runTimePtr);
@@ -98,9 +263,9 @@ int rocFoam::PostProcess(int argc, char *argv[])
         INCLUDE_FILE(CREATE_MESH)
         dynamicFvMesh &mesh(*meshPtr);
 
-#ifndef NO_CONTROL
+        #ifndef NO_CONTROL
         INCLUDE_FILE(CREATE_CONTROL)
-#endif
+        #endif
 
         forAll(timeDirs, timei)
         {
@@ -114,13 +279,13 @@ int rocFoam::PostProcess(int argc, char *argv[])
             {
                 INCLUDE_FILE(CREATE_FIELDS)
 
-#ifdef CREATE_FIELDS_2
-            INCLUDE_FILE(CREATE_FIELDS_2)
-#endif
+                #ifdef CREATE_FIELDS_2
+                INCLUDE_FILE(CREATE_FIELDS_2)
+                #endif
 
-#ifdef CREATE_FIELDS_3
-            INCLUDE_FILE(CREATE_FIELDS_3)
-#endif
+                #ifdef CREATE_FIELDS_3
+                INCLUDE_FILE(CREATE_FIELDS_3)
+                #endif
 
                 // Externally stored dictionary for functionObjectList
                 // if not constructed from runTime
@@ -158,18 +323,18 @@ int rocFoam::PostProcess(int argc, char *argv[])
         return 0;
     }
 
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    // //
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#undef INCLUDE_FILE
-#undef INCLUDE_FILE2
+    #undef INCLUDE_FILE
+    #undef INCLUDE_FILE2
 
-#undef CREATE_MESH
-#undef CREATE_FIELDS
-#undef CREATE_CONTROL
+    #undef CREATE_MESH
+    #undef CREATE_FIELDS
+    #undef CREATE_CONTROL
 
     return 0;
 }
+#endif
 
 int rocFoam::addRegionOption()
 {
@@ -189,7 +354,7 @@ int rocFoam::addDictOption()
     (
         "dict",
         "file",
-        "read control dictionary from specified location"
+        "Read control dictionary from specified location"
     );
     
     return 0;
@@ -208,6 +373,14 @@ int rocFoam::addFunctionObjectOptions()
         "Specify the name of the field to be processed, e.g. U"
     );
     
+#ifdef HAVE_OFE20
+    Foam::argList::addOption
+    (
+        "fields",
+        "list",
+        "Specify a list of fields to be processed, e.g. '(U T p)'"
+    );
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     Foam::argList::addOption
     (
         "fields",
@@ -215,6 +388,7 @@ int rocFoam::addFunctionObjectOptions()
         "Specify a list of fields to be processed, e.g. '(U T p)' - "
         "regular expressions not currently supported"
     );
+#endif
     
     Foam::argList::addOption
     (
@@ -254,14 +428,31 @@ int rocFoam::setRootCase()
     {
         Foam::FatalError.exit();
     }
+
+#ifdef HAVE_OFE20
+    #include "foamDlOpenLibs.H"
+#endif
+
     return 0;
 }
 
 int rocFoam::setRootCaseLists()
 {
+#ifdef HAVE_OFE20
+    //  setRootCaseListOptions.H
+    setRootCaseListOptions();
+    //--------------------------
+    
+    //  setRootCase.H
+    setRootCase();
+    //---------------
 
+    //  setRootCaseListOutput.H
+    setRootCaseListOutput();
+    //-------------------------
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     //  listOptions.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    listOptionsFunc();
+    listOptions_();
     // ------------------------------------------
 
     //  setRootCase.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -271,11 +462,207 @@ int rocFoam::setRootCaseLists()
     //  listOutput.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     listOutput();
     // ------------------------------------------
-
+#endif
     return 0;
 }
 
-int rocFoam::listOptionsFunc()
+#ifdef HAVE_OFE20
+int rocFoam::setRootCaseListOptions()
+{
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    // Declare some "standard" list options
+    #ifndef setRootCaseListOptions_H
+    #define setRootCaseListOptions_H
+
+    argList::addBoolOption
+    (
+        "listSwitches",
+        "List switches declared in libraries"
+        " (see -listUnsetSwitches option)",
+        true // advanced
+    );
+    argList::addBoolOption
+    (
+        "listRegisteredSwitches",
+        "List switches registered for run-time modification"
+        " (see -listUnsetSwitches option)",
+        true // advanced
+    );
+    argList::addBoolOption
+    (
+        "listUnsetSwitches",
+        "Modifies switch listing to display values not set in etc/controlDict",
+        true // advanced
+    );
+
+    #ifdef fvPatchField_H
+    argList::addBoolOption
+    (
+        "listScalarBCs",
+        "List scalar field boundary conditions (fvPatchField<scalar>)",
+        true // advanced
+    );
+    argList::addBoolOption
+    (
+        "listVectorBCs",
+        "List vector field boundary conditions (fvPatchField<vector>)",
+        true // advanced
+    );
+    #endif
+
+    #ifdef functionObject_H
+    argList::addBoolOption
+    (
+        "listFunctionObjects",
+        "List functionObjects",
+        true // advanced
+    );
+    #endif
+
+    #ifdef fvOption_H
+    argList::addBoolOption
+    (
+        "listFvOptions",
+        "List fvOptions",
+        true // advanced
+    );
+    #endif
+
+    #if defined(turbulentTransportModel_H) || defined(turbulentFluidThermoModel_H)
+    argList::addBoolOption
+    (
+        "listTurbulenceModels",
+        "List turbulenceModels",
+        true // advanced
+    );
+    #endif
+
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    #endif
+    // ************************************************************************* //
+    return 0;
+}
+
+int rocFoam::setRootCaseListOutput()
+{
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    // Process some "standard" list options
+    #ifndef setRootCaseListOutput_H
+    #define setRootCaseListOutput_H
+
+    {
+        Foam::argList &args(*argsPtr);
+
+        //bool listOptions = false;
+
+        if (args.found("listSwitches"))
+        {
+            debug::listSwitches(args.found("listUnsetSwitches"));
+            listOptions = true;
+        }
+
+        if (args.found("listRegisteredSwitches"))
+        {
+            debug::listRegisteredSwitches(args.found("listUnsetSwitches"));
+            listOptions = true;
+        }
+
+        #ifdef fvPatchField_H
+        if (args.found("listScalarBCs"))
+        {
+            Info<< "scalarBCs"
+                << fvPatchField<Foam::scalar>::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+
+        if (args.found("listVectorBCs"))
+        {
+            Info<< "vectorBCs"
+                <<  fvPatchField<Foam::vector>::
+                    dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+        #endif
+
+        #ifdef functionObject_H
+        if (args.found("listFunctionObjects"))
+        {
+            Info<< "functionObjects"
+                << functionObject::dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+        #endif
+
+        #ifdef fvOption_H
+        if (args.found("listFvOptions"))
+        {
+            Info<< "fvOptions"
+                << fv::option::dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+        #endif
+
+        #ifdef turbulentTransportModel_H
+        if (args.found("listTurbulenceModels"))
+        {
+            Info<< "Turbulence models"
+                << incompressible::turbulenceModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+
+            Info<< "RAS models"
+                << incompressible::RASModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+
+            Info<< "LES models"
+                << incompressible::LESModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+        #elif defined(turbulentFluidThermoModel_H)
+        if (args.found("listTurbulenceModels"))
+        {
+            Info<< "Turbulence models"
+                << compressible::turbulenceModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+
+            Info<< "RAS models"
+                << compressible::RASModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+
+            Info<< "LES models"
+                << compressible::LESModel::
+                dictionaryConstructorTablePtr_->sortedToc()
+                << endl;
+            listOptions = true;
+        }
+        #endif
+
+        if (listOptions)
+        {
+            exit(0);
+        }
+    }
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    #endif
+    // ************************************************************************* //
+   
+    return 0;
+}
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+int rocFoam::listOptions_()
 {
     argList::addBoolOption
     (
@@ -295,7 +682,7 @@ int rocFoam::listOptionsFunc()
         "List switches declared in libraries but not set in etc/controlDict"
     );
 
-#ifdef fvPatchField_H
+    #ifdef fvPatchField_H
     argList::addBoolOption
     (
         "listScalarBCs",
@@ -307,31 +694,31 @@ int rocFoam::listOptionsFunc()
         "listVectorBCs",
         "List vector field boundary conditions (fvPatchField<vector>)"
     );
-#endif
+    #endif
 
-#ifdef functionObject_H
+    #ifdef functionObject_H
     argList::addBoolOption
     (
         "listFunctionObjects",
         "List functionObjects"
     );
-#endif
+    #endif
 
-#ifdef fvOption_H
+    #ifdef fvOption_H
     argList::addBoolOption
     (
         "listFvOptions",
         "List fvOptions"
     );
-#endif
+    #endif
 
-#if defined(turbulentTransportModel_H) || defined(turbulentFluidThermoModel_H)
+    #if defined(turbulentTransportModel_H) || defined(turbulentFluidThermoModel_H)
     argList::addBoolOption
     (
         "listTurbulenceModels",
         "List turbulenceModels"
     );
-#endif
+    #endif
 
     return 0;
 }
@@ -354,7 +741,7 @@ int rocFoam::listOutput()
         listOptions = true;
     }
 
-#ifdef fvPatchField_H
+    #ifdef fvPatchField_H
     if (args.optionFound("listScalarBCs"))
     {
         Info<< "scalarBCs"
@@ -370,10 +757,9 @@ int rocFoam::listOutput()
             << endl;
         listOptions = true;
     }
+    #endif
 
-#endif
-
-#ifdef functionObject_H
+    #ifdef functionObject_H
     if (args.optionFound("listFunctionObjects"))
     {
         Info << "functionObjects"
@@ -381,67 +767,78 @@ int rocFoam::listOutput()
              << endl;
         listOptions = true;
     }
-#endif
+    #endif
 
-
-
-
-#ifdef fvOption_H
+    #ifdef fvOption_H
     if (args.optionFound("listFvOptions"))
     {
         Info << "fvOptions"
              << fv::option::dictionaryConstructorTablePtr_->sortedToc() << endl;
         listOptions = true;
     }
-#endif
+    #endif
 
-#ifdef turbulentTransportModel_H
-    if (args.optionFound("listTurbulenceModels"))
-    {
-        Info << "Turbulence models"
-             << incompressible::turbulenceModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
-             << endl;
-
-        Info << "RAS models"
-             << incompressible::RASModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
-             << endl;
-
-        Info << "LES models"
-             << incompressible::LESModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
-             << endl;
-        listOptions = true;
-    }
-
-#elif defined(turbulentFluidThermoModel_H)
-    if (args.optionFound("listTurbulenceModels"))
-    {
 #ifdef HAVE_OF7
+    #ifdef turbulentTransportModel_H
+    if (args.optionFound("listTurbulenceModels"))
+    {
         Info << "Turbulence models"
-             << compressible::turbulenceModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
+             << incompressible::turbulenceModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
              << endl;
 #elif defined(HAVE_OF8)
-        Info << "Turbulence models"
-             << compressible::momentumTransportModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
-             << endl;
+    #ifdef kinematicMomentumTransportModel_H
+    if (args.optionFound("listMomentumTransportModels"))
+    {
+        Info<< "Turbulence models"
+            << incompressible::momentumTransportModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+            << endl;
 #endif
 
         Info << "RAS models"
-             << compressible::RASModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
+             << incompressible::RASModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
              << endl;
 
         Info << "LES models"
-             << compressible::LESModel::dictionaryConstructorTablePtr_
-                    ->sortedToc()
+             << incompressible::LESModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
              << endl;
         listOptions = true;
     }
+
+#ifdef HAVE_OF7
+    #elif defined(turbulentFluidThermoModel_H)
+    if (args.optionFound("listTurbulenceModels"))
+    {
+        Info << "Turbulence models"
+             << compressible::turbulenceModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+#elif defined(HAVE_OF8)
+    #elif defined(fluidThermoMomentumTransportModel_H)
+    if (args.optionFound("listMomentumTransportModels"))
+    {
+        Info<< "Turbulence models"
+            << compressible::momentumTransportModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+            << endl;
 #endif
+
+        Info << "RAS models"
+             << compressible::RASModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+
+        Info << "LES models"
+             << compressible::LESModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+        listOptions = true;
+    }
+    #endif
+    
     if (listOptions)
     {
         exit(0);
@@ -449,6 +846,8 @@ int rocFoam::listOutput()
 
     return 0;
 }
+#endif
+
 
 int rocFoam::createTime()
 {
@@ -466,6 +865,16 @@ int rocFoam::createTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
+#ifdef HAVE_OFE20
+    adjustTimeStep =
+        runTime.controlDict().getOrDefault("adjustTimeStep", false);
+
+    maxCo = runTime.controlDict().getOrDefault<scalar>("maxCo", 1);
+
+    maxDeltaT =
+        runTime.controlDict().getOrDefault<scalar>("maxDeltaT", GREAT);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
     adjustTimeStep =
         runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
@@ -473,6 +882,7 @@ int rocFoam::createTimeControls()
 
     maxDeltaT =
         runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
+#endif
 
     return 0;
 }
@@ -499,7 +909,12 @@ int rocFoam::setDeltaT()
 
     if (adjustTimeStep)
     {
-        scalar maxDeltaTFact = maxCo / (CoNum + small);
+#ifdef HAVE_OFE20
+        scalar maxDeltaTFact = maxCo/(CoNum + SMALL);
+#elif defined(HAVE_OF7) defined(HAVE_OF8)
+        scalar maxDeltaTFact = maxCo/(CoNum + small);
+#endif
+
         scalar deltaTFact = min
         (
             min(maxDeltaTFact, 1.0 + 0.1 * maxDeltaTFact),
@@ -538,7 +953,11 @@ int rocFoam::createRDeltaT()
                     IOobject::AUTO_WRITE
                 ),
                 mesh,
+#ifdef HAVE_OFE20
+                dimensionedScalar("one", dimless/dimTime, 1),
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
                 dimensionedScalar(dimless / dimTime, 1),
+#endif
                 extrapolatedCalculatedFvPatchScalarField::typeName
             )
         );
@@ -553,6 +972,9 @@ int rocFoam::createDynamicFvMesh()
 
     Info << "Create mesh for time = " << runTime.timeName() << nl << endl;
 
+#ifdef HAVE_OFE20
+    meshPtr = dynamicFvMesh::New((args, runTime));
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     meshPtr = dynamicFvMesh::New
     (
         IOobject
@@ -563,6 +985,7 @@ int rocFoam::createDynamicFvMesh()
             IOobject::MUST_READ
         )
     );
+#endif
 
     return 0;
 }
