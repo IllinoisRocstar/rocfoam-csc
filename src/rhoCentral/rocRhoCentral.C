@@ -34,7 +34,7 @@ void rhoCentral::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.load: Loading rhoCentral with name "
+        std::cout << "rocFoam.load: Loading rocRhoCentral with name "
                    << name << "." << std::endl;
 
         std::cout << "rocFoam.load: Rank = " << tmpRank
@@ -44,39 +44,76 @@ void rhoCentral::load(const char *name)
         std::cout << std::endl;
     }
 
-    // Register Volume Window ^^^^^^^^^^^^^^^^^^^
-    rhoCentral *comFoamPtr = new rhoCentral();
-    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
-    comFoamPtr->winComm = tmpComm;
-    
-    //Foam::PstreamGlobals::MPI_comFoam_to_openFoam = comFoamPtr->winComm;
-    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
-    
-    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
-    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
-
-    // Base window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string winName = name;
-    COM_new_window(winName, tmpComm);
+    int winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "WARNING: Window " << winName << " already exists."
+                  << " CSC must create this window name."
+                  << std::endl;
+        exit(-1);
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
+    }
+
+    // Register object ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    rhoCentral *comFoamPtr = new rhoCentral();
     std::string objectName = winName + string(".object");
     COM_new_dataitem(objectName.c_str(), 'w', COM_VOID, 1, "");
     COM_set_object(objectName.c_str(), 0, comFoamPtr);
     COM_window_init_done(winName);
+    
+    //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
+    comFoamPtr->winComm = tmpComm;
+    //Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
+    MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
+    comFoamPtr->winName = winName;
+    comFoamPtr->registerFunctions(winName.c_str());
     //-------------------------------------------
 
     // Vol window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     winName = name+string("VOL");
-    COM_new_window(winName, tmpComm);
-    COM_window_init_done(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "Window " << winName << " already exists."
+                  << " Assure that there is nothing wrong with it."
+                  << std::endl;
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+        COM_window_init_done(winName);
+
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
+    }
     //-------------------------------------------
 
     // Surf window ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     winName = name+string("SURF");
-    COM_new_window(winName, tmpComm);
-    COM_window_init_done(winName);
-    //-------------------------------------------
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        std::cout << "Window " << winName << " already exists."
+                  << " Assure that there is nothing wrong with it."
+                  << std::endl;
+    }
+    else
+    {
+        COM_new_window(winName, tmpComm);
+        COM_window_init_done(winName);
 
-    comFoamPtr->registerFunctions(name);
+        Info << "rocFoam.load: Window " << winName
+             << " created." << endl;
+    }
+    //-------------------------------------------
 
     return;
 }
@@ -117,37 +154,51 @@ int rhoCentral::initFOAM(int argc, char *argv[])
     // Not quite sure where this line should be
     createArgs(argc, argv);
 
-    //  postProcess.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+#ifdef HAVE_OFE20
+    argList::addNote
+    (
+        "Density-based compressible flow solver based on central-upwind"
+        " schemes of Kurganov and Tadmor."
+    );
+#endif
+
+    //  postProcess.H
     PostProcess(argc, argv);
-    // ------------------------------------------
+    // --------------
 
-    //  setRootCaseLists.H  ^^^^^^^^^^^^^^^^^^^^^
+#ifdef HAVE_OFE20
+    //  addCheckCaseOptions.H
+    addCheckCaseOptions();
+    // ----------------------
+#endif
+
+    //  setRootCaseLists.H
     setRootCaseLists();
-    // ------------------------------------------
+    // -------------------
 
-    //  createTime.H  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createTime.H
     createTime();
-    // ------------------------------------------
+    // -------------
 
-    //  createDynamicFvMesh.H  ^^^^^^^^^^^^^^^^^^
+    //  createDynamicFvMesh.H
     createDynamicFvMesh();
-    // ------------------------------------------
+    // ----------------------
 
-    //  createFields.H  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    //  createFields.H
     createFields();
-    // ------------------------------------------
+    // ---------------
 
-    //  createFieldRefs.H  ^^^^^^^^^^^^^^^^^^^^^^
+    //  createFieldRefs.H
     createFieldRefs();
-    // ------------------------------------------
+    // ------------------
 
-    //  createTimeControls.H  ^^^^^^^^^^^^^^^^^^^
+    //  createTimeControls.H
     createTimeControls();
-    // ------------------------------------------
+    // ---------------------
 
-    //  readFluxScheme.H  ^^^^^^^^^^^^^^^^^^^^^^^
+    //  readFluxScheme.H
     readFluxScheme();
-    // ------------------------------------------
+    // -----------------
 
 #ifdef HAVE_OFE20
     compressible::turbulenceModel& turbulence(*turbulencePtr);
@@ -191,7 +242,11 @@ int rhoCentral::loop()
     fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
+#ifdef HAVE_OFE20
+    const dimensionedScalar v_zero(dimVolume/dimTime, Zero);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
+#endif
 
     // Courant numbers used to adjust the time-step
     // scalar CoNum = 0.0;
@@ -201,20 +256,23 @@ int rhoCentral::loop()
 
     while (runTime.run())
     {
-        //  readTimeControls.H  ^^^^^^^^^^^^^^^^^
+
+#if defined(HAVE_OF7) || defined(HAVE_OF8)
+        //  readTimeControls.H
         readTimeControls();
-        // --------------------------------------
+        // -------------------
 
         if (!LTS)
         {
-            //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^
+            //  setDeltaT.H
             setDeltaT();
-            // ----------------------------------
+            // ------------
             runTime++;
 
             // Do any mesh changes
             mesh.update();
         }
+#endif
 
         // --- Directed interpolation of primitive fields onto faces
         surfaceScalarField rho_pos(interpolate(rho, pos));
@@ -239,12 +297,17 @@ int rhoCentral::loop()
         surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
+#ifdef HAVE_OFE20
+        phiv_pos.setOriented(false);
+        phiv_neg.setOriented(false);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make fluxes relative to mesh-motion
         if (mesh.moving())
         {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
+#endif
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
         surfaceScalarField cSf_pos
@@ -307,28 +370,57 @@ int rhoCentral::loop()
         // estimated by the central scheme
         amaxSf = max(mag(aphiv_pos), mag(aphiv_neg));
 
-        //  centralCourantNo.H  ^^^^^^^^^^^^^^^^^
+        //  centralCourantNo.H
         centralCourantNo();
-        // --------------------------------------
+        // -------------------
+
+#ifdef HAVE_OFE20
+        //  readTimeControls.H
+        readTimeControls();
+        // -------------------
 
         if (LTS)
         {
             // setRDeltaT.H
-            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setRDeltaT();
-            // ----------------------------------
+            // ------------
+        }
+        else
+        {
+            //  setDeltaT.H
+            setDeltaT();
+            // ------------
+        }
+
+        ++runTime;
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+        if (LTS)
+        {
+            // setRDeltaT.H
+            setRDeltaT();
+            // ------------
             runTime++;
         }
+#endif
 
         Info << "Time = " << runTime.timeName() << nl << endl;
 
         phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
 
+#ifdef HAVE_OFE20
+        surfaceVectorField phiU(aphiv_pos*rhoU_pos + aphiv_neg*rhoU_neg);
+        // Note: reassembled orientation from the pos and neg parts so becomes
+        // oriented
+        phiU.setOriented(true);
+
+        surfaceVectorField phiUp(phiU + (a_pos*p_pos + a_neg*p_neg)*mesh.Sf());
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         surfaceVectorField phiUp
         (
             (aphiv_pos * rhoU_pos + aphiv_neg * rhoU_neg) +
             (a_pos * p_pos + a_neg * p_neg) * mesh.Sf()
         );
+#endif
 
         surfaceScalarField phiEp
         (
@@ -338,11 +430,13 @@ int rhoCentral::loop()
             aSf * p_pos - aSf * p_neg
         );
 
+#if defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make flux for pressure-work absolute
         if (mesh.moving())
         {
             phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
         }
+#endif
 
         volScalarField muEff("muEff", turbulence.muEff());
         volTensorField tauMC("tauMC", muEff * dev2(Foam::T(fvc::grad(U))));
@@ -435,7 +529,7 @@ int rhoCentral::loop()
 
         runTime.write();
 
-#ifdef HAVE_OF20
+#ifdef HAVE_OFE20
         runTime.printExecutionTime(Info);
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
@@ -467,14 +561,20 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
-#if defined(HAVE_OF7)
+#if defined(HAVE_OFE20)
+    compressible::turbulenceModel& turbulence(*turbulencePtr);
+#elif defined(HAVE_OF7)
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF8)
     compressible::momentumTransportModel& turbulence(*turbulencePtr);
     fluidThermophysicalTransportModel& thermoTransModel(*thermophysicalTransportPtr);
 #endif
 
+#ifdef HAVE_OFE20
+    const dimensionedScalar v_zero(dimVolume/dimTime, Zero);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
+#endif
 
     // Courant numbers used to adjust the time-step
     // scalar CoNum = 0.0;
@@ -484,21 +584,24 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
     //while (runTime.run())
     {
-        //  readTimeControls.H  ^^^^^^^^^^^^^^^^^
+#if defined(HAVE_OF7) || defined(HAVE_OF8)
+        //  readTimeControls.H
         readTimeControls();
-        // --------------------------------------
+        // -------------------
+
         if (!LTS)
         {
-            //  setDeltaT.H  ^^^^^^^^^^^^^^^^^^^^
+            //  setDeltaT.H
             setDeltaT();
-            // ----------------------------------
+            // ------------
             runTime++;
 
             // Do any mesh changes
             mesh.update();
         }
-        // --- Directed interpolation of primitive fields onto faces
+#endif
 
+        // --- Directed interpolation of primitive fields onto faces
         surfaceScalarField rho_pos(interpolate(rho, pos));
         surfaceScalarField rho_neg(interpolate(rho, neg));
 
@@ -521,12 +624,17 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
+#ifdef HAVE_OFE20
+        phiv_pos.setOriented(false);
+        phiv_neg.setOriented(false);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make fluxes relative to mesh-motion
         if (mesh.moving())
         {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
+#endif
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
         surfaceScalarField cSf_pos
@@ -593,16 +701,45 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         centralCourantNo();
         // --------------------------------------
 
+#ifdef HAVE_OFE20
+        //  readTimeControls.H
+        readTimeControls();
+        // -------------------
+
         if (LTS)
         {
             // setRDeltaT.H
-            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             setRDeltaT();
-            // ----------------------------------
+            // ------------
+        }
+        else
+        {
+            //  setDeltaT.H
+            setDeltaT();
+            // ------------
+        }
+
+        ++runTime;
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+        if (LTS)
+        {
+            // setRDeltaT.H
+            setRDeltaT();
+            // ------------
             runTime++;
         }
+#endif
+
         Info << "Time = " << runTime.timeName() << nl << endl;
 
+#ifdef HAVE_OFE20
+        surfaceVectorField phiU(aphiv_pos*rhoU_pos + aphiv_neg*rhoU_neg);
+        // Note: reassembled orientation from the pos and neg parts so becomes
+        // oriented
+        phiU.setOriented(true);
+
+        surfaceVectorField phiUp(phiU + (a_pos*p_pos + a_neg*p_neg)*mesh.Sf());
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
 
         surfaceVectorField phiUp
@@ -610,6 +747,7 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             (aphiv_pos * rhoU_pos + aphiv_neg * rhoU_neg) +
             (a_pos * p_pos + a_neg * p_neg) * mesh.Sf()
         );
+#endif
 
         surfaceScalarField phiEp
         (
@@ -619,11 +757,14 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             aSf * p_pos - aSf * p_neg
         );
 
+
+#if defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make flux for pressure-work absolute
         if (mesh.moving())
         {
             phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
         }
+#endif
 
         volScalarField muEff("muEff", turbulence.muEff());
         volTensorField tauMC("tauMC", muEff * dev2(Foam::T(fvc::grad(U))));
@@ -710,14 +851,18 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         turbulence.correct();
 
 #ifdef HAVE_OF8
-    thermoTransModel.correct();
+        thermoTransModel.correct();
 #endif
 
         runTime.write();
 
+#ifdef HAVE_OFE20
+        runTime.printExecutionTime(Info);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl
              << endl;
+#endif
     }
 
     stepStat = 0;
@@ -806,7 +951,11 @@ int rhoCentral::createFields()
             mesh
         ),
         mesh,
+#ifdef HAVE_OFE20
+        dimensionedScalar("pos", dimless, 1.0)
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         dimensionedScalar(dimless, 1.0)
+#endif
     );
 
     negPtr = new surfaceScalarField
@@ -818,7 +967,11 @@ int rhoCentral::createFields()
             mesh
         ),
         mesh,
-        dimensionedScalar(dimless, -1.0)
+#ifdef HAVE_OFE20
+        dimensionedScalar("neg", dimless, -1.0)
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+        dimensionedScalar(dimless, 1.0)
+#endif
     );
 
     phiPtr = new surfaceScalarField
@@ -959,6 +1112,16 @@ int rhoCentral::setRDeltaT()
 
     volScalarField &rDeltaT = trDeltaT.ref();
 
+#ifdef HAVE_OFE20
+    scalar rDeltaTSmoothingCoeff
+    (
+        runTime.controlDict().getOrDefault<scalar>
+        (
+            "rDeltaTSmoothingCoeff",
+            0.02
+        )
+    );
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     scalar rDeltaTSmoothingCoeff
     (
         runTime.controlDict().lookupOrDefault<scalar>
@@ -967,10 +1130,24 @@ int rhoCentral::setRDeltaT()
             0.02
         )
     );
+#endif
 
     // Set the reciprocal time-step from the local Courant number
-    rDeltaT.ref() = max(1 / dimensionedScalar(dimTime, maxDeltaT),
-                        fvc::surfaceSum(amaxSf)()() / ((2 * maxCo) * mesh.V()));
+#ifdef HAVE_OFE20
+    rDeltaT.ref() = max
+    (
+        1/dimensionedScalar("maxDeltaT", dimTime, maxDeltaT),
+        fvc::surfaceSum(amaxSf)()()
+        / ((2 * maxCo) * mesh.V())
+    );
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+    rDeltaT.ref() = max
+    (
+        1/dimensionedScalar(dimTime, maxDeltaT),
+        fvc::surfaceSum(amaxSf)()()
+        / ((2 * maxCo) * mesh.V())
+    );
+#endif
 
     // Update the boundary values of the reciprocal time-step
     rDeltaT.correctBoundaryConditions();
@@ -1052,11 +1229,15 @@ double rhoCentral::errorEvaluate(int argc, char *argv[])
     
     Foam::argList &args(*argsPtr);
     
+    //Commenting the code bellow
+    //Not sure what happens
+    /*
     if (args.optionFound("list"))
     {
         functionObjectList::list();
         return 0;
     }
+    */
     
     createTime();
     createDynamicFvMesh();

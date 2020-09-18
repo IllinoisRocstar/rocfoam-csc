@@ -57,17 +57,39 @@ int comFoam::updateStatusData()
     if (ca_dynamicSolverType != nullptr)
         ca_dynamicSolverType = new char[genCharSize]{' '};
     
+#ifdef HAVE_OFE20
+    dictionary meshDict
+               (
+                    IOdictionary
+                    (
+                        IOobject
+                        (
+                            "dynamicMeshDict",
+                            runTime.constant(),
+                            mesh,
+                            IOobject::READ_IF_PRESENT,
+                            IOobject::NO_WRITE,
+                            false
+                        )
+                    )
+               );
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
     dictionary meshDict(mesh.dynamicMeshDict());
+#endif
     if (meshDict.found("dynamicFvMesh"))
     {
        *ca_isDynamicFvMesh = 1;
        
         if (meshDict.found("solver"))
         {
-            word solver = meshDict.lookup("solver");
+            ITstream solver = meshDict.lookup("solver");
 
             //solver = "displacementLaplacian"
-            std::string solver_ = solver;
+            std::string solver_ = solver.toString();
+
+std::cout << " SOLVER =" << solver_ << std::endl
+          << "DELETE THIS LINE" << std::endl;
+exit(-1);
 
 
             if (solver_.length() >= genCharSize)

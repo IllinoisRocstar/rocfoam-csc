@@ -70,7 +70,7 @@ void rhoPimple::load(const char *name)
     
     //MPI_Comm_dup(tmpComm, &(comFoamPtr->winComm));
     comFoamPtr->winComm = tmpComm;
-    Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
+    //Foam::PstreamGlobals::MPI_COMM_FOAM = comFoamPtr->winComm;
     MPI_Comm_rank(comFoamPtr->winComm, &(comFoamPtr->ca_myRank));
     MPI_Comm_size(comFoamPtr->winComm, &(comFoamPtr->ca_nProc));
     comFoamPtr->winName = winName;
@@ -307,6 +307,9 @@ int rhoPimple::initContinuityErrs()
     #define initContinuityErrs_H
 
 #ifdef HAVE_OFE20
+    Foam::Time &runTime(*runTimePtr);
+    dynamicFvMesh &mesh(*meshPtr);
+
     uniformDimensionedScalarField cumulativeContErrIO
     (
         IOobject
@@ -517,23 +520,7 @@ int rhoPimple::createFields()
 }
 
 #ifdef HAVE_OFE20
-void rhoPimple::addCheckCaseOptions()
-{
-    Foam::argList::addBoolOption
-    (
-        "dry-run",
-        "Check case set-up only using a single time step"
-    );
-    Foam::argList::addBoolOption
-    (
-        "dry-run-write",
-        "Check case set-up and write only using a single time step"
-    );
-    
-    return;
-}
-
-void rhoPimple::createDpdt();
+void rhoPimple::createDpdt()
 {
     Foam::Time &runTime(*runTimePtr);
     dynamicFvMesh &mesh(*meshPtr);
@@ -665,7 +652,7 @@ int rhoPimple::createRhoUfIfPresent()
         Info << "Constructing face momentum rhoUf" << endl;
 
 #ifdef HAVE_OFE20
-        rhoUf.reset
+        rhoUfPtr.reset
         (
             new surfaceVectorField
             (
@@ -795,7 +782,7 @@ int rhoPimple::loop()
         // same divergence
         if (correctPhi)
         {
-            divrhoU.reset
+            divrhoUPtr.reset
             (
                 new volScalarField
                 (
@@ -903,7 +890,7 @@ int rhoPimple::loop()
 
             // --- Pressure corrector loop
             while (pimple.correct())
-#ifdef HAVE_OF20
+#ifdef HAVE_OFE20
             //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             {
                 if (pimple.consistent())
@@ -977,7 +964,7 @@ int rhoPimple::loop()
 
         runTime.write();
 
-#ifdef HAVE_OF20
+#ifdef HAVE_OFE20
         runTime.printExecutionTime(Info);
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
@@ -1065,7 +1052,7 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
         // same divergence
         if (correctPhi)
         {
-            divrhoU.reset
+            divrhoUPtr.reset
             (
                 new volScalarField
                 (
@@ -1111,7 +1098,12 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
                     
+#ifdef HAVE_OFE20
+                    bool adjust{false};
+                    runTime.setDeltaT(newDeltaT, adjust);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
                     runTime.setDeltaTNoAdjust(newDeltaT);
+#endif
                     Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
                          << endl;
 
@@ -1240,7 +1232,7 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
             // --- Pressure corrector loop
             while (pimple.correct())
-#ifdef HAVE_OF20
+#ifdef HAVE_OFE20
             //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             {
                 if (pimple.consistent())
@@ -1314,7 +1306,7 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
         runTime.write();
 
-#ifdef HAVE_OF20
+#ifdef HAVE_OFE20
         runTime.printExecutionTime(Info);
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
@@ -1367,11 +1359,8 @@ int rhoPimple::setRDeltaT()
 
     const dictionary &pimpleDict = pimple.dict();
 
-#ifdef HAVE_OPE20
-    scalar maxCo
-    (
-        pimpleDict.getOrDefault<scalar>("maxCo", 0.8)
-    );
+#ifdef HAVE_OFE20
+    maxCo = pimpleDict.getOrDefault<scalar>("maxCo", 0.8);
 
     scalar rDeltaTSmoothingCoeff
     (
@@ -1383,10 +1372,7 @@ int rhoPimple::setRDeltaT()
         pimpleDict.getOrDefault<scalar>("rDeltaTDampingCoeff", 1.0)
     );
 
-    scalar maxDeltaT
-    (
-        pimpleDict.getOrDefault<scalar>("maxDeltaT", GREAT)
-    );
+    maxDeltaT = pimpleDict.getOrDefault<scalar>("maxDeltaT", GREAT);
 
     volScalarField rDeltaT0("rDeltaT0", rDeltaT);
 
@@ -1397,8 +1383,8 @@ int rhoPimple::setRDeltaT()
         fvc::surfaceSum(mag(phi))()()
        /((2*maxCo)*mesh.V()*rho())
     );
-#elif defined(HAVE_OP7) || defined(HAVE_OP8)
-    scalar maxCo(pimpleDict.lookupOrDefault<scalar>("maxCo", 0.8));
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+    maxCo = pimpleDict.lookupOrDefault<scalar>("maxCo", 0.8);
 
     scalar rDeltaTSmoothingCoeff
     (
@@ -1410,10 +1396,7 @@ int rhoPimple::setRDeltaT()
         pimpleDict.lookupOrDefault<scalar>("rDeltaTDampingCoeff", 1.0)
     );
 
-    scalar maxDeltaT
-    (
-        pimpleDict.lookupOrDefault<scalar>("maxDeltaT", great)
-    );
+    maxDeltaT = pimpleDict.lookupOrDefault<scalar>("maxDeltaT", great);
 
     volScalarField rDeltaT0("rDeltaT0", rDeltaT);
 
@@ -2629,7 +2612,7 @@ int rhoPimple::finalizeFoam()
 #endif
     trDeltaT.clear();
     rhoUfPtr.clear();
-    UEqnPtr.clear();
+    //UEqnPtr.clear();
     pThermoPtr.clear();
     divrhoUPtr.clear();
     tUEqnPtr.clear();
@@ -2658,11 +2641,15 @@ double rhoPimple::errorEvaluate(int argc, char *argv[])
     
     Foam::argList &args(*argsPtr);
     
+    //Commenting the code bellow
+    //Not sure what happens
+    /*
     if (args.optionFound("list"))
     {
         functionObjectList::list();
         return 0;
     }
+    */
     
     createTime();
     createDynamicFvMesh();

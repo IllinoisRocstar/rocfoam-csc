@@ -88,25 +88,17 @@ bool Foam::UPstream::init(int& argc, char**& argv, const bool needsThread)
              &provided_thread_support
          );
 
-    
-
-         // int numprocs;
-         // MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-         // int myRank;
-         // MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-
-
-         int myGlobalRank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &myGlobalRank);
-         MPI_Comm_split
-         (
-              MPI_COMM_WORLD,
-              1,
-              myGlobalRank,
-              &PstreamGlobals::MPI_COMM_FOAM
-         );
-
     }
+
+    int myGlobalRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myGlobalRank);
+    MPI_Comm_split
+    (
+        MPI_COMM_WORLD,
+        1,
+        myGlobalRank,
+        &PstreamGlobals::MPI_COMM_FOAM
+    );
 
     int numprocs;
     MPI_Comm_size(PstreamGlobals::MPI_COMM_FOAM, &numprocs);

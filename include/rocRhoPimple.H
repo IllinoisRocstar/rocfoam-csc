@@ -74,7 +74,7 @@ private:
 
     int createFields();
 #ifdef HAVE_OFE20
-    void addCheckCaseOptions();
+    //void addCheckCaseOptions();
     void createDpdt();
     void createK();
 #endif

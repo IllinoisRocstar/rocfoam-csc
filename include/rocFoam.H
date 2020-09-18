@@ -113,6 +113,8 @@ protected:
     int setRootCaseLists();
 
 #ifdef HAVE_OFE20
+    void addCheckCaseOptions();
+
     int setRootCaseListOptions();
     int setRootCaseListOutput();
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)

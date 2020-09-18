@@ -152,6 +152,18 @@ int comFoam::createVolumeData()
             IOobject::NO_WRITE
         )
     );
+
+     std::string simulationType = ITstream
+                                  (
+                                      turbProperties.lookup("simulationType")
+                                  ).toString();
+
+
+std::cout << " simulationType =" << simulationType
+          << std::endl
+          << "DELETE THIS LINE" << std::endl;
+exit(-1);
+
 #elif defined(HAVE_OF7)
     IOdictionary turbProperties
     (
@@ -164,6 +176,9 @@ int comFoam::createVolumeData()
             IOobject::NO_WRITE
         )
     );
+
+    word simulationType = turbProperties.lookup("simulationType");
+
 #elif defined(HAVE_OF8)
     IOdictionary turbProperties
     ( 
@@ -176,15 +191,17 @@ int comFoam::createVolumeData()
             IOobject::NO_WRITE
         )
     );
-#endif
 
     word simulationType = turbProperties.lookup("simulationType");
+#endif
+
+
     if (simulationType == "RAS")
     {
         const dictionary& subDict = turbProperties.subDict("RAS");
 
 #ifdef HAVE_OFE20
-        word RASModel = subDict.lookup("RASModel");
+        word RASModel = ITstream (subDict.lookup("RASModel")).toString();
 #elif defined(HAVE_OF7)
         word RASModel = subDict.lookup("RASModel");
 #elif defined(HAVE_OF8)

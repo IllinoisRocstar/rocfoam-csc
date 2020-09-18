@@ -467,6 +467,23 @@ int rocFoam::setRootCaseLists()
 }
 
 #ifdef HAVE_OFE20
+void rocFoam::addCheckCaseOptions()
+{
+    Foam::argList::addBoolOption
+    (
+        "dry-run",
+        "Check case set-up only using a single time step"
+    );
+    Foam::argList::addBoolOption
+    (
+        "dry-run-write",
+        "Check case set-up and write only using a single time step"
+    );
+    
+    return;
+}
+
+
 int rocFoam::setRootCaseListOptions()
 {
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -722,6 +739,113 @@ int rocFoam::listOptions_()
 
     return 0;
 }
+#endif
+
+#ifdef HAVE_OF7
+int rocFoam::listOutput()
+{
+    Foam::argList &args(*argsPtr);
+
+    // bool listOptions = false ;
+    
+    if (args.optionFound("listSwitches"))
+    {
+        debug::listSwitches(args.optionFound("includeUnsetSwitches"));
+        listOptions = true;
+    }
+
+    if (args.optionFound("listRegisteredSwitches"))
+    {
+        debug::listRegisteredSwitches(args.optionFound("includeUnsetSwitches"));
+        listOptions = true;
+    }
+
+    #ifdef fvPatchField_H
+    if (args.optionFound("listScalarBCs"))
+    {
+        Info<< "scalarBCs"
+            << fvPatchField<scalar>::dictionaryConstructorTablePtr_->sortedToc()
+            << endl;
+        listOptions = true;
+    }
+
+    if (args.optionFound("listVectorBCs"))
+    {
+        Info<< "vectorBCs"
+            << fvPatchField<vector>::dictionaryConstructorTablePtr_->sortedToc()
+            << endl;
+        listOptions = true;
+    }
+    #endif
+
+    #ifdef functionObject_H
+    if (args.optionFound("listFunctionObjects"))
+    {
+        Info << "functionObjects"
+             << functionObject::dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+        listOptions = true;
+    }
+    #endif
+
+    #ifdef fvOption_H
+    if (args.optionFound("listFvOptions"))
+    {
+        Info << "fvOptions"
+             << fv::option::dictionaryConstructorTablePtr_->sortedToc() << endl;
+        listOptions = true;
+    }
+    #endif
+
+    #ifdef turbulentTransportModel_H
+    if (args.optionFound("listTurbulenceModels"))
+    {
+        Info << "Turbulence models"
+             << incompressible::turbulenceModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+
+        Info << "RAS models"
+             << incompressible::RASModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+
+        Info << "LES models"
+             << incompressible::LESModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+        listOptions = true;
+    }
+
+    #elif defined(turbulentFluidThermoModel_H)
+    if (args.optionFound("listTurbulenceModels"))
+    {
+        Info << "Turbulence models"
+             << compressible::turbulenceModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+
+        Info << "RAS models"
+             << compressible::RASModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+
+        Info << "LES models"
+             << compressible::LESModel::
+                    dictionaryConstructorTablePtr_->sortedToc()
+             << endl;
+        listOptions = true;
+    }
+    #endif
+    
+    if (listOptions)
+    {
+        exit(0);
+    }
+
+    return 0;
+}
+#elif defined(HAVE_OF8)
 
 int rocFoam::listOutput()
 {
@@ -778,15 +902,6 @@ int rocFoam::listOutput()
     }
     #endif
 
-#ifdef HAVE_OF7
-    #ifdef turbulentTransportModel_H
-    if (args.optionFound("listTurbulenceModels"))
-    {
-        Info << "Turbulence models"
-             << incompressible::turbulenceModel::
-                    dictionaryConstructorTablePtr_->sortedToc()
-             << endl;
-#elif defined(HAVE_OF8)
     #ifdef kinematicMomentumTransportModel_H
     if (args.optionFound("listMomentumTransportModels"))
     {
@@ -794,7 +909,6 @@ int rocFoam::listOutput()
             << incompressible::momentumTransportModel::
                     dictionaryConstructorTablePtr_->sortedToc()
             << endl;
-#endif
 
         Info << "RAS models"
              << incompressible::RASModel::
@@ -808,15 +922,6 @@ int rocFoam::listOutput()
         listOptions = true;
     }
 
-#ifdef HAVE_OF7
-    #elif defined(turbulentFluidThermoModel_H)
-    if (args.optionFound("listTurbulenceModels"))
-    {
-        Info << "Turbulence models"
-             << compressible::turbulenceModel::
-                    dictionaryConstructorTablePtr_->sortedToc()
-             << endl;
-#elif defined(HAVE_OF8)
     #elif defined(fluidThermoMomentumTransportModel_H)
     if (args.optionFound("listMomentumTransportModels"))
     {
@@ -824,7 +929,6 @@ int rocFoam::listOutput()
             << compressible::momentumTransportModel::
                     dictionaryConstructorTablePtr_->sortedToc()
             << endl;
-#endif
 
         Info << "RAS models"
              << compressible::RASModel::
@@ -847,6 +951,8 @@ int rocFoam::listOutput()
     return 0;
 }
 #endif
+
+
 
 
 int rocFoam::createTime()
@@ -891,6 +997,16 @@ int rocFoam::readTimeControls()
 {
     Foam::Time &runTime(*runTimePtr);
 
+#ifdef HAVE_OFE20
+    adjustTimeStep =
+        runTime.controlDict().getOrDefault("adjustTimeStep", false);
+
+    maxCo = runTime.controlDict().getOrDefault<scalar>("maxCo", 1);
+
+    maxDeltaT =
+        runTime.controlDict().getOrDefault<scalar>("maxDeltaT", GREAT);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
     adjustTimeStep =
         runTime.controlDict().lookupOrDefault("adjustTimeStep", false);
 
@@ -898,6 +1014,7 @@ int rocFoam::readTimeControls()
 
     maxDeltaT =
         runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", great);
+#endif
 
     return 0;
 }
@@ -911,7 +1028,7 @@ int rocFoam::setDeltaT()
     {
 #ifdef HAVE_OFE20
         scalar maxDeltaTFact = maxCo/(CoNum + SMALL);
-#elif defined(HAVE_OF7) defined(HAVE_OF8)
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         scalar maxDeltaTFact = maxCo/(CoNum + small);
 #endif
 
@@ -973,7 +1090,9 @@ int rocFoam::createDynamicFvMesh()
     Info << "Create mesh for time = " << runTime.timeName() << nl << endl;
 
 #ifdef HAVE_OFE20
-    meshPtr = dynamicFvMesh::New((args, runTime));
+    Foam::argList &args(*argsPtr);
+
+    meshPtr = dynamicFvMesh::New(args, runTime);
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
     meshPtr = dynamicFvMesh::New
     (

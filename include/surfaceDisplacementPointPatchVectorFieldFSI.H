@@ -60,6 +60,11 @@ SourceFiles
 #include "pointPatchFields.H"
 #include "fixedValuePointPatchFields.H"
 #include "searchableSurfaces.H"
+
+#ifdef HAVE_OFE20
+#include "Enum.H"
+#endif
+
 #include "Switch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
