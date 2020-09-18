@@ -27,6 +27,12 @@ endif()
 
 # Find OpenFOAM
 # checking OpenFOAM version
+string(FIND $ENV{WM_PROJECT_VERSION} "v2006" OF20)
+if(OF20 GREATER -1)
+    set(OF_VERSION 20)
+##    target_compile_definitions(rocfoam PUBLIC HAVE_OF7)
+endif()
+
 string(FIND $ENV{WM_PROJECT_VERSION} "7" OF7)
 if(OF7 GREATER -1)
     set(OF_VERSION 7)
@@ -40,7 +46,12 @@ if(OF8 GREATER -1)
 endif()
 
 message(STATUS "OpenFOAM version ${OF_VERSION}")
-if(OF_VERSION EQUAL 7)
+if(OF_VERSION EQUAL 20)
+    find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+                compressibleTransportModels fluidThermophysicalModels specie
+                turbulenceModels compressibleTurbulenceModels dynamicFvMesh
+                topoChangerFvMesh meshTools Pstream)
+elseif(OF_VERSION EQUAL 7)
     find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
                 compressibleTransportModels fluidThermophysicalModels specie
                 turbulenceModels compressibleTurbulenceModels dynamicFvMesh
@@ -181,11 +192,15 @@ install(TARGETS rocfoam
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
+if(OF_VERSION EQUAL 20)
+    target_compile_definitions(rocfoam PUBLIC HAVE_OFE20)
+    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
+endif()
 
 if(OF_VERSION EQUAL 7)
     target_compile_definitions(rocfoam PUBLIC HAVE_OF7)
     message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif() 
+endif()
 
 if(OF_VERSION EQUAL 8)
     target_compile_definitions(rocfoam PUBLIC HAVE_OF8)

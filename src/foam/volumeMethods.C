@@ -157,13 +157,6 @@ int comFoam::createVolumeData()
                                   (
                                       turbProperties.lookup("simulationType")
                                   ).toString();
-
-
-std::cout << " simulationType =" << simulationType
-          << std::endl
-          << "DELETE THIS LINE" << std::endl;
-exit(-1);
-
 #elif defined(HAVE_OF7)
     IOdictionary turbProperties
     (

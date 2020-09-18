@@ -82,37 +82,39 @@ int comFoam::updateStatusData()
        
         if (meshDict.found("solver"))
         {
-            ITstream solver = meshDict.lookup("solver");
 
-            //solver = "displacementLaplacian"
-            std::string solver_ = solver.toString();
+#ifdef HAVE_OFE20
+            std::string solver = ITstream
+                                  (
+                                      meshDict.lookup("solver")
+                                  ).toString();
 
-std::cout << " SOLVER =" << solver_ << std::endl
-          << "DELETE THIS LINE" << std::endl;
-exit(-1);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+            word solver_ = meshDict.lookup("solver");
+            std::string solver{solver_};
+#endif
 
-
-            if (solver_.length() >= genCharSize)
+            if (solver.length() >= genCharSize)
             {
                 std::cout << "Warning:: genCharSize is not big enough,"
                           << " genCharSize = " << genCharSize
-                          << " solver_.length() = "
-                          << solver_.length()
+                          << " solver.length() = "
+                          << solver.length()
                           << std::endl;
                 exit(-1);
             }
 
-            for (size_t i=0; i<solver_.length(); i++)
+            for (size_t i=0; i<solver.length(); i++)
             {
-                ca_dynamicSolverType[i] = solver_[i];
+                ca_dynamicSolverType[i] = solver[i];
             }
-            ca_dynamicSolverType[ solver_.length() ] = '\0';
+            ca_dynamicSolverType[ solver.length() ] = '\0';
 
-            for (size_t i=solver_.length()+1; i<genCharSize; i++)
+            for (size_t i=solver.length()+1; i<genCharSize; i++)
             {
                 ca_dynamicSolverType[i] = ' ';
             }
-            //std::strcpy(ca_dynamicSolverType, solver_.c_str());
+            //std::strcpy(ca_dynamicSolverType, solver.c_str());
         }
     }
 

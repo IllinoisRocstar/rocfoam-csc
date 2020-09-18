@@ -929,8 +929,14 @@ int comDrvFin(const char* name)
     
     COM_finalize();
 
-    MPI_Barrier(masterComm);
-    MPI_Finalize();
+    int finFlag;
+    MPI_Finalized(&finFlag);
+
+    if (!finFlag)
+    {
+        MPI_Barrier(masterComm);
+        MPI_Finalize();
+    }
     
     return 0;
 }

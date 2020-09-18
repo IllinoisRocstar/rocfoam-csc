@@ -2605,7 +2605,7 @@ int rhoPimple::finalizeFoam()
     }
 #endif
 
-    meshPtr.clear();
+    //meshPtr.clear();
     turbulencePtr.clear();
 #ifdef HAVE_OF8
     thermophysicalTransportPtr.clear();

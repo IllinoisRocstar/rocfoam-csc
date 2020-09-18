@@ -42,6 +42,11 @@ set(OPNF_COMPONENT_BINDINGS)
 
 set(OF_VERSION_ -1)
 
+string(FIND $ENV{WM_PROJECT_VERSION} "v2006" OF20_)
+if(OF20_ GREATER -1)
+    set(OF_VERSION_ 20)
+endif()
+
 string(FIND $ENV{WM_PROJECT_VERSION} "7" OF7_)
 if(OF7_ GREATER -1)
     set(OF_VERSION_ 7)
@@ -52,7 +57,116 @@ if(OF8_ GREATER -1)
     set(OF_VERSION_ 8)
 endif()
 
-if(OF_VERSION_ EQUAL 7)
+if(OF_VERSION_ EQUAL 20)
+    set(OPNF_VALID_COMPONENTS
+        barotropicCompressibilityModel
+        blockMesh
+        chemistryModel
+        coalCombustion
+        combustionModels
+        compressibleEulerianInterfacialModels
+        compressibleMultiphaseEulerianInterfacialModels
+        compressibleTransportModels
+        compressibleTurbulenceModels
+        compressibleTwoPhaseSystem
+        conversion
+        decompose
+        decompositionMethods
+        distributed
+        distributionModels
+        DPMTurbulenceModels
+        driftFluxRelativeVelocityModels
+        driftFluxTransportModels
+        DSMC
+        dynamicFvMesh
+        dynamicMesh
+        edgeMesh
+        engine
+        extrude2DMesh
+        extrudeModel
+        fieldFunctionObjects
+        fileFormats
+        finiteVolume
+        fluidThermophysicalModels
+        foamToVTK
+        forces
+        fvMotionSolvers
+        fvOptions
+        genericPatchFields
+        helpTypes
+        immiscibleIncompressibleTwoPhaseMixture
+        incompressibleTransportModels
+        incompressibleTurbulenceModels
+        interfaceProperties
+        lagrangianFunctionObjects
+        lagrangianIntermediate
+        lagrangian
+        lagrangianSpray
+        lagrangianTurbulence
+        laminarFlameSpeedModels
+        liquidMixtureProperties
+        liquidProperties
+        meshTools
+        molecularMeasurements
+        molecule
+        multiphaseInterFoam
+        multiphaseMixtureThermo
+        multiphaseReactingTurbulenceModels
+        multiphaseSystem
+        ODE
+        OpenFOAM
+        pairPatchAgglomeration
+        phaseChangeTwoPhaseMixtures
+        phaseCompressibleTurbulenceModels
+        potential
+        Pstream
+        pyrolysisModels
+        radiationModels
+        randomProcesses
+        reactingEulerianInterfacialCompositionModels
+        reactingEulerianInterfacialModels
+        reactingMultiphaseSystem
+        reactingPhaseSystem
+        reactingTwoPhaseSystem
+        reactionThermophysicalModels
+        reconstruct
+        regionCoupled
+        regionCoupling
+        regionModels
+        renumberMethods
+#        rhoCentralFoam
+        rigidBodyDynamics
+        rigidBodyMeshMotion
+        sampling
+        scotchDecomp
+        sixDoFRigidBodyMotion
+        SLGThermo
+        SloanRenumber
+        snappyHexMesh
+        solidChemistryModel
+        solidMixtureProperties
+        solidParticle
+        solidProperties
+        solidSpecie
+        solidThermo
+        solverFunctionObjects
+        specie
+        surfaceFilmDerivedFvPatchFields
+        surfaceFilmModels
+        surfMesh
+        tabulatedWallFunctions
+        thermalBaffleModels
+        thermophysicalFunctions
+        topoChangerFvMesh
+        triSurface
+        turbulenceModels
+        twoPhaseMixture
+        twoPhaseMixtureThermo
+        twoPhaseProperties
+        twoPhaseReactingTurbulenceModels
+        userd-foam
+        utilityFunctionObjects)
+elseif(OF_VERSION_ EQUAL 7)
     set(OPNF_VALID_COMPONENTS
         barotropicCompressibilityModel
         blockMesh
