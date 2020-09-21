@@ -53,7 +53,6 @@ private:
     dimensionedScalar* rhoMaxPtr;
     dimensionedScalar* rhoMinPtr;
 #endif
-
     //--------------------------------------
 
     //  Control variables ^^^^^^^^^^^^^^^^^^
@@ -62,9 +61,6 @@ private:
     bool moveMeshOuterCorrectors{false};
 
     scalar cumulativeContErr{0};
-
-    bool modifiedDeltaT{false};
-    double unmodifiedDeltaTvalue{0};
     //--------------------------------------
 
     //  Solver methods  ^^^^^^^^^^^^^^^^^^^^

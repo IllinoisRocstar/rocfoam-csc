@@ -27,6 +27,9 @@ protected:
 
     pointVectorField* pointDisplacementNewPtr{nullptr};
 
+    // control timeStepping when called by Rocstar
+    bool modifiedDeltaT{false};
+    double unmodifiedDeltaTvalue{0};
 public:
     //  Constructor/Deconstructor ^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam();
