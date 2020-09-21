@@ -1084,10 +1084,6 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
             
             if (incomingDeltaT != nullptr)
             {
-                // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                // THIS SHOULD BE FIXED LATER |
-                // ============================
-                
                 modifiedDeltaT = false;
 
                 if (std::abs( expectedTime - mandatedTime ) < 0.0001*flowDeltaT)

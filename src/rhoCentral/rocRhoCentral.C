@@ -126,22 +126,30 @@ void rhoCentral::unload(const char *name)
     Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
                << name << "." << Foam::endl;
 
-    comFoam *comFoamPtr = nullptr;
-    std::string winName = std::string(name);
-    std::string objectName(winName+".object");
-    COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+    std::string winName = name+std::string("VOL");
+    int winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+        COM_delete_window(winName);
 
-    //comFoamPtr->finalize();
-    delete comFoamPtr;
-
-    winName = name+string("VOL");
-    COM_delete_window(winName);
-
-    winName = name+string("SURF");
-    COM_delete_window(winName);
+    winName = name+std::string("SURF");
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+        COM_delete_window(winName);
 
     winName = std::string(name);
-    COM_delete_window(winName);
+    winExist = COM_get_window_handle(winName.c_str());
+    if (winExist>0)
+    {
+        comFoam *comFoamPtr = nullptr;
+        std::string objectName(winName+".object");
+        COM_get_object(objectName.c_str(), 0, &comFoamPtr);
+
+        //comFoamPtr->finalize();
+        if (comFoamPtr != nullptr)
+            delete comFoamPtr;
+        
+        COM_delete_window(winName);
+    }
 }
 //-----------------------------------------------
 //=========================================================
@@ -233,6 +241,7 @@ int rhoCentral::loop()
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
+
 #ifdef HAVE_OFE20
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF7)
@@ -256,7 +265,6 @@ int rhoCentral::loop()
 
     while (runTime.run())
     {
-
 #if defined(HAVE_OF7) || defined(HAVE_OF8)
         //  readTimeControls.H
         readTimeControls();
@@ -576,13 +584,21 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
     dimensionedScalar v_zero("v_zero", dimVolume / dimTime, 0.0);
 #endif
 
-    // Courant numbers used to adjust the time-step
-    // scalar CoNum = 0.0;
-    // scalar meanCoNum = 0.0;
+    double mandatedTime{0};
+    if (incomingDeltaT != nullptr)
+    {
+        mandatedTime = runTime.value() + *incomingDeltaT;
+    }
 
-    //Info << "\nStarting time loop\n" << endl;
+    int count{0};
+    double alpha{0};
+    bool continueIter{true};
 
-    //while (runTime.run())
+    while
+    (
+        runTime.run() &&
+        continueIter
+    )
     {
 #if defined(HAVE_OF7) || defined(HAVE_OF8)
         //  readTimeControls.H
@@ -594,6 +610,72 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             //  setDeltaT.H
             setDeltaT();
             // ------------
+
+            double flowDeltaT = runTime.deltaTValue();
+            double flowCurTime = runTime.value();
+            double expectedTime = flowCurTime + flowDeltaT;
+            
+            if (incomingDeltaT != nullptr)
+            {
+                modifiedDeltaT = false;
+
+                if (std::abs( expectedTime - mandatedTime ) < 0.0001*flowDeltaT)
+                {
+                    continueIter = false;
+                }
+                else if (expectedTime > mandatedTime)
+                {
+                    double newDeltaT = mandatedTime - flowCurTime;
+                    
+                    // HAVE_OF7 || HAVE_OF8
+                    runTime.setDeltaTNoAdjust(newDeltaT);
+
+                    Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
+                         << endl;
+
+                    modifiedDeltaT = true;
+                    unmodifiedDeltaTvalue = flowDeltaT;
+
+                    continueIter = false;
+                }
+                else if (expectedTime == mandatedTime)
+                {
+                    continueIter = false;
+                }
+
+                /*
+                if (expectedTime >= mandatedTime)
+                {
+                    continueIter = false;
+                }
+                */
+
+                const double& incomingDeltaT_{*incomingDeltaT};
+                flowDeltaT = runTime.deltaTValue();
+                
+                alpha +=  flowDeltaT / incomingDeltaT_;
+
+                if (gmHandle != nullptr)
+                {
+                    if (*gmHandle >= 0)
+                    {
+                        COM_call_function(*gmHandle, &alpha);
+                        updateSurfaceData_incoming(count);
+                    }
+                }
+            }
+            else
+            {
+                updateSurfaceData_incoming();
+                continueIter = false;
+            }
+
+            if (runTime.deltaTValue() < 0)
+            {
+                Info << "Unphysical deltaT. Exiting the simulation" << endl;
+                exit(-1);
+            }
+
             runTime++;
 
             // Do any mesh changes
@@ -717,6 +799,73 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             //  setDeltaT.H
             setDeltaT();
             // ------------
+
+            double flowDeltaT = runTime.deltaTValue();
+            double flowCurTime = runTime.value();
+            double expectedTime = flowCurTime + flowDeltaT;
+            
+            if (incomingDeltaT != nullptr)
+            {
+                modifiedDeltaT = false;
+
+                if (std::abs( expectedTime - mandatedTime ) < 0.0001*flowDeltaT)
+                {
+                    continueIter = false;
+                }
+                else if (expectedTime > mandatedTime)
+                {
+                    double newDeltaT = mandatedTime - flowCurTime;
+                    
+                    // HAVE_OFE20
+                    bool adjust{false};
+                    runTime.setDeltaT(newDeltaT, adjust);
+
+                    Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
+                         << endl;
+
+                    modifiedDeltaT = true;
+                    unmodifiedDeltaTvalue = flowDeltaT;
+
+                    continueIter = false;
+                }
+                else if (expectedTime == mandatedTime)
+                {
+                    continueIter = false;
+                }
+
+                /*
+                if (expectedTime >= mandatedTime)
+                {
+                    continueIter = false;
+                }
+                */
+
+                const double& incomingDeltaT_{*incomingDeltaT};
+                flowDeltaT = runTime.deltaTValue();
+                
+                alpha +=  flowDeltaT / incomingDeltaT_;
+
+                if (gmHandle != nullptr)
+                {
+                    if (*gmHandle >= 0)
+                    {
+                        COM_call_function(*gmHandle, &alpha);
+                        updateSurfaceData_incoming(count);
+                    }
+                }
+            }
+            else
+            {
+                updateSurfaceData_incoming();
+                continueIter = false;
+            }
+
+            if (runTime.deltaTValue() < 0)
+            {
+                Info << "Unphysical deltaT. Exiting the simulation" << endl;
+                exit(-1);
+            }
+
         }
 
         ++runTime;
