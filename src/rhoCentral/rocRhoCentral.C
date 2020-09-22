@@ -204,10 +204,6 @@ int rhoCentral::initFOAM(int argc, char *argv[])
     createTimeControls();
     // ---------------------
 
-    //  readFluxScheme.H
-    readFluxScheme();
-    // -----------------
-
 #ifdef HAVE_OFE20
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF7)
@@ -217,6 +213,10 @@ int rhoCentral::initFOAM(int argc, char *argv[])
 #endif
 
     turbulence.validate();
+
+    //  readFluxScheme.H
+    readFluxScheme();
+    // -----------------
 
     Foam::Info << "End of initialization of rhoCentral." << Foam::endl;
 
@@ -516,13 +516,10 @@ int rhoCentral::loop()
                 fvm::ddt(rho, e) - fvc::ddt(rho, e)
               + thermoTransModel.divq(e)
             );
-            thermo.correct();
-            rhoE = rho*(e + 0.5*magSqr(U));            
-            thermo.correct();
-            rhoE = rho * (e + 0.5 * magSqr(U));
 #endif
+            thermo.correct();
+            rhoE = rho*(e + 0.5*magSqr(U));
         }
-
 
         p.ref() = rho() / psi();
 
@@ -985,13 +982,11 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                 fvm::ddt(rho, e) - fvc::ddt(rho, e)
               + thermoTransModel.divq(e)
             );
-            thermo.correct();
-            rhoE = rho*(e + 0.5*magSqr(U));            
-            thermo.correct();
-            rhoE = rho * (e + 0.5 * magSqr(U));
 #endif
+            thermo.correct();
+            rhoE = rho*(e + 0.5*magSqr(U));
         }
-        
+
         p.ref() = rho() / psi();
 
         p.correctBoundaryConditions();
@@ -1119,7 +1114,7 @@ int rhoCentral::createFields()
 #ifdef HAVE_OFE20
         dimensionedScalar("neg", dimless, -1.0)
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
-        dimensionedScalar(dimless, 1.0)
+        dimensionedScalar(dimless, -1.0)
 #endif
     );
 
@@ -1342,7 +1337,7 @@ int rhoCentral::finalizeFoam()
     //delete trDeltaT;
 
 
-    meshPtr.clear();
+    //meshPtr.clear();
     turbulencePtr.clear();
 //#ifdef HAVE_OF8
 //    thermophysicalTransportPtr.clear();
