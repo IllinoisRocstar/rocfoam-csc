@@ -2084,8 +2084,20 @@ bool comFoam::fileShouldBeRead
     if (locaParAddr == "") 
     {
         if (localAddr == "system" ||
-        localAddr == "constant" ||
-        localAddr == "0") addFile = true;
+        localAddr == "constant") addFile = true;
+
+        if (localAddr == "0") 
+        {
+            addFile = true;
+
+            if (fileName  == "pointDisplacement" ||
+                fileName  == "pointDisplacementNew")
+            {
+                if (ca_Disp == nullptr)
+                    addFile = false;
+            }
+        }
+        
 
         if (fileName  == "boundary" ||
             fileName  == "boundaryProcAddressing" ||
@@ -2108,9 +2120,19 @@ bool comFoam::fileShouldBeRead
         }
 
         if (localAddr == locaParAddr+"/system" ||
-            localAddr == locaParAddr+"/constant" ||
-            localAddr == locaParAddr+"/0") addFile = true;
-        
+            localAddr == locaParAddr+"/constant") addFile = true;
+        if (localAddr == locaParAddr+"/0")
+        {
+            addFile = true;
+
+            if (fileName  == "pointDisplacement" ||
+                fileName  == "pointDisplacementNew")
+            {
+                if (ca_Disp == nullptr)
+                    addFile = false;
+            }
+        }
+
         if (localAddr == locaParAddr+"/constant/polyMesh") 
         {
             if (fileName  == "boundary" ||
