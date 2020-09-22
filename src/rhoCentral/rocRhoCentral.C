@@ -1358,17 +1358,15 @@ int rhoCentral::finalizeFoam()
 
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
-/*
-extern "C" void rocfoam_load_module(const char *name)
+extern "C" void rocrhocentral_load_module(const char *name)
 {
     rhoCentral::load(name);
 }
 
-extern "C" void rocfoam_unload_module(const char *name)
+extern "C" void rocrhocentral_unload_module(const char *name)
 {
     rhoCentral::unload(name);
 }
-*/
 //===============================================
 
 double rhoCentral::errorEvaluate(int argc, char *argv[])

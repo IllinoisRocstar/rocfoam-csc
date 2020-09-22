@@ -34,7 +34,7 @@ void rhoPimple::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.load: Loading rocRhoPimple with name "
+        std::cout << "rocRhoPimple: Loading rocRhoPimple with name "
                    << name << "." << std::endl;
 
         std::cout << "rocFoam.load: Rank = " << tmpRank
@@ -2619,12 +2619,12 @@ int rhoPimple::finalizeFoam()
 
 //^^^^^ (UN)LOAD METHOD ^^^^^^^^^^^^^^^^^^^^^^^^^
 // C/C++ bindings to load rocFoam
-extern "C" void rocfoam_load_module(const char *name)
+extern "C" void rocrhopimple_load_module(const char *name)
 {
     rhoPimple::load(name);
 }
 
-extern "C" void rocfoam_unload_module(const char *name)
+extern "C" void rocrhopimple_unload_module(const char *name)
 {
     rhoPimple::unload(name);
 }
