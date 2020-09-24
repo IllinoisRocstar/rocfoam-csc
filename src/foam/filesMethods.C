@@ -116,10 +116,14 @@ int comFoam::createFieldFiles
     namespace BF = boost::filesystem;
     
     int nTotal=*ca_nFiles;
-    if (ca_Rho != nullptr) nTotal++;
-    if (ca_Phi != nullptr) nTotal++;
-    if (ca_RhoUf != nullptr) nTotal++;
-    if (ca_Disp != nullptr) nTotal++;
+    //if (ca_Rho != nullptr)
+         nTotal++;
+    //if (ca_Phi != nullptr)
+        nTotal++;
+    //if (ca_RhoUf != nullptr)
+        nTotal++;
+    //if (ca_Disp != nullptr)
+        nTotal++;
     
     for (int ifile=0; ifile<nTotal; ifile++)
     {
@@ -141,7 +145,7 @@ int comFoam::createFieldFiles
             localDir = vecFile[ifile].path;
             content = vecFile[ifile].content;
         }
-        else if (ifile==*ca_nFiles)
+        else if (ifile==*ca_nFiles && ca_Rho != nullptr)
         {
             fileName = "rho";
             localDir = locaParAddr+"0";
@@ -153,7 +157,7 @@ int comFoam::createFieldFiles
                         "[1 -3 0 0 0 0 0]"
                       );
         }
-        else if (ifile==*ca_nFiles+1)
+        else if (ifile==*ca_nFiles+1 && ca_Phi != nullptr)
         {
             fileName = "phi";
             localDir = locaParAddr+"0";
@@ -165,7 +169,7 @@ int comFoam::createFieldFiles
                         "[1 0 -1 0 0 0 0]"
                       );
         }
-        else if (ifile==*ca_nFiles+2)
+        else if (ifile==*ca_nFiles+2 && ca_RhoUf != nullptr)
         {
             fileName = "rhoUf";
             localDir = locaParAddr+"0";
@@ -177,7 +181,7 @@ int comFoam::createFieldFiles
                         "[1 -2 -1 0 0 0 0]"
                       );
         }
-        else if (ifile==*ca_nFiles+3)
+        else if (ifile==*ca_nFiles+3 && ca_Disp != nullptr)
         {
             fileName = "pointDisplacementNew";
             localDir = locaParAddr+"0";
@@ -189,7 +193,7 @@ int comFoam::createFieldFiles
                         "[0 1 0 0 0 0 0]"
                       );
         }
-        
+
         std::string fullDir = rootAddr+"/"+localDir;
         std::string fullAddr = fullDir+"/"+fileName;
 
@@ -234,7 +238,7 @@ int comFoam::createFieldFiles
                 content.erase(intFieldStart, length);
 
                 std::string newStr = "internalField   nonuniform List";
-                if (fileName == "U")
+                if (fileName == "U" && ca_Vel!= nullptr)
                 {
                     newStr += "<vector>\n";
                     int ncells = *ca_nCells;
@@ -263,7 +267,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "p")
+                else if (fileName == "p" && ca_P!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -285,7 +289,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "T")
+                else if (fileName == "T" && ca_T!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -307,7 +311,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "rho")
+                else if (fileName == "rho" && ca_Rho!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -329,7 +333,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "phi")
+                else if (fileName == "phi" && ca_Phi != nullptr)
                 {
                     newStr += "<scalar>\n";
 
@@ -359,7 +363,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "rhoUf")
+                else if (fileName == "rhoUf" && ca_RhoUf != nullptr)
                 {
                     newStr += "<vector>\n";
 
@@ -371,7 +375,6 @@ int comFoam::createFieldFiles
                     int index  = procStartIndex + 0; //ipatch;
                     int nfaces = ca_patchStart[index];
 
-
                     newStr += std::to_string(nfaces);
                     newStr += "\n(\n";
 
@@ -379,6 +382,7 @@ int comFoam::createFieldFiles
                     {
                         int faceIndex = ca_faceToFaceMap_inverse[iface];
                         newStr += "(";
+
                         for(int jcomp=0; jcomp<nComponents; jcomp++)
                         {
                             int localComp = jcomp + faceIndex*nComponents;
@@ -394,11 +398,11 @@ int comFoam::createFieldFiles
                         newStr += ")\n";
                     }
                     newStr += ")\n";
-                    
+
                     content.insert(intFieldStart, newStr);
                 }
                 // Turbulence data ^^^^^^^^^^^^^^^^^^
-                else if (fileName == "alphat")
+                else if (fileName == "alphat" && ca_AlphaT!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -420,7 +424,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "epsilon")
+                else if (fileName == "epsilon" && ca_Epsilon!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -442,7 +446,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "omega")
+                else if (fileName == "omega" && ca_Omega!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -464,7 +468,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "k")
+                else if (fileName == "k" && ca_K!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -486,7 +490,7 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "nut")
+                else if (fileName == "nut" && ca_NuT!= nullptr)
                 {
                     newStr += "<scalar>\n";
                     int ncells = *ca_nCells;
@@ -508,8 +512,9 @@ int comFoam::createFieldFiles
                     
                     content.insert(intFieldStart, newStr);
                 }
-                else if (fileName == "pointDisplacement" ||
+                else if ((fileName == "pointDisplacement" ||
                          fileName == "pointDisplacementNew")
+                         && ca_Disp != nullptr)
                 {
                     newStr += "<vector>\n";
                     int npoints = *ca_nPoints;
@@ -647,7 +652,7 @@ int comFoam::createFieldFiles
 
                     std::string newStr = "value           nonuniform List";
 
-                    if (fileName == "U")
+                    if (fileName == "U" && ca_patchVel!= nullptr)
                     {
                         newStr += "<vector>\n";
                         newStr += std::to_string(nfaces);
@@ -673,7 +678,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "p")
+                    else if (fileName == "p" && ca_patchP!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -692,7 +697,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "T")
+                    else if (fileName == "T" && ca_patchT!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -711,7 +716,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "rho")
+                    else if (fileName == "rho" && ca_patchRho!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -730,7 +735,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "phi")
+                    else if (fileName == "phi" && ca_patchPhi!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -749,7 +754,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "rhoUf")
+                    else if (fileName == "rhoUf" && ca_patchRhoUf!= nullptr)
                     {
                         newStr += "<vector>\n";
                         newStr += std::to_string(nfaces);
@@ -776,7 +781,7 @@ int comFoam::createFieldFiles
                         newStr += ")\n";
                     }
                     // Turbulence data ^^^^^^^^^^^^^^
-                    else if (fileName == "alphat")
+                    else if (fileName == "alphat" && ca_patchAlphaT!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -795,7 +800,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "epsilon")
+                    else if (fileName == "epsilon" && ca_patchEpsilon!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -814,7 +819,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "omega")
+                    else if (fileName == "omega" && ca_patchOmega!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -833,7 +838,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "k")
+                    else if (fileName == "k" && ca_patchK!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -852,7 +857,7 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "nut")
+                    else if (fileName == "nut" && ca_patchNuT!= nullptr)
                     {
                         newStr += "<scalar>\n";
                         //int nfaces = ca_patchSize[ipatch];
@@ -871,8 +876,9 @@ int comFoam::createFieldFiles
                         }
                         newStr += ")\n";
                     }
-                    else if (fileName == "pointDisplacement" ||
+                    else if ((fileName == "pointDisplacement" ||
                              fileName == "pointDisplacementNew")
+                             && ca_Disp!= nullptr)
                     {
                         newStr += "<vector>\n";
                         

@@ -597,6 +597,17 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         continueIter
     )
     {
+        count++;
+        Info << ">>MultiPhysics outer iteration "
+             << count << "<<" << endl;
+
+        if (modifiedDeltaT)
+        {
+            runTime.setDeltaT(unmodifiedDeltaTvalue);
+
+            runTime.controlDict().lookup("adjustTimeStep");
+        }
+
 #if defined(HAVE_OF7) || defined(HAVE_OF8)
         //  readTimeControls.H
         readTimeControls();
@@ -657,7 +668,10 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
+
                         updateSurfaceData_incoming(count);
+
+                        Info << " alpha = " << alpha << endl;
                     }
                 }
             }
@@ -847,7 +861,10 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
+
                         updateSurfaceData_incoming(count);
+
+                        Info << " alpha = " << alpha << endl;
                     }
                 }
             }
