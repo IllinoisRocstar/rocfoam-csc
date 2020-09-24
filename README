@@ -1,26 +1,20 @@
 Ensure you have the latest version of GCC on your machine.
-* OpenFOAM-7 is needed for this application. Download and compile OpenFOAM-7 prior to copiling rocFoam.
+* OpenFOAMv2006 is needed for this application. Download it from www.OpenFOAM.com and compile it prior to copiling rocFoam.
 * IMPACT is needed for this application. Download and compile it on your machine.
 * Boost library is needed. Make sure you have this library on you machine.
 * Make sure that all packages are compiled with the same compiler. Also make sure that the mpi cpmpiler is used for compiling the packages.
 
 >> Defenition varibales:
-[1] $ROCFOAM_SOURCE_PATH = source directory of rocFoam
-[2] $FOAM_PATH = source directory of OpenFOAM
-[3] $ROCFOAM_INSTALL_PATH = instalation directory of rocFoam
-[4] $IMPACT_INSTALL_PATH = IMPACT installation directory
-[5] $BOOST_INC_PATH = address to the boost header files directory   #/usr/include/boost
-[6] $BOOST_LIB_PATH = address to the boost library files directory  #/usr/lib/x86_64-linux-gnu/
-
-
+[1] $FOAM_PATH = source directory of OpenFOAM
+[2] $ROCFOAM_INSTALL_PATH = instalation directory of rocFoam
+[3] $IMPACT_INSTALL_PATH = IMPACT installation directory
 
 >> Compilation of rocFoam:
-[1] Transfer the files in the folder "$ROCFOAM_SOURCE_PATH/src/Pstream/mpi/" to the folder "$FOAM_PATH/src/Pstream/mpi/"
-[2] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
-[3] Go to the source folder of rocFoam
-[4] Type "mkdir build" followed by "cd build"
-[5] Set the installation path, by assigning it to the variable "ROCFOAM_INSTALL_PATH"
-[6] Execute the following command line for cmake:
+[1] Remake OpenFOAM by executing "./Allwmake" in "$FOAM" foalder
+[2] Go to the source folder of rocFoam
+[3] Type "mkdir build" followed by "cd build"
+[4] Set the installation path, by assigning it to the variable "ROCFOAM_INSTALL_PATH"
+[5] Execute the following command line for cmake:
 
 cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DCMAKE_IMPACT_DIR=$IMPACT_INSTALL_PATH -DCMAKE_CXX_COMPILER=mpicxx ..
 
@@ -28,20 +22,21 @@ cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=$ROCFOAM_INSTALL_PATH -DCMAK
 
 
 >> To run
-[1] There are two standalone dirvers for rhoCentralFoan and rhoPimpleFoam, respectively called rocRhoCentral and rocRhoPimple. They can be used in serial and parallel modes exactly as openFoam solvers, i.e.
+[1] There are two standalone dirvers called rocRhoCentral (density-based solver) and rocRhoPimple (pressure-based solver). They can be used in serial and parallel modes to preprocess a simulation case.
     (a) Serial:
-          <application>
+          <application> -preprocess
 
     (b) Parallel:
-          mpirun -np <nproc> <application> -parallel
+          mpirun -np <nproc> <application> -parallel -prerocess
 
     <application> needs to be replaced with rocRhoCentral or rocRhoPimple.
 
 
-[2] rocFoam is a driver for both rocRhoCentral and rocRhoPimple solvers. To initiate any of these solvers, the following commands need to be executed in a terminal:
+[2] To test if the pre-precessor has benn successfully executed, one could run the commands mentioned above, but replace "-preprocess" with "-production", that is:
     (a) Serial:
-          rocFoam -<application>
+          <application> -production
 
     (b) Parallel:
-          mpirun -np <nproc> rocFoam -parallel -<pplication>
+          mpirun -np <nproc> <application> -parallel -production
 
+    <application> needs to be replaced with rocRhoCentral or rocRhoPimple.
