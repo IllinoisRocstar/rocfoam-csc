@@ -93,8 +93,7 @@ private:
 public:
 
     //- Runtime type information
-    TypeName("surfaceDisplacementFSI");
-
+    TypeName("rocstarFSI");
 
     // Constructors
 

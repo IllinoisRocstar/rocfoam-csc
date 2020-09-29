@@ -547,21 +547,33 @@ int comFoam::createSurfaceData()
         {
             ca_bcflag[ipatch] = new int(2);
 
-            if (*ca_isDynamicFvMesh == 1 &&
-                dynamicSolverType == "displacementLaplacian")
+            if
+            (
+                *ca_isDynamicFvMesh == 1 &&
+                (
+                    dynamicSolverType == "displacementLaplacian" ||
+                    dynamicSolverType == "solidBodyDisplacementLaplacian"
+                )
+            )
             {
+                /*
                 const motionSolver& motion_ =
                     refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
                 const pointVectorField& pointDisplacement =
                         refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+                */
 
+                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
 
                 if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
                     *ca_bcflag[ipatch] = 0;
                 }
-                else
-                {}
+
             }
         }
 
@@ -740,21 +752,32 @@ int comFoam::updateSurfaceData_outgoing()
         {
             *ca_bcflag[ipatch] = 2;
             
-            if (*ca_isDynamicFvMesh == 1 &&
-                dynamicSolverType == "displacementLaplacian")
+            if
+            (
+                *ca_isDynamicFvMesh == 1 &&
+                (
+                    dynamicSolverType == "displacementLaplacian" ||
+                    dynamicSolverType == "solidBodyDisplacementLaplacian"
+                )
+            )
             {
+                /*
                 const motionSolver& motion_ =
                     refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
                 const pointVectorField& pointDisplacement =
                         refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+                */
 
+                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
 
                 if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
                     *ca_bcflag[ipatch] = 0;
                 }
-                else
-                {}
             }
         }
 
@@ -1037,19 +1060,23 @@ int comFoam::updateSurfaceData_incoming(const int& count)
     if (ca_isDynamicFvMesh == nullptr)
         return 0;
 
+    const dynamicFvMesh& mesh(*meshPtr);
     std::string dynamicSolverType = ca_dynamicSolverType;
-    if (*ca_isDynamicFvMesh == 1 &&
-        dynamicSolverType == "displacementLaplacian")
+    if
+    (
+        *ca_isDynamicFvMesh == 1 &&
+        (
+            dynamicSolverType == "displacementLaplacian" ||
+            dynamicSolverType == "solidBodyDisplacementLaplacian"
+        )
+    )
     {
         Info << " rocFoam.updateSurfaceData_incoming." << endl;
-
-        dynamicFvMesh& mesh(*meshPtr);
-
-        const motionSolver& motion_ =
-            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-        const pointVectorField& pointDisplacement =
-            refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-
+        
+        const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                (
+                    "dynamicMeshDict"
+                ).pointDisplacement();
         
         if (pointDisplacementNewPtr == nullptr)
         {

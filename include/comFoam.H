@@ -19,7 +19,7 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallTypeName = "surfaceDisplacementFSI";
+    const std::string movingWallTypeName = "rocstarFSI";
 
 protected:
     const int nComponents{3};
@@ -82,6 +82,8 @@ private:
     int updateSurfaceData_outgoing();
     int registerSurfaceData(const char *name);
     int reconstSurfaceData(const char *name);
+
+    void readMeshDict(const dictionary& currentDict, bool& foundSolver);
 
     // CSC files methods
     int readFilesData(const std::string& rootAddr);
@@ -280,6 +282,7 @@ private:
     double* ca_deltaT0{nullptr};
     
     int* ca_isDynamicFvMesh{nullptr};
+    char* ca_dynamicFvMeshType{nullptr};
     char* ca_dynamicSolverType{nullptr};
     
 

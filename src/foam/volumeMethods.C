@@ -97,10 +97,15 @@ int comFoam::createVolumeData()
     ca_Points = new double[nTotal]{0};
 
     std::string dynamicSolverType = ca_dynamicSolverType;
-    if (*ca_isDynamicFvMesh == 1 &&
-        dynamicSolverType == "displacementLaplacian")
+    if
+    (
+        *ca_isDynamicFvMesh == 1 &&
+        (
+            dynamicSolverType == "displacementLaplacian" ||
+            dynamicSolverType == "solidBodyDisplacementLaplacian"
+        )
+    )
     {
-
         if (ca_Disp == nullptr)
             ca_Disp = new double[nTotal]{0};
 
@@ -246,11 +251,10 @@ int comFoam::updateVolumeData_outgoing()
 
     if (ca_Disp != nullptr)
     {
-        const motionSolver& motion_ =
-            refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-        const pointVectorField& pointDisplacement_ =
-                refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+        const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
+                (
+                    "dynamicMeshDict"
+                ).pointDisplacement();
 
         if (pointDisplacement_.size())
         {
