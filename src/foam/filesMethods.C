@@ -43,6 +43,103 @@ int comFoam::readFilesData(const std::string& rootAddr)
     return 0;
 }
 
+void comFoam::readMeshDict(const dictionary& currentDict, bool& foundSolver)
+{
+    wordList tableOfContent = currentDict.toc();
+    int tocSize = tableOfContent.size();
+
+    for (int i=0; i<tocSize; i++)
+    {
+        if (!(currentDict.isDict(tableOfContent[i])))
+        {
+            if (tableOfContent[i] == "dynamicFvMesh")
+            {
+
+                *ca_isDynamicFvMesh = 1;
+
+#ifdef HAVE_OFE20
+                std::string dynamicFvMesh = ITstream
+                                    (
+                                        currentDict.lookup("dynamicFvMesh")
+                                    ).toString();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+                word dynamicFvMesh_ = currentDict.lookup("dynamicFvMesh");
+                std::string dynamicFvMesh{dynamicFvMesh_};
+#endif
+                if (dynamicFvMesh.length() >= genCharSize)
+                {
+                    std::cout << "Warning:: genCharSize is not big enough,"
+                            << " genCharSize = " << genCharSize
+                            << " dynamicFvMesh.length() = "
+                            << dynamicFvMesh.length()
+                            << std::endl;
+                    exit(-1);
+                }
+
+                for (size_t i=0; i<dynamicFvMesh.length(); i++)
+                {
+                    ca_dynamicFvMeshType[i] = dynamicFvMesh[i];
+                }
+                ca_dynamicFvMeshType[ dynamicFvMesh.length() ] = '\0';
+
+                for (size_t i=dynamicFvMesh.length()+1; i<genCharSize; i++)
+                {
+                    ca_dynamicFvMeshType[i] = ' ';
+                }
+            }
+
+            if (tableOfContent[i] == "solver" && !foundSolver)
+            {
+
+#ifdef HAVE_OFE20
+                std::string solver = ITstream
+                                    (
+                                        currentDict.lookup("solver")
+                                    ).toString();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+                word solver_ = currentDict.lookup("solver");
+                std::string solver{solver_};
+#endif
+
+                if (solver == "displacementLaplacian" || solver == "solidBodyDisplacementLaplacian")
+                {
+                    foundSolver = true;
+
+                    if (solver.length() >= genCharSize)
+                    {
+                        std::cout << "Warning:: genCharSize is not big enough,"
+                                << " genCharSize = " << genCharSize
+                                << " solver.length() = "
+                                << solver.length()
+                                << std::endl;
+                        exit(-1);
+                    }
+
+                    for (size_t i=0; i<solver.length(); i++)
+                    {
+                        ca_dynamicSolverType[i] = solver[i];
+                    }
+                    ca_dynamicSolverType[ solver.length() ] = '\0';
+
+                    for (size_t i=solver.length()+1; i<genCharSize; i++)
+                    {
+                        ca_dynamicSolverType[i] = ' ';
+                    }
+                }
+            }
+        }
+        else
+        {
+            const dictionary& nextDict = currentDict.subDict(tableOfContent[i]);
+            readMeshDict(nextDict, foundSolver);
+        }
+    }
+
+    return;
+}
+
 int comFoam::createFilesData()
 {
     std::vector<fileContainer> vecFile;
