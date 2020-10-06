@@ -251,10 +251,20 @@ int comFoam::updateVolumeData_outgoing()
 
     if (ca_Disp != nullptr)
     {
-        const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
-                (
-                    "dynamicMeshDict"
-                ).pointDisplacement();
+#if HAVE_OFE20
+                const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
+                const motionSolver& motion_ =
+                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+                const pointVectorField& pointDisplacement_ =
+                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+#endif
 
         if (pointDisplacement_.size())
         {

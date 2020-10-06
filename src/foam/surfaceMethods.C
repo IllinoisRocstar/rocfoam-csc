@@ -556,18 +556,21 @@ int comFoam::createSurfaceData()
                 )
             )
             {
-                /*
+
+#if HAVE_OFE20
+                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
                 const motionSolver& motion_ =
                     refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
 
                 const pointVectorField& pointDisplacement =
                         refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-                */
-
-                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
-                        (
-                            "dynamicMeshDict"
-                        ).pointDisplacement();
+#endif
 
                 if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
@@ -761,18 +764,20 @@ int comFoam::updateSurfaceData_outgoing()
                 )
             )
             {
-                /*
+#if HAVE_OFE20
+                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
                 const motionSolver& motion_ =
                     refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
 
                 const pointVectorField& pointDisplacement =
                         refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-                */
-
-                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
-                        (
-                            "dynamicMeshDict"
-                        ).pointDisplacement();
+#endif
 
                 if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
                 {
@@ -1073,10 +1078,20 @@ int comFoam::updateSurfaceData_incoming(const int& count)
     {
         Info << " rocFoam.updateSurfaceData_incoming." << endl;
         
-        const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
-                (
-                    "dynamicMeshDict"
-                ).pointDisplacement();
+#if HAVE_OFE20
+                const pointVectorField& pointDisplacement = mesh.lookupObject<displacementMotionSolver>
+                        (
+                            "dynamicMeshDict"
+                        ).pointDisplacement();
+
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+
+                const motionSolver& motion_ =
+                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+
+                const pointVectorField& pointDisplacement =
+                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+#endif
         
         if (pointDisplacementNewPtr == nullptr)
         {
