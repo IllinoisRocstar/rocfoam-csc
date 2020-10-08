@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(rocfoam CXX)
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 # Set project metadata #########################################################
+
 set(rocFoam_MAJOR_VERSION 1)
 set(rocFoam_MINOR_VERSION 0)
 set(rocFoam_PATCH_VERSION 0)
@@ -13,12 +9,57 @@ set(rocFoam_EXTRA_VERSION "")
 set(rocFoam_VERSION "${rocFoam_MAJOR_VERSION}.${rocFoam_MINOR_VERSION}")
 set(rocFoam_VERSION "${rocFoam_VERSION}.${rocFoam_PATCH_VERSION}${rocFoam_EXTRA_VERSION}")
 
+project(rocfoam CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Set project defaults #########################################################
+
 # package module
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
-# Finding libraries ############################################################
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
+# Set the possible values of build type for cmake-gui
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
 
-option(ENABLE_TESTS "Enabe Testing of RocFOAM" OFF)
+# creating code compilation database
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Installation Directories
+include(GNUInstallDirs)
+
+# Setting configure options ####################################################
+
+option(ENABLE_TESTS "Enable Testing of RocFOAM." OFF)
+
+# Setting compile and link options #############################################
+
+# Turn on default warnings for GNU compilers.
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  # Update if necessary
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -Wno-unused-parameter")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wnon-virtual-dtor")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wredundant-decls")
+  # -Wshadow gives false positives for gcc versions <= 4.8
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion")
+  endif(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+endif()
+
+# set up RPATH
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Finding libraries ############################################################
 
 if(ENABLE_TESTS)
    enable_testing()
