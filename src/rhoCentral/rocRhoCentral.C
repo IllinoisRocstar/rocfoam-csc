@@ -4,7 +4,7 @@
 rhoCentral::rhoCentral()
 {
     solverType = "rocRhoCentral";
-};
+}
 
 rhoCentral::rhoCentral(int argc, char *argv[])
 {
