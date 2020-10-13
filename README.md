@@ -26,13 +26,17 @@ The following table contains all available CMake options to configure the projec
 ### Dependencies ###
 You will need the following dependencies:
 * MPI compiler
-* OpenFOAM v2006 (available on [official website](https://www.openfoam.com/download/))
+* OpenFOAM v2006 (available on [official website](https://www.openfoam.com/download/). Choose an option that includes the `dev` (Debian) or `devel` (RPM) package.)
 * IMPACT (available on [GitHub](https://github.com/IllinoisRocstar/IMPACT))
-* Boost 
+* Boost v1.45.0 or higher (Must include development headers)
 
 ### Build ###
 
-First, load the OpenFOAM environment. See OpenFOAM wiki for [detailed instructions](https://develop.openfoam.com/Development/openfoam/-/wikis/running).
+First, load the OpenFOAM environment. On a default installation, this is done by:
+```
+$ . /usr/lib/openfoam/openfoam2006/etc/bashrc
+```
+See OpenFOAM wiki for [alternatives](https://develop.openfoam.com/Development/openfoam/-/wikis/running).
 
 We assume the following environment variables:
 * `IMPACT_INSTALL_PATH` is the install location of IMPACT
