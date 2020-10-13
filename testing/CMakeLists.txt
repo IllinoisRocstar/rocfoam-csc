@@ -39,8 +39,11 @@ target_link_libraries(runRhoPimpleTest rocrhopimple gtest gtest_main)
 #add_executable(runRhoFoamTest src/rocFoamTests.C)
 #target_link_libraries(runRhoFoamTest rocfoam gtest gtest_main)
 
-add_executable(normtest src/normTest.C)
-target_link_libraries(normtest rocrhopimple rocrhocentral gtest gtest_main)
+add_executable(normtestCentral src/normTestCentral.C)
+target_link_libraries(normtestCentral rocrhocentral gtest gtest_main)
+
+add_executable(normtestPimple src/normTestPimple.C)
+target_link_libraries(normtestPimple rocrhopimple gtest gtest_main)
 
 #--------------- rocFoam serial tests ---------------
 
@@ -72,42 +75,16 @@ add_test(NAME rocRhoPimpleParallel
     WORKING_DIRECTORY ${TEST_RESULTS})
 #--------------------------------------------------------------------
 
-#^^^ Testing rocFoam ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#add_test(NAME rocFoamRhoCentralSerial
-#    COMMAND
-#    ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-#    runRhoFoamTest -case ${TEST_SOURCE_ROCFOAM_RHOCENTRAL} -rocRhoCentral
-#    WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocFoamRhoCentralParallel
-#    COMMAND
-#    ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-#    mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOAM_RHOCENTRAL} -rocRhoCentral -parallel
-#    WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocFoamRhoPimpleSerial
-#    COMMAND
-#    ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-#    runRhoFoamTest -case ${TEST_SOURCE_ROCFOAM_RHOPIMPLE} -rocRhoPimple
-#    WORKING_DIRECTORY ${TEST_RESULTS})
-
-#add_test(NAME rocFoamRhoPimpleParallel
-#    COMMAND
-#    ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-#    mpirun -np 2 runRhoFoamTest -case ${TEST_SOURCE_ROCFOAM_RHOPIMPLE} -rocRhoPimple -parallel
-#    WORKING_DIRECTORY ${TEST_RESULTS})
-#--------------------------------------------------------------------
-
 #^^^ Testing infinity norms ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 add_test(NAME rocRhoCentralNormTest
     COMMAND
     ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-    normtest -rocRhoCentral -case ${TEST_SOURCE_RHOCENTRAL}
+    normtestCentral -rocRhoCentral -case ${TEST_SOURCE_RHOCENTRAL}
     WORKING_DIRECTORY ${TEST_RESULTS})
 
 add_test(NAME rocRhoPimpleNormTest
     COMMAND
     ${CMAKE_COMMAND} -E env "${TEST_ENV_PATH_OPTIONS}" "${TEST_ENV_LD_OPTIONS}"
-    normtest -rocRhoPimple -case ${TEST_SOURCE_RHOPIMPLE}
+    normtestPimple -rocRhoPimple -case ${TEST_SOURCE_RHOPIMPLE}
     WORKING_DIRECTORY ${TEST_RESULTS})
 #--------------------------------------------------------------------
