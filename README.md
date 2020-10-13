@@ -41,8 +41,10 @@ See OpenFOAM wiki for [alternatives](https://develop.openfoam.com/Development/op
 We assume the following environment variables:
 * `IMPACT_INSTALL_PATH` is the install location of IMPACT
 * `ROCFOAM_INSTALL_PATH` is the desired installation location
+
 Recommended configuration is as follows:
 ```
+$ mkdir build && cd build
 $ cmake .. \
         -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_INSTALL_PREFIX=${ROCFOAM_INSTALL_PATH} \
