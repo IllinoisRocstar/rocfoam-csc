@@ -64,7 +64,7 @@ TEST_F(regressionTest, regression)
         }
     }
 
-    int ARGC1 = 3;
+    constexpr int ARGC1 = 3;
     char *ARGV1[ARGC1];
     ARGV1[0] = solverType; //ARGV[0];
     ARGV1[1] = const_cast<char *>("-case");
