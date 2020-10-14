@@ -5,7 +5,7 @@ fileContainer::fileContainer()
     initSet();
 }
 
-fileContainer::~fileContainer(){};
+fileContainer::~fileContainer(){}
 
 int fileContainer::initSet()
 {

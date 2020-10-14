@@ -1,28 +1,66 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(rocfoam CXX)
+# Set project metadata #########################################################
+
+project(RocFOAM CXX)
+
+set(RocFOAM_MAJOR_VERSION 1)
+set(RocFOAM_MINOR_VERSION 0)
+set(RocFOAM_PATCH_VERSION 0)
+set(RocFOAM_EXTRA_VERSION "")
+set(RocFOAM_VERSION "${RocFOAM_MAJOR_VERSION}.${RocFOAM_MINOR_VERSION}")
+set(RocFOAM_VERSION "${RocFOAM_VERSION}.${RocFOAM_PATCH_VERSION}${RocFOAM_EXTRA_VERSION}")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set project metadata #########################################################
-set(rocFoam_MAJOR_VERSION 1)
-set(rocFoam_MINOR_VERSION 0)
-set(rocFoam_PATCH_VERSION 0)
-set(rocFoam_EXTRA_VERSION "")
-set(rocFoam_VERSION "${rocFoam_MAJOR_VERSION}.${rocFoam_MINOR_VERSION}")
-set(rocFoam_VERSION "${rocFoam_VERSION}.${rocFoam_PATCH_VERSION}${rocFoam_EXTRA_VERSION}")
+# Set project defaults #########################################################
 
 # package module
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
-# Finding libraries ############################################################
-
-option(ENABLE_TESTS "Enabe Testing of RocFOAM" OFF)
-
-if(ENABLE_TESTS)
-   enable_testing()
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
+# Set the possible values of build type for cmake-gui
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+
+# creating code compilation database
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Installation Directories
+include(GNUInstallDirs)
+
+# Setting configure options ####################################################
+
+option(ENABLE_TESTING "Enable Testing of RocFOAM." ON)
+
+# Setting compile and link options #############################################
+
+# Turn on default warnings for GNU compilers.
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  # Update if necessary
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -Wno-unused-parameter")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-attributes")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Wnon-virtual-dtor")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wredundant-decls")
+  # -Wshadow gives false positives for gcc versions <= 4.8
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion")
+  endif(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+endif()
+
+# set up RPATH
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Finding libraries ############################################################
 
 # Find OpenFOAM
 # checking OpenFOAM version
@@ -43,76 +81,68 @@ endif()
 
 message(STATUS "OpenFOAM version ${OF_VERSION}")
 if(OF_VERSION EQUAL 20)
-    find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-                compressibleTransportModels fluidThermophysicalModels specie
-                turbulenceModels compressibleTurbulenceModels dynamicFvMesh
-                topoChangerFvMesh meshTools Pstream)
+  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+      compressibleTransportModels
+      fluidThermophysicalModels specie
+      turbulenceModels compressibleTurbulenceModels
+      dynamicFvMesh
+      topoChangerFvMesh meshTools Pstream)
 elseif(OF_VERSION EQUAL 7)
-    find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-                compressibleTransportModels fluidThermophysicalModels specie
-                turbulenceModels compressibleTurbulenceModels dynamicFvMesh
-                topoChangerFvMesh meshTools Pstream)
+  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+      compressibleTransportModels
+      fluidThermophysicalModels specie
+      turbulenceModels compressibleTurbulenceModels
+      dynamicFvMesh
+      topoChangerFvMesh meshTools Pstream)
 elseif(OF_VERSION EQUAL 8)
-    find_package(OpenFOAM REQUIRED COMPONENTS 
-                OpenFOAM
-                fluidThermophysicalModels
-                specie
-                momentumTransportModels
-                fluidThermoMomentumTransportModels
-                thermophysicalTransportModels
-                finiteVolume
-                dynamicFvMesh
-                topoChangerFvMesh
-                meshTools
-                sampling
-                fvOptions
-                Pstream)
+  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+      momentumTransportModels fluidThermoMomentumTransportModels
+      thermophysicalTransportModels
+      fluidThermophysicalModels specie
+      dynamicFvMesh sampling
+      topoChangerFvMesh meshTools Pstream)
 else()
-message(STATUS "OpenFOAM verion not identified/supported")
-#  # > 7.x series
-#  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
-#      compressibleTransportModels
-#      compressibleTurbulenceModels
-#      fluidThermophysicalModels specie
-#      turbulenceModels  dynamicFvMesh
-#      topoChangerFvMesh meshTools Pstream)
+  message(STATUS "OpenFOAM version not identified/supported")
+  #  # > 7.x series
+  #  find_package(OpenFOAM REQUIRED COMPONENTS OpenFOAM finiteVolume fvOptions
+  #      compressibleTransportModels
+  #      compressibleTurbulenceModels
+  #      fluidThermophysicalModels specie
+  #      turbulenceModels  dynamicFvMesh
+  #      topoChangerFvMesh meshTools Pstream)
 endif()
 message(STATUS "OpenFOAM include directory ${OPNF_INCLUDE_DIRS}")
 message(STATUS "OpenFOAM link directory ${OPNF_LIBRARY_DIRS}")
 
-
-
-#find_package(IMPACT COMPONENTS)
+# Find IMPACT
 find_package(IMPACT REQUIRED)
 
+# Find Boost
 #set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.45.0 REQUIRED COMPONENTS filesystem)
-if(Boost_FOUND)
-   include_directories(${Boost_INCLUDE_DIR})
-   message(STATUS "Boost found.")
-endif()
 
 # Setting library files ########################################################
-# Setting include files
-file(GLOB_RECURSE rocFOAM_INC_FILES *.H)
 
-set(rocFOAM_INC_DIRS "")
-foreach(file_path ${rocFOAM_INC_FILES})
+# Setting include files
+file(GLOB_RECURSE RocFOAM_INC_FILES *.H)
+
+set(RocFOAM_INC_DIRS "")
+foreach(file_path ${RocFOAM_INC_FILES})
   get_filename_component(dir_path ${file_path} PATH)
-  list(APPEND rocFOAM_INC_DIRS ${dir_path})
+  list(APPEND RocFOAM_INC_DIRS ${dir_path})
 endforeach()
 
-list(REMOVE_DUPLICATES rocFOAM_INC_DIRS)
+list(REMOVE_DUPLICATES RocFOAM_INC_DIRS)
 
-# Setting rocFoam source
-set(rocfoam_SRCS
+# Setting RocFOAM source
+set(RocFOAM_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
     src/foam/fileContainer.C
     src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C)
     
 set(rocrhopimple_SRCS
-    ${rocfoam_SRCS}
+    ${RocFOAM_SRCS}
     src/rhoPimple/rocRhoPimple.C)
 
 # Setting rhoPimple driver source
@@ -120,13 +150,11 @@ set(rocPmpDrv_SRCS src/rhoPimple/rocRhoPimple_drv.C)
 
 # Setting rocrhocentral source
 set(rocrhocentral_SRCS
-    ${rocfoam_SRCS}
+    ${RocFOAM_SRCS}
     src/rhoCentral/rocRhoCentral.C)
     
 # Setting rhoCentral driver source
 set(rocCntDrv_SRCS src/rhoCentral/rocRhoCentral_drv.C)
-
-
 
 # Setting rhoFoam driver source
 set(rocFoamDrv_SRCS src/foam/rocFoam_drv.C)
@@ -137,15 +165,15 @@ set(rocFoamDrv_SRCS src/foam/rocFoam_drv.C)
 add_library(rocrhopimple ${rocrhopimple_SRCS})
 target_include_directories(rocrhopimple
     PUBLIC
-        $<INSTALL_INTERFACE:include/rocfoam>
         Boost::headers
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/rocfoam>
 )
 
-foreach(include_dir ${rocFOAM_INC_DIRS})
+foreach(include_dir ${RocFOAM_INC_DIRS})
   target_include_directories(rocrhopimple
       PUBLIC
-        $<BUILD_INTERFACE:${include_dir}>
-)
+          $<BUILD_INTERFACE:${include_dir}>
+  )
 endforeach()
 
 target_compile_options(rocrhopimple
@@ -178,24 +206,29 @@ target_compile_definitions(rocrhopimple
         ${OPNF_COMPILE_DEFINITIONS}
 )
 
-# Set soname version
-set_target_properties(rocrhopimple PROPERTIES VERSION ${rocFoam_VERSION}
-                                        SOVERSION ${rocFoam_MAJOR_VERSION})
+if(OF_VERSION EQUAL 20)
+  target_compile_definitions(rocrhopimple PUBLIC HAVE_OFE20)
+elseif(OF_VERSION EQUAL 7)
+  target_compile_definitions(rocrhopimple PUBLIC HAVE_OF7)
+elseif(OF_VERSION EQUAL 8)
+  target_compile_definitions(rocrhopimple PUBLIC HAVE_OF8)
+endif()
+message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
 #----------------------------------------------------
 
 # Build rocRhoCentral library ^^^^^^^^^^^^^^^^^^^^^^^
 add_library(rocrhocentral ${rocrhocentral_SRCS})
 target_include_directories(rocrhocentral
     PUBLIC
-        $<INSTALL_INTERFACE:include/rocfoam>
         Boost::headers
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/rocfoam>
 )
 
-foreach(include_dir ${rocFOAM_INC_DIRS})
+foreach(include_dir ${RocFOAM_INC_DIRS})
   target_include_directories(rocrhocentral
       PUBLIC
         $<BUILD_INTERFACE:${include_dir}>
-)
+  )
 endforeach()
 
 target_compile_options(rocrhocentral
@@ -228,75 +261,60 @@ target_compile_definitions(rocrhocentral
         ${OPNF_COMPILE_DEFINITIONS}
 )
 
-# Set soname version
-set_target_properties(rocrhocentral PROPERTIES VERSION ${rocFoam_VERSION}
-                                        SOVERSION ${rocFoam_MAJOR_VERSION})
+if(OF_VERSION EQUAL 20)
+  target_compile_definitions(rocrhocentral PUBLIC HAVE_OFE20)
+elseif(OF_VERSION EQUAL 7)
+  target_compile_definitions(rocrhocentral PUBLIC HAVE_OF7)
+elseif(OF_VERSION EQUAL 8)
+  target_compile_definitions(rocrhocentral PUBLIC HAVE_OF8)
+endif()
+message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
 #----------------------------------------------------
 
-                                        
+# Set soname version ###########################################################
+
+# Set soname version
+message(STATUS "RocFOAM_VERSION: ${RocFOAM_VERSION}")
+message(STATUS "RocFOAM_MAJOR_VERSION: ${RocFOAM_MAJOR_VERSION}")
+set_target_properties(rocrhopimple PROPERTIES VERSION ${RocFOAM_VERSION}
+    SOVERSION ${RocFOAM_MAJOR_VERSION})
+# Set soname version
+set_target_properties(rocrhocentral PROPERTIES VERSION ${RocFOAM_VERSION}
+    SOVERSION ${RocFOAM_MAJOR_VERSION})
+
 # Install libraries ############################################################
 
 # rocrhopimple ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Headers
-install(FILES ${rocFOAM_INC_FILES}
-    DESTINATION include)
+install(FILES ${RocFOAM_INC_FILES}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Libraries
 install(TARGETS rocrhopimple
     EXPORT rocrhopimple
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-if(OF_VERSION EQUAL 20)
-    target_compile_definitions(rocrhopimple PUBLIC HAVE_OFE20)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
-
-if(OF_VERSION EQUAL 7)
-    target_compile_definitions(rocrhopimple PUBLIC HAVE_OF7)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
-
-if(OF_VERSION EQUAL 8)
-    target_compile_definitions(rocrhopimple PUBLIC HAVE_OF8)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
 #------------------------------------------------
 
 # rocrhocentral ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Headers
-install(FILES ${rocFOAM_INC_FILES}
-    DESTINATION include)
+install(FILES ${RocFOAM_INC_FILES}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Libraries
 install(TARGETS rocrhocentral
     EXPORT rocrhocentral
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-if(OF_VERSION EQUAL 20)
-    target_compile_definitions(rocrhocentral PUBLIC HAVE_OFE20)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
-
-if(OF_VERSION EQUAL 7)
-    target_compile_definitions(rocrhocentral PUBLIC HAVE_OF7)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
-
-if(OF_VERSION EQUAL 8)
-    target_compile_definitions(rocrhocentral PUBLIC HAVE_OF8)
-    message(STATUS "OPENFOAM VERSION ${OF_VERSION}")
-endif()
 #------------------------------------------------
 
-# Building utilities #############################################################
+# Building utilities ###########################################################
 add_executable(rocRhoCentral ${rocCntDrv_SRCS})
 target_link_libraries(rocRhoCentral rocrhocentral IMPACT::SITCOM)
 target_include_directories(rocRhoCentral SYSTEM
@@ -319,12 +337,16 @@ target_include_directories(rocRhoPimple SYSTEM
 ##)
 
 install(TARGETS rocRhoCentral rocRhoPimple
-         RUNTIME DESTINATION bin
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
-if(ENABLE_TESTS)
-   add_subdirectory(testing)
-endif()
+# Perform Testing ##############################################################
 
+if(ENABLE_TESTING)
+  enable_testing()
+  add_subdirectory(testing)
+endif()
