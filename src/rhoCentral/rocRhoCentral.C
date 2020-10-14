@@ -4,7 +4,7 @@
 rhoCentral::rhoCentral()
 {
     solverType = "rocRhoCentral";
-};
+}
 
 rhoCentral::rhoCentral(int argc, char *argv[])
 {
@@ -1384,6 +1384,7 @@ extern "C" void rocrhocentral_unload_module(const char *name)
 double rhoCentral::errorEvaluate(int argc, char *argv[])
 {
     createArgs(argc, argv);
+
     setRootCase();
     
     Foam::argList &args(*argsPtr);
@@ -1428,21 +1429,44 @@ double rhoCentral::errorEvaluate(int argc, char *argv[])
         rhoUVec.push_back(rhoU);
         UMagVec.emplace_back(magSqr(rhoU));
         rhoEVec.push_back(rhoE);
+    
+        finalizeFoam();
     }
 
     Info << "Field vectors created. " << endl;
 
-    rhoVec[0]  = mag(rhoVec[2]  - rhoVec[1]);
-    UMagVec[0] = mag(UMagVec[2] - UMagVec[1]);
-    rhoEVec[0] = mag(rhoEVec[2] - rhoEVec[1]);
-    
-    Info << "Infinity norm = " << max(rhoVec[0]) << endl;
-    Info << "Infinity norm = " << max(UMagVec[0]) << endl;
-    Info << "Infinity norm = " << max(rhoEVec[0]) << endl;
+    double rhoMax{-1.0};
+    forAll(rhoVec[0], i)
+    {
+        rhoVec[0][i]  = std::abs(rhoVec[2][i] - rhoVec[1][i]);
 
-    double maxError = std::max( max(rhoVec[0]).value(), max(UMagVec[0]).value() );
-    testStat = std::max( maxError , max(rhoEVec[0]).value() );
-    
+        rhoMax = std::max(rhoVec[0][i], rhoMax);
+    }
+
+    double UMagVecMax{-1.0};
+    forAll(UMagVec[0], i)
+    {
+        UMagVec[0][i] = std::abs(UMagVec[2][i] - UMagVec[1][i]);
+        
+        UMagVecMax = std::max(UMagVec[0][i], UMagVecMax);
+    }
+
+    double rhoEVecMax{-1.0};
+    forAll(rhoEVec[0], i)
+    {
+        rhoEVec[0][i] = std::abs(rhoEVec[2][i] - rhoEVec[1][i]);
+
+        rhoEVecMax = std::max(rhoEVec[0][i], rhoEVecMax);
+    }
+
+    Info << "Infinity norm(rho)  = " << rhoMax << endl;
+    Info << "Infinity norm(UMag) = " << UMagVecMax << endl;
+    Info << "Infinity norm(rhoE) = " << rhoEVecMax << endl;
+
+    double maxError = std::max( rhoMax, UMagVecMax );
+    testStat = std::max( maxError , rhoEVecMax );
+    Info << "Max Infinity norm   = " << testStat << endl;
+
     return testStat;
 }
 //===============================================

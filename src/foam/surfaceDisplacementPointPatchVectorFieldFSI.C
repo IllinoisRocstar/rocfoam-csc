@@ -156,7 +156,7 @@ makePointPatchTypeField
 (
     fixedValuePointPatchVectorField,
     surfaceDisplacementPointPatchVectorFieldFSI
-);
+)
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

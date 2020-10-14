@@ -2,9 +2,9 @@
 #include "rocRhoPimple.H"
 #include "rocRhoCentral.H"
 
-COM_EXTERN_MODULE(rocrhopimple);
-COM_EXTERN_MODULE(Rocout);
-COM_EXTERN_MODULE(Rocin);
+COM_EXTERN_MODULE(rocrhopimple)
+COM_EXTERN_MODULE(Rocout)
+COM_EXTERN_MODULE(Rocin)
 using namespace COM;
 
 MPI_Comm masterComm;
