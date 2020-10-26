@@ -1,3 +1,5 @@
+#include "comFoam.H"
+
 int comFoam::readFilesData(const std::string& rootAddr)
 {
     std::string fullAddr=rootAddr;
@@ -2145,9 +2147,9 @@ int comFoam::readRecursive
             }
             else if (BF::is_directory(fullPath))
             {
-                for (auto x : BF::directory_iterator(fullPath))
+                for (BF::directory_iterator x(fullPath); x != BF::directory_iterator(); ++x)
                 {
-                    BF::path newPath=x.path();
+                    BF::path newPath=x->path();
                     std::string neWaddr = BF::canonical(newPath).string();
                     readRecursive(locaParAddr, neWaddr, vecFile, fileCount);
                 }

@@ -1,3 +1,5 @@
+#include "comFoam.H"
+
 void comFoam::copyWindow(const string& winName1, const string& winName2)
 {
     std::cout << "rocFoam.copyWindow: window names "
