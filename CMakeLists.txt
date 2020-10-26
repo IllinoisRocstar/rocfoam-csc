@@ -6,7 +6,7 @@ project(RocFOAM CXX)
 
 set(RocFOAM_MAJOR_VERSION 1)
 set(RocFOAM_MINOR_VERSION 0)
-set(RocFOAM_PATCH_VERSION 1)
+set(RocFOAM_PATCH_VERSION 2)
 set(RocFOAM_EXTRA_VERSION "")
 set(RocFOAM_VERSION "${RocFOAM_MAJOR_VERSION}.${RocFOAM_MINOR_VERSION}")
 set(RocFOAM_VERSION "${RocFOAM_VERSION}.${RocFOAM_PATCH_VERSION}${RocFOAM_EXTRA_VERSION}")
@@ -139,7 +139,15 @@ set(RocFOAM_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
     src/foam/fileContainer.C
-    src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C)
+    src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C
+
+    src/foam/statusMethods.C
+    src/foam/volumeMethods.C
+    src/foam/faceMethods.C
+    src/foam/surfaceMethods.C
+    src/foam/reconstMethods.C
+    src/foam/filesMethods.C
+    )
     
 set(rocrhopimple_SRCS
     ${RocFOAM_SRCS}

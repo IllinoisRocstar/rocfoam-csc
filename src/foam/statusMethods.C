@@ -1,3 +1,5 @@
+#include "comFoam.H"
+
 // Setting comFoam variables that will be registered
 //   with COM. These are needed for flow control when
 //   solver runs step-by-step.

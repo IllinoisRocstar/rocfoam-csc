@@ -1,5 +1,4 @@
 #include "comFoam.H"
-#include "cellShape.H"
 
 comFoam::comFoam()
 {}
@@ -481,13 +480,6 @@ int comFoam::registerFunctions(const char *name)
 //---------------------------------------------------------
 
 //===================================================================
-
-#include "statusMethods.C"
-#include "volumeMethods.C"
-#include "faceMethods.C"
-#include "surfaceMethods.C"
-#include "reconstMethods.C"
-#include "filesMethods.C"
 
 int comFoam::finalizeFoam()
 {

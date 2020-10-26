@@ -1,3 +1,5 @@
+#include "comFoam.H"
+
 int comFoam::createVolumeConnectivities()
 {
     const dynamicFvMesh& mesh(*meshPtr);
