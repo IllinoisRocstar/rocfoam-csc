@@ -1462,9 +1462,9 @@ int comFoam::registerSurfaceData(const char *name)
                  << " ^^^^^^^^^^^^^^^" << std::endl;
 
             int procStartIndex{0};
-            for (int iproc=0; iproc<ca_myRank; iproc++)
+            for (int iproc_=0; iproc_<ca_myRank; iproc_++)
             {
-                procStartIndex += ca_nPatches[iproc];
+                procStartIndex += ca_nPatches[iproc_];
             }
             int index  = procStartIndex + ipatch;
             int nfacesTotal = ca_patchSize[index];
@@ -2118,7 +2118,7 @@ int comFoam::reconstSurfaceData(const char *name)
              << "], paneID = " << paneID
              << " ^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
 
-        int procStartIndex{0};
+        procStartIndex = 0;
         for (int iproc=0; iproc<ca_myRank; iproc++)
         {
             procStartIndex += ca_nPatches[iproc];

@@ -79,15 +79,15 @@ void comFoam::readMeshDict(const dictionary& currentDict, bool& foundSolver)
                     exit(-1);
                 }
 
-                for (size_t i=0; i<dynamicFvMesh.length(); i++)
+                for (size_t ii=0; ii<dynamicFvMesh.length(); ii++)
                 {
-                    ca_dynamicFvMeshType[i] = dynamicFvMesh[i];
+                    ca_dynamicFvMeshType[ii] = dynamicFvMesh[ii];
                 }
                 ca_dynamicFvMeshType[ dynamicFvMesh.length() ] = '\0';
 
-                for (size_t i=dynamicFvMesh.length()+1; i<genCharSize; i++)
+                for (size_t ii=dynamicFvMesh.length()+1; ii<genCharSize; ii++)
                 {
-                    ca_dynamicFvMeshType[i] = ' ';
+                    ca_dynamicFvMeshType[ii] = ' ';
                 }
             }
 
@@ -119,15 +119,15 @@ void comFoam::readMeshDict(const dictionary& currentDict, bool& foundSolver)
                         exit(-1);
                     }
 
-                    for (size_t i=0; i<solver.length(); i++)
+                    for (size_t ii=0; ii<solver.length(); ii++)
                     {
-                        ca_dynamicSolverType[i] = solver[i];
+                        ca_dynamicSolverType[ii] = solver[ii];
                     }
                     ca_dynamicSolverType[ solver.length() ] = '\0';
 
-                    for (size_t i=solver.length()+1; i<genCharSize; i++)
+                    for (size_t ii=solver.length()+1; ii<genCharSize; ii++)
                     {
-                        ca_dynamicSolverType[i] = ' ';
+                        ca_dynamicSolverType[ii] = ' ';
                     }
                 }
             }

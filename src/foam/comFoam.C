@@ -91,8 +91,8 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = nullptr;
 
-    std::string winName = name;
-    std::string objectName = winName+std::string(".object");
+    std::string winName_ = name;
+    std::string objectName = winName_+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     //char** argv = reinterpret_cast<char**>(pargv);
@@ -359,13 +359,13 @@ int comFoam::registerFunctions(const char *name)
                   << std::endl;
     }
     
-    std::string winName = name;
+    std::string winName_ = name;
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = nullptr;
 
     //std::string name="ROCFOAM";
-    std::string objectName = winName+std::string(".object");
+    std::string objectName = winName_+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -374,7 +374,7 @@ int comFoam::registerFunctions(const char *name)
     types[0] = COM_RAWDATA;
     types[1] = COM_INT;
 
-    std::string functionName = winName+std::string(".flowInit");
+    std::string functionName = winName_+std::string(".flowInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -384,7 +384,7 @@ int comFoam::registerFunctions(const char *name)
         types
     );
 
-    functionName = winName+std::string(".flowLoop");
+    functionName = winName_+std::string(".flowLoop");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -394,7 +394,7 @@ int comFoam::registerFunctions(const char *name)
         types
     );
 
-    functionName = winName+std::string(".flowStep");
+    functionName = winName_+std::string(".flowStep");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -407,7 +407,7 @@ int comFoam::registerFunctions(const char *name)
 
     //types[0] = COM_RAWDATA;
     //types[1] = COM_VOID;
-    functionName = winName+std::string(".flowRestartInit");
+    functionName = winName_+std::string(".flowRestartInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -429,7 +429,7 @@ int comFoam::registerFunctions(const char *name)
         COM_STRING,       // win_vol
         COM_INT           // obtainHandle
     };
-    functionName = winName+std::string(".initialize");
+    functionName = winName_+std::string(".initialize");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -447,7 +447,7 @@ int comFoam::registerFunctions(const char *name)
         COM_INT,        // handle1
         COM_INT         // handle2
     };
-    functionName = winName+std::string(".update_solution");
+    functionName = winName_+std::string(".update_solution");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -461,7 +461,7 @@ int comFoam::registerFunctions(const char *name)
     {
         COM_RAWDATA // G
     };
-    functionName = winName+std::string(".finalize");
+    functionName = winName_+std::string(".finalize");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -472,7 +472,7 @@ int comFoam::registerFunctions(const char *name)
     );
     //-----------------------------------------------------
 
-    COM_window_init_done(winName);
+    COM_window_init_done(winName_);
 
     return 0;
 }

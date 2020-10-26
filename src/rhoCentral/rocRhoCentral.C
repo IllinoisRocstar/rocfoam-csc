@@ -1221,7 +1221,7 @@ int rhoCentral::readFluxScheme()
     dynamicFvMesh &mesh(*meshPtr);
 
     // word fluxScheme("Kurganov");
-    word fluxScheme("Kurganov");
+    fluxScheme = "Kurganov";
     if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme))
     {
         if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov"))
