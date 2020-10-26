@@ -3,7 +3,7 @@ RocFOAM
 This project is a coupling module for OpenFOAM using IMPACT multiphysics coupling tool. 
 
 ## Version ##
-Version 1.0.0
+Version 1.0.1
 
 RocFOAM follows semantic versioning. The versions will be major.minor.patch.
 We will:
@@ -48,7 +48,7 @@ $ mkdir build && cd build
 $ cmake .. \
         -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_INSTALL_PREFIX=${ROCFOAM_INSTALL_PATH} \
-        -DCMAKE_IMPACT_DIR=${IMPACT_INSTALL_PATH}/lib/cmake/IMPACT \
+        -DIMPACT_DIR=${IMPACT_INSTALL_PATH}/lib/cmake/IMPACT \
         -DCMAKE_CXX_COMPILER=mpicxx
 ```
 
