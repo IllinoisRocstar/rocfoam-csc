@@ -83,11 +83,7 @@ int comFoam::reconstCSCdata(const char *name)
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.flowInit: Initializing flow solver with name "
-                  << name << std::endl;
-    }
+    Foam::Info << solverType.c_str() << ": Initializing flow solver." << endl;
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = nullptr;
 
@@ -141,12 +137,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 int comFoam::restartInit(int *pargc, void **pargv, const char *name)
 
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.restartInit: Initializing CSC "
-                  << "reconstructions for window "
-                  << name << std::endl;
-    }
+    Info << solverType.c_str() << ": Initializing CSC restart." << endl;
 
     reconstCSCdata(name);
 
@@ -192,16 +183,15 @@ int comFoam::restartInit(int *pargc, void **pargv, const char *name)
 
 int comFoam::flowLoop()
 {
-    Foam::Info << "rocFoam.flowLoop: Iterating flow solver."
-               << Foam::endl;
+    Info << solverType.c_str() << ": Looping flow solver." << endl;
+
     loop();
     return 0;
 }
 
 int comFoam::flowStep()
 {
-    Foam::Info << "rocFoam.flowStep: Stepping flow solver."
-               << Foam::endl;
+    Info << solverType.c_str() << ": Stepping flow solver." << endl;
 
     step();
     updateCSCdata();
@@ -220,10 +210,10 @@ void comFoam::initialize
     const int* obtainHandle
 )
 {
+    Info << solverType.c_str() << ": Initializing Rocstar restart." << endl;
+
     std::string volName = std::string(volName_);
     std::string surfName = std::string(surfName_);
-
-
 
     //loadInternal(name);
 
@@ -265,10 +255,11 @@ void comFoam::initialize
     
     if (*initTime != *ca_time)
     {
-        std::cout << "WARNING: initTime!=ca_time, "
-                  << "initTime = " << *initTime
-                  << ", ca_time = " << *ca_time
-                  << std::endl;
+        WarningInFunction
+            << "WARNING: initTime!=ca_time, "
+            << "initTime = " << *initTime
+            << ", ca_time = " << *ca_time
+            << endl;
     }
 
     if (argv != nullptr)
@@ -299,38 +290,31 @@ void comFoam::update_solution
     int* gmHandle
 )
 {
-    Info << "rocFoam.flowStepRocStar: Stepping flow solver."
-         << endl;
+    Info << solverType.c_str() << ": Stepping flow solver." << endl;
          
-    Info << "  bcHandle is "
+    std::stringstream output{};
+    output << "  bcHandle is "
          << std::string((*bcHandle < 0) ? ("not set") : ("set"))
-         << endl;
+         << std::endl
+         << "  gmHandle is "
+         << std::string((*gmHandle < 0) ? ("not set") : ("set"));
+    verbose_message(output.str());
 
-    Info << "  gmHandle is "
-         << std::string((*gmHandle < 0) ? ("not set") : ("set"))
-         << endl;
 
     if (*currentTime != *ca_time)
     {
-        Info << "  Flow solver time and the input time"
-             << " are not the same " << *ca_time 
-             << " vs " << *currentTime;
-
         std::ostringstream doubleToOs;
         doubleToOs << std::scientific 
                    << std::setprecision(IODigits);
         doubleToOs << std::abs(*ca_time - *currentTime);
 
-        Info << ", diff = " << doubleToOs.str() << endl;
+        output = std::stringstream{};
+        output << "  Flow solver time and the input time"
+             << " are not the same " << *ca_time 
+             << " vs " << *currentTime
+             << ", diff = " << doubleToOs.str();
+        verbose_message(output.str());
     }
-
-//MOVED TO SOLVER STEP METHOD
-//    if (*gmHandle >= 0)
-//    {
-//        double alpha{1};
-//        COM_call_function(*gmHandle, &alpha);
-//        updateSurfaceData_incoming();
-//    }
 
     step(timeStep, gmHandle);
     updateCSCdata();
@@ -338,27 +322,49 @@ void comFoam::update_solution
 
 void comFoam::finalize()
 {
-    Info << "rocFoam.finalize: "
-         << "Finalizing flow solver."
-         << endl;
+    Info << solverType.c_str() << ": Finalizing flow solver." << endl;
 
     finalizeFoam();
 }
 //-----------------------------------------------
 
+void comFoam::message(std::string message, bool parallel)
+{
+    if (!parallel)
+    {
+        if (ca_myRank == 0)
+        {
+            std::cout << message << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << message << std::endl;
+    }
+}
 
+void comFoam::verbose_message(std::string message, bool parallel)
+{
+#ifdef VERBOSE
+    if (!parallel)
+    {
+        if (ca_myRank == 0)
+        {
+            std::cout << message << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << message << std::endl;
+    }
+#endif
+}
 
 //^^^^^ REGISTER FUNCTIONS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::registerFunctions(const char *name)
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.flowRegister: "
-                  << "Registering flow functions with name "
-                  << name
-                  << std::endl;
-    }
-    
+    Info << solverType.c_str() << ": Registering solver methods." << endl;
+
     std::string winName_ = name;
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -37,6 +37,7 @@ include(GNUInstallDirs)
 # Setting configure options ####################################################
 
 option(ENABLE_TESTING "Enable Testing of RocFOAM." ON)
+option(ENABLE_VERBOSITY "Enable Verbosity of RocFOAM." OFF)
 
 # Setting compile and link options #############################################
 
@@ -214,6 +215,10 @@ target_compile_definitions(rocrhopimple
         ${OPNF_COMPILE_DEFINITIONS}
 )
 
+if(ENABLE_VERBOSITY)
+  target_compile_definitions(rocrhopimple PUBLIC VERBOSE)
+endif()
+
 if(OF_VERSION EQUAL 20)
   target_compile_definitions(rocrhopimple PUBLIC HAVE_OFE20)
 elseif(OF_VERSION EQUAL 7)
@@ -268,6 +273,10 @@ target_compile_definitions(rocrhocentral
     PUBLIC
         ${OPNF_COMPILE_DEFINITIONS}
 )
+
+if(ENABLE_VERBOSITY)
+  target_compile_definitions(rocrhocentral PUBLIC VERBOSE)
+endif()
 
 if(OF_VERSION EQUAL 20)
   target_compile_definitions(rocrhocentral PUBLIC HAVE_OFE20)

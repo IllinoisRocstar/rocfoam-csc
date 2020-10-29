@@ -1,4 +1,3 @@
-#include "comLoadUnload.H"
 #include "gtest.h"
 
 // Global variables used to pass arguments to the tests

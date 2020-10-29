@@ -311,6 +311,8 @@ protected:
     virtual int loadInternal(const char* name) {return 0;}
     //-------------------------------------------
 
+    void verbose_message(std::string message, bool parrallel=false);
+    void message(std::string message, bool parrallel=false);
 public:
 
     // RocStar-specific methods ^^^^^^^^^^^^^^^^^
@@ -338,11 +340,11 @@ public:
     static void copyWindow(const string& name1, const string& name2);
     int findGlobalIndex(int* arr, const int& size,  const int& elem);
     static std::string removeTrailZero(std::string in);
-    static void compareWarningExit(
-                    const int& val1,
-                    const int& val2,
-                    const string& name1,
-                    const string& name2);
+    void compareWarningExit(
+            const int& val1,
+            const int& val2,
+            const string& name1,
+            const string& name2);
 
     size_t findChar
     (
@@ -372,6 +374,9 @@ public:
     );
 
 };
+
+
+
 
 #endif
 

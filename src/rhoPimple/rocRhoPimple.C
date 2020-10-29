@@ -34,31 +34,34 @@ void rhoPimple::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocRhoPimple: Loading rocRhoPimple with name "
-                   << name << "." << std::endl;
+        std::cout << "rocRhoPimple: Loading ..." << std::endl;
 
-        std::cout << "rocFoam.load: Rank = " << tmpRank
+#ifdef VERBOSE
+        std::cout << "rocRhoPimple: Rank = " << tmpRank
                   << ", NProc = " << tmpNProc
                   << ", COMM = " << tmpComm << std::endl;
 
         std::cout << std::endl;
+#endif
     }
 
     std::string winName = name;
     int winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
-        std::cout << "WARNING: Window " << winName << " already exists."
-                  << " CSC must create this window name."
-                  << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+            << "Error: Window " << winName << " already exists."
+            << " CSC must create this window name."
+            << nl << exit(FatalError);
     }
     else
     {
         COM_new_window(winName, tmpComm);
 
-        Info << "rocFoam.load: Window " << winName
-             << " created." << endl;
+#ifdef VERBOSE
+        std::cout << "rocRhoPimple: Window " << winName
+             << " created." << std::endl;
+#endif
     }
 
     // Register object ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,16 +85,18 @@ void rhoPimple::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
-                  << std::endl;
+                  << std::endl;;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoPimple: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -101,16 +106,18 @@ void rhoPimple::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
                   << std::endl;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoPimple: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -122,8 +129,7 @@ void rhoPimple::load(const char *name)
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^
 void rhoPimple::unload(const char *name)
 {
-    Foam::Info << "rocFoam.unload: Unloading rocRhoPimple with name "
-               << name << "." << Foam::endl;
+    Foam::Info << "rocRhoPimple: Unloading..." << Foam::endl;
 
     std::string winName = name+std::string("VOL");
     int winExist = COM_get_window_handle(winName.c_str());
@@ -1129,11 +1135,15 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
-
-                        updateSurfaceData_incoming(count);
-
-                        Info << " alpha = " << alpha << endl;
                     }
+                    else
+                    {
+                        WarningInFunction
+                            << "Warning:  gmHandle<=0, so no data is received."
+                            << endl;
+                    }
+                    updateSurfaceData_incoming(count);
+                    Info << "alpha = " << alpha << endl;
                 }
             }
             else
@@ -1144,8 +1154,9 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
 
             if (runTime.deltaTValue() < 0)
             {
-                Info << "Unphysical deltaT. Exiting the simulation" << endl;
-                exit(-1);
+                FatalErrorInFunction
+                    << "Unphysical deltaT. Exiting the simulation"
+                    << nl << exit(FatalError);
             }
         }
 
