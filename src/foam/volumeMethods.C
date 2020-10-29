@@ -255,20 +255,25 @@ int comFoam::updateVolumeData_outgoing()
 
     if (ca_Disp != nullptr)
     {
-#if HAVE_OFE20
-                const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
-                        (
-                            "dynamicMeshDict"
-                        ).pointDisplacement();
-
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
-
-                const motionSolver& motion_ =
-                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-                const pointVectorField& pointDisplacement_ =
-                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-#endif
+//#if HAVE_OFE20
+//                const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
+//                        (
+//                            "dynamicMeshDict"
+//                        ).pointDisplacement();
+//#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+//                const motionSolver& motion_ =
+//                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+//
+//                const pointVectorField& pointDisplacement_ =
+//                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+//#endif
+        const pointVectorField& pointDisplacement_ = refCast<const pointVectorField>
+        (
+            mesh.objectRegistry::lookupObject<pointVectorField>
+            (
+            "pointDisplacement"
+            )
+        );
 
         if (pointDisplacement_.size())
         {

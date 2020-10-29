@@ -695,7 +695,7 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             {
                 FatalErrorInFunction
                     << "Unphysical deltaT. Exiting the simulation"
-                    << nl << exit(FataError);
+                    << nl << exit(FatalError);
             }
 
             runTime++;
