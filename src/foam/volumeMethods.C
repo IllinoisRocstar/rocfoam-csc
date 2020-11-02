@@ -46,16 +46,14 @@ int comFoam::createVolumeConnectivities()
 
     if (sortedCellIndex != *ca_nCells)
     {
-        std::stringstream output{};
-        output << "========== WARNNING ===============" << endl
+        FatalErrorInFunction
+             << "========== ERROR ===============" << endl
              << "     sortedCellIndex != ca_nCells " << endl
-             << "    " << sortedCellIndex << "!=" << *ca_nCells;
-        message(output.str(), true);
-
-        return -1;
+             << "    " << sortedCellIndex << "!=" << *ca_nCells
+             << nl << exit(FatalError);
     }
 
-    // cetToPoint Connectivity ^^^^^^^^^^^^^^^^^^
+    // cellToPoint Connectivity ^^^^^^^^^^^^^^^^^
     int nTypes = mapCellToCellMap.size();
     ca_cellToPointConn_types = new int(nTypes);
     ca_cellToPointConn_map   = new int[nTypes];
@@ -92,6 +90,97 @@ int comFoam::createVolumeConnectivities()
     }
     //-------------------------------------------
 
+    // cellZoness ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    const cellZoneMesh& zones = mesh.cellZones();
+    const int& nZones = zones.size();
+
+    if (nZones>0)
+    {
+        if (cellZonesTypeStr == nullptr)
+            cellZonesTypeStr = new std::string[nZones]{};
+        
+        if (cellZonesNameStr == nullptr)
+            cellZonesNameStr = new std::string[nZones]{};
+
+        int maxTypeLength{0};
+        int maxNameLength{0};
+        forAll(zones, izone)
+        {
+            cellZonesTypeStr[izone] = zones[izone].type();
+            std::string strTmp(cellZonesTypeStr[izone]);
+            maxTypeLength = std::max( maxTypeLength, static_cast<int>(strTmp.length())+1 );
+
+            cellZonesNameStr[izone] = zones[izone].name();
+            strTmp = cellZonesNameStr[izone];
+            maxNameLength = std::max( maxNameLength, static_cast<int>(strTmp.length())+1 );
+        }
+
+        ca_cellZonesTypeMaxLength = new int(maxTypeLength);
+        ca_cellZonesNameMaxLength = new int(maxNameLength);
+
+        // zone Types; CHAR type
+        ca_cellZonesType = new char[nZones * maxTypeLength]{};
+        forAll(zones, izone)
+        {
+            int startIndex = izone * maxTypeLength;
+            int endIndex = startIndex + cellZonesTypeStr[izone].length();
+            int count{0};
+            for (int i=startIndex; i<endIndex; i++)
+            {
+                ca_cellZonesType[i] = cellZonesTypeStr[izone][count];
+                count++;
+            }
+            ca_cellZonesType[endIndex] = '\0';
+
+            for (int i=endIndex+1; i<startIndex+maxTypeLength; i++)
+            {
+                ca_cellZonesType[i] = ' ';
+            }
+        }
+
+        // name Names; CHAR type
+        ca_cellZonesName = new char[nZones * maxNameLength]{};
+        forAll(zones, izone)
+        {
+            int startIndex = izone * maxNameLength;
+            int endIndex = startIndex + cellZonesNameStr[izone].length();
+            int count{0};
+            for (int i=startIndex; i<endIndex; i++)
+            {
+                ca_cellZonesName[i] = cellZonesNameStr[izone][count];
+                count++;
+            }
+            ca_cellZonesName[endIndex] = '\0';
+
+            for (int i=endIndex+1; i<startIndex+maxNameLength; i++)
+            {
+                ca_cellZonesName[i] = ' ';
+            }
+        }
+
+        ca_nCellZones = new int(nZones);
+        ca_cellZonesCount = new int[nZones]{};
+        ca_cellZonesList = new int*[nZones]{};
+
+        forAll(zones, izone)
+        {
+            const labelList& cellList = zones[izone];
+            int nCells = cellList.size();
+            ca_cellZonesCount[izone] = nCells;
+
+            if (nCells>0)
+            {
+                ca_cellZonesList[izone] = new int[nCells];
+                
+                forAll(cellList, icell)
+                {
+                    ca_cellZonesList[izone][icell] = cellList[icell];
+                }
+            }
+        }
+    }
+    //-------------------------------------------
+
     return 0;
 }
 
@@ -116,25 +205,6 @@ int comFoam::createVolumeData()
 
         if (pointUpdated == nullptr)
             pointUpdated = new bool[npoints]{false};
-
-        /*
-        dynamicFvMesh& mesh(*meshPtr);
-        if (pointDisplacementNewPtr == nullptr)
-        {
-            pointDisplacementNewPtr = new pointVectorField
-            (
-                IOobject
-                (
-                    "pointDisplacementNew",
-                    mesh.time().timeName(),
-                    mesh,
-                    IOobject::NO_READ,
-                    IOobject::NO_WRITE
-                ),
-                pointMesh::New(mesh)
-            );
-        }
-        */
     }
     
     // Field-data
@@ -397,7 +467,7 @@ int comFoam::registerVolumeData(const char *name)
     
     std::stringstream output{};
     output << "rocFoam.registerVolumeData: "
-         << "Registering flow data with name "
+         << "Registering flow data with window name "
          << volName;
     verbose_message(output.str(), true);
 
@@ -469,9 +539,10 @@ int comFoam::registerVolumeData(const char *name)
         { // Tet
             dataName = volName+std::string(".:T4");
         }
-        //else if (typeID == 5)
-        //{ Type?
-        //}
+        else if (typeID == 5)
+        { // Pyramid
+            dataName = volName+std::string(".:P5");
+        }
         else if (typeID == 6)
         { // Prism
             dataName = volName+std::string(".:P6");
@@ -1067,7 +1138,7 @@ int comFoam::deleteVolumeData()
         ca_NuT = nullptr;
     }
     //-------------------------------------------
-    
+
     return 0;
 }
 

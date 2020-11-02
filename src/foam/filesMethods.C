@@ -1502,6 +1502,225 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     return 0;
 }
 
+int comFoam::createCellZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/cellZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      faceZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n\n";
+    int nCellZones = *ca_nCellZones;
+    content += std::to_string(nCellZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nCellZones; izone++)
+    {
+        content += cellZonesNameStr[izone] +"\n";
+        content += "{";
+        content += "    type " + cellZonesTypeStr[izone] + ";\n";
+        content += "cellLabels      List<label>\n";
+        
+        int listCount = ca_cellZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_cellZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+        content += "}\n\n";
+    }
+    content += ")\n\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
+int comFoam::createFaceZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/faceZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      faceZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n\n";
+    int nFaceZones = *ca_nFaceZones;
+    content += std::to_string(nFaceZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nFaceZones; izone++)
+    {
+        content += faceZonesNameStr[izone] +"\n";
+        content += "{";
+        content += "    type " + faceZonesTypeStr[izone] + ";\n";
+        content += "faceLabels      List<label>\n";
+        
+        int listCount = ca_faceZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_faceZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+        content += "}\n\n";
+    }
+    content += ")\n\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
+int comFoam::createPointZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/pointZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      pointZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n\n";
+    int nPointZones = *ca_nPointZones;
+    content += std::to_string(nPointZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nPointZones; izone++)
+    {
+        content += pointZonesNameStr[izone] +"\n";
+        content += "{";
+        content += "    type " + pointZonesTypeStr[izone] + ";\n";
+        content += "pointLabels      List<label>\n";
+        
+        int listCount = ca_pointZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_pointZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+        content += "}\n\n";
+    }
+    content += ")\n\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
 int comFoam::createBoundaryFile
             (
                 const std::string& rootAddr,
@@ -1700,11 +1919,11 @@ int comFoam::createConnectivityFiles
             fileName == "boundaryProcAddressing" ||
             fileName == "cellProcAddressing" ||
             fileName == "faceProcAddressing" ||
-            fileName == "pointProcAddressing"||
-
-            fileName  == "cellZones" || //should be directly generated
-            fileName  == "faceZones" || //should be directly generated
-            fileName  == "pointZones"   //should be directly generated
+            fileName == "pointProcAddressing"
+            //||
+            //fileName  == "cellZones" || //should be directly generated
+            //fileName  == "faceZones" || //should be directly generated
+            //fileName  == "pointZones"   //should be directly generated
            )
         {
             std::string content = vecFile[ifile].content;
@@ -2259,11 +2478,11 @@ bool comFoam::fileShouldBeRead
             fileName  == "boundaryProcAddressing" ||
             fileName  == "cellProcAddressing" ||
             fileName  == "faceProcAddressing" ||
-            fileName  == "pointProcAddressing" ||
-            
-            fileName  == "cellZones" || //should be directly generated
-            fileName  == "faceZones" || //should be directly generated
-            fileName  == "pointZones"   //should be directly generated
+            fileName  == "pointProcAddressing"
+            //||
+            //fileName  == "cellZones" || //should be directly generated
+            //fileName  == "faceZones" || //should be directly generated
+            //fileName  == "pointZones"   //should be directly generated
             ) addFile = true;
 
     }
@@ -2295,11 +2514,11 @@ bool comFoam::fileShouldBeRead
                 fileName  == "boundaryProcAddressing" ||
                 fileName  == "cellProcAddressing" ||
                 fileName  == "faceProcAddressing" ||
-                fileName  == "pointProcAddressing" ||
-                
-                fileName  == "cellZones" || //should be directly generated
-                fileName  == "faceZones" || //should be directly generated
-                fileName  == "pointZones"   //should be directly generated
+                fileName  == "pointProcAddressing"
+                //||
+                //fileName  == "cellZones" || //should be directly generated
+                //fileName  == "faceZones" || //should be directly generated
+                //fileName  == "pointZones"   //should be directly generated
                 ) addFile = true;
         }
     }

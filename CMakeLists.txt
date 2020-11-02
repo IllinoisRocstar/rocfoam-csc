@@ -148,6 +148,7 @@ set(RocFOAM_SRCS
     src/foam/surfaceMethods.C
     src/foam/reconstMethods.C
     src/foam/filesMethods.C
+    src/foam/zonesMethods.C
     )
     
 set(rocrhopimple_SRCS

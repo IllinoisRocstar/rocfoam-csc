@@ -75,6 +75,12 @@ private:
     int createSurfaceData();
     int deleteSurfaceData();
 
+    //CSC zones methods
+    int createZonesData();
+    int deleteZonesData();
+    int registerZonesData(const char *name);
+    int reconstZonesData(const char *name);
+
 protected:
     int updateSurfaceData_incoming(const int& count = 1);
 
@@ -121,6 +127,9 @@ private:
     int createFacesFile(const std::string& rootAddr);
     int deleteInitFiles(const std::string& addr);
 
+    int createCellZonesFile(const std::string& rootAddr);
+    int createFaceZonesFile(const std::string& rootAddr);
+    int createPointZonesFile(const std::string& rootAddr);
     
     std::string createBaseFile
     (
@@ -207,8 +216,6 @@ private:
     int* ca_maxNameLength{nullptr};
     int* ca_maxTypeLength{nullptr};
 
-
-
     std::string* patchNameStr{nullptr};
     std::string* patchTypeStr{nullptr};
 
@@ -284,7 +291,49 @@ private:
     int* ca_isDynamicFvMesh{nullptr};
     char* ca_dynamicFvMeshType{nullptr};
     char* ca_dynamicSolverType{nullptr};
+    //-------------------------------------------
     
+    // cellZones
+    std::string* cellZonesTypeStr{nullptr};
+    std::string* cellZonesNameStr{nullptr};
+
+    int* ca_nCellZones{nullptr};
+    int* ca_cellZonesCount{nullptr};
+    int** ca_cellZonesList{nullptr};
+
+    int* ca_cellZonesTypeMaxLength{nullptr};
+    int* ca_cellZonesNameMaxLength{nullptr};
+    char* ca_cellZonesType{nullptr};
+    char* ca_cellZonesName{nullptr};
+    //-------------------------------------------
+
+    // faceZones
+    std::string* faceZonesTypeStr{nullptr};
+    std::string* faceZonesNameStr{nullptr};
+
+    int* ca_nFaceZones{nullptr};
+    int* ca_faceZonesCount{nullptr};
+    int** ca_faceZonesList{nullptr};
+
+    int* ca_faceZonesTypeMaxLength{nullptr};
+    int* ca_faceZonesNameMaxLength{nullptr};
+    char* ca_faceZonesType{nullptr};
+    char* ca_faceZonesName{nullptr};
+    //-------------------------------------------
+
+    // pointZones
+    std::string* pointZonesTypeStr{nullptr};
+    std::string* pointZonesNameStr{nullptr};
+
+    int* ca_nPointZones{nullptr};
+    int* ca_pointZonesCount{nullptr};
+    int** ca_pointZonesList{nullptr};
+
+    int* ca_pointZonesTypeMaxLength{nullptr};
+    int* ca_pointZonesNameMaxLength{nullptr};
+    char* ca_pointZonesType{nullptr};
+    char* ca_pointZonesName{nullptr};
+    //-------------------------------------------
 
 protected:
 

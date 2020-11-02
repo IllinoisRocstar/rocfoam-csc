@@ -131,7 +131,7 @@ int comFoam::createSurfaceConnectivities()
 
     // global patchNames
     if (ca_patchName == nullptr)
-        ca_patchName = new char[totalSize]{' '};
+        ca_patchName = new char[totalSize]{};
     sendCount = maxNameLength * nPatches;
     MPI_Allgatherv(patchName_, sendCount, MPI_CHAR,
                    ca_patchName, recvCounts, displace,

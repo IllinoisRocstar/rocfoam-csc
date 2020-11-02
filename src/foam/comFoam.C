@@ -14,6 +14,7 @@ int comFoam::createCSCdata()
     createFaceData();
     createSurfaceConnectivities();
     createSurfaceData();
+    createZonesData();
 
     std::string strTmp = "./";
     readFilesData(strTmp);
@@ -43,6 +44,7 @@ int comFoam::registerCSCdata(const char *name)
     registerVolumeData(name);
     registerFaceData(name);
     registerSurfaceData(name);
+    registerZonesData(name);
 
     return 0;
 }
@@ -54,6 +56,7 @@ int comFoam::deleteCSCdata()
     deleteFaceData();
     deleteVolumeData();
     deleteStatusData();
+    deleteZonesData();
 
     return 0;
 }
@@ -72,6 +75,8 @@ int comFoam::reconstCSCdata(const char *name)
         reconstVolumeData(name);
         reconstFaceData(name);
         reconstSurfaceData(name);
+        reconstZonesData(name);
+
         reconstFilesData(name);
     //}
     //MPI_Barrier(winComm);
