@@ -168,20 +168,25 @@ int comFoam::createZonesData()
 
         ca_faceZonesCount = new int[nFaceZones]{};
         ca_faceZonesList = new int*[nFaceZones]{};
+        ca_faceZonesFlipMap = new int*[nFaceZones]{};
 
         forAll(faceZones, izone)
         {
             const labelList& faceList = faceZones[izone];
+            const boolList&  flipMap = faceZones[izone].flipMap();
+
             int nFaces = faceList.size();
             ca_faceZonesCount[izone] = nFaces;
 
             if (nFaces>0)
             {
                 ca_faceZonesList[izone] = new int[nFaces]{};
+                ca_faceZonesFlipMap[izone] = new int[nFaces]{};
                 
                 forAll(faceList, iface)
                 {
                     ca_faceZonesList[izone][iface] = faceList[iface];
+                    ca_faceZonesFlipMap[izone][iface] = flipMap[iface];
                 }
             }
         }
@@ -315,6 +320,24 @@ int comFoam::registerZonesData(const char *name)
     int nCellZones = *ca_nCellZones;
     if (nCellZones>0)
     {
+        int cellZonesTypeTotalSize{ *ca_cellZonesTypeMaxLength * nCellZones};
+        dataName = volName+std::string(".cellZonesType");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID, cellZonesTypeTotalSize);
+        COM_set_array(dataName, paneID, ca_cellZonesType);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
+        int cellZonesNameTotalSize{ *ca_cellZonesNameMaxLength * nCellZones};
+        dataName = volName+std::string(".cellZonesName");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID, cellZonesNameTotalSize);
+        COM_set_array(dataName, paneID, ca_cellZonesName);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
         dataName = volName+std::string(".cellZonesTypeMaxLength");
         COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
         COM_set_size(     dataName, paneID, 1);
@@ -329,24 +352,6 @@ int comFoam::registerZonesData(const char *name)
         COM_set_array(    dataName, paneID, ca_cellZonesNameMaxLength);
         output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int cellZonesTypeTotalSize{ *ca_cellZonesTypeMaxLength * nCellZones};
-        dataName = volName+std::string(".cellZonesType");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID, cellZonesTypeTotalSize);
-        COM_set_array(dataName, paneID, ca_cellZonesType);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int cellZonesNameTotalSize{ *ca_cellZonesNameMaxLength * nCellZones};
-        dataName = volName+std::string(".cellZonesName");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID, cellZonesNameTotalSize);
-        COM_set_array(dataName, paneID,ca_cellZonesName);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
 
         dataName = volName+std::string(".cellZonesCount");
@@ -374,7 +379,7 @@ int comFoam::registerZonesData(const char *name)
     //-------------------------------------------
 
     // faceZones ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    dataName = volName+std::string(".nfaceZones");
+    dataName = volName+std::string(".nFaceZones");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nFaceZones);
@@ -385,6 +390,24 @@ int comFoam::registerZonesData(const char *name)
     int nFaceZones = *ca_nFaceZones;
     if (nFaceZones>0)
     {
+        int faceZonesTypeTotalSize{ *ca_faceZonesTypeMaxLength * nFaceZones};
+        dataName = volName+std::string(".faceZonesType");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID,faceZonesTypeTotalSize);
+        COM_set_array(dataName, paneID,ca_faceZonesType);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
+        int faceZonesNameTotalSize{ *ca_faceZonesNameMaxLength * nFaceZones};
+        dataName = volName+std::string(".faceZonesName");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID,faceZonesNameTotalSize);
+        COM_set_array(dataName, paneID,ca_faceZonesName);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
         dataName = volName+std::string(".faceZonesTypeMaxLength");
         COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
         COM_set_size(     dataName, paneID, 1);
@@ -399,24 +422,6 @@ int comFoam::registerZonesData(const char *name)
         COM_set_array(    dataName, paneID, ca_faceZonesNameMaxLength);
         output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int faceZonesTypeTotalSize{ *ca_faceZonesTypeMaxLength * nFaceZones};
-        dataName = volName+std::string(".faceZonesType");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID,faceZonesTypeTotalSize);
-        COM_set_array(dataName, paneID,ca_faceZonesType);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int faceZonesNameTotalSize{ *ca_faceZonesNameMaxLength * nFaceZones};
-        dataName = volName+std::string(".faceZonesName");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID,faceZonesNameTotalSize);
-        COM_set_array(dataName, paneID,ca_faceZonesName);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
 
         dataName = volName+std::string(".faceZonesCount");
@@ -438,6 +443,14 @@ int comFoam::registerZonesData(const char *name)
                 output = std::stringstream{};
                 output << "  " << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
+
+                dataName = volName+".faceZonesFlipMap"+std::to_string(izone);
+                COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
+                COM_set_size(     dataName, paneID, ca_faceZonesCount[izone]);
+                COM_set_array(    dataName, paneID, ca_faceZonesFlipMap[izone]);
+                output = std::stringstream{};
+                output << "  " << dataName.c_str() << " registered.";
+                verbose_message(output.str(), true);
             }
         }
     }
@@ -455,6 +468,24 @@ int comFoam::registerZonesData(const char *name)
     int nPointZones = *ca_nPointZones;
     if (nPointZones>0)
     {
+        int pointZonesTypeTotalSize{ *ca_pointZonesTypeMaxLength * nPointZones};
+        dataName = volName+std::string(".pointZonesType");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID,pointZonesTypeTotalSize);
+        COM_set_array(dataName, paneID,ca_pointZonesType);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
+        int pointZonesNameTotalSize{ *ca_pointZonesNameMaxLength * nPointZones};
+        dataName = volName+std::string(".pointZonesName");
+        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
+        COM_set_size( dataName, paneID,pointZonesNameTotalSize);
+        COM_set_array(dataName, paneID,ca_pointZonesName);
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
+
         dataName = volName+std::string(".pointZonesTypeMaxLength");
         COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
         COM_set_size(     dataName, paneID, 1);
@@ -469,24 +500,6 @@ int comFoam::registerZonesData(const char *name)
         COM_set_array(    dataName, paneID, ca_pointZonesNameMaxLength);
         output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int pointZonesTypeTotalSize{ *ca_pointZonesTypeMaxLength * nPointZones};
-        dataName = volName+std::string(".pointZonesType");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID,pointZonesTypeTotalSize);
-        COM_set_array(dataName, paneID,ca_pointZonesType);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
-        verbose_message(output.str(), true);
-
-        int pointZonesNameTotalSize{ *ca_pointZonesNameMaxLength * nPointZones};
-        dataName = volName+std::string(".pointZonesName");
-        COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
-        COM_set_size( dataName, paneID,pointZonesNameTotalSize);
-        COM_set_array(dataName, paneID,ca_pointZonesName);
-        output = std::stringstream{};
-        output << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
 
         dataName = volName+std::string(".pointZonesCount");
@@ -541,6 +554,7 @@ int comFoam::reconstZonesData(const char *name)
 
         std::string subName1 = nameTmp.substr(0,13);
         std::string subName2 = nameTmp.substr(0,14);
+        std::string subName3 = nameTmp.substr(0,16);
 
         if
         (
@@ -559,6 +573,7 @@ int comFoam::reconstZonesData(const char *name)
             nameTmp  == "faceZonesName" ||
             nameTmp  == "faceZonesCount" ||
             subName1 == "faceZonesList" ||
+            subName3 == "faceZonesFlipMap" ||
 
             nameTmp  == "nPointZones" ||
             nameTmp  == "pointZonesTypeMaxLength" ||
@@ -640,7 +655,7 @@ int comFoam::reconstZonesData(const char *name)
                 cellZonesTypeStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << cellZonesTypeStr[i];
                 verbose_message(output.str(), true);
             }
@@ -676,7 +691,7 @@ int comFoam::reconstZonesData(const char *name)
                 cellZonesNameStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << cellZonesNameStr[i];
                 verbose_message(output.str(), true);
             }
@@ -691,7 +706,7 @@ int comFoam::reconstZonesData(const char *name)
             for(int icomp=0; icomp<nComp; icomp++)
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << icomp << "] = "
+                output << "  " << dataName.c_str() << "[" << icomp << "] = "
                     << ca_cellZonesCount[icomp];
                 verbose_message(output.str(), true);
             }
@@ -709,14 +724,14 @@ int comFoam::reconstZonesData(const char *name)
                 COM_get_array(regName.c_str(), paneID, &ca_cellZonesList[izone]);
                 COM_get_size(regName.c_str(), paneID, &nComp);
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " has " << nComp
+                output << "  " << dataName.c_str() << " has " << nComp
                     << " elements";
                 verbose_message(output.str(), true);
             }
             else
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " is a nullptr.";
+                output << "  " << dataName.c_str() << " is a nullptr.";
                 verbose_message(output.str(), true);
             }
         }
@@ -772,7 +787,7 @@ int comFoam::reconstZonesData(const char *name)
                 faceZonesTypeStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << faceZonesTypeStr[i];
                 verbose_message(output.str(), true);
             }
@@ -808,7 +823,7 @@ int comFoam::reconstZonesData(const char *name)
                 faceZonesNameStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << faceZonesNameStr[i];
                 verbose_message(output.str(), true);
             }
@@ -823,7 +838,7 @@ int comFoam::reconstZonesData(const char *name)
             for(int icomp=0; icomp<nComp; icomp++)
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << icomp << "] = "
+                output << "  " << dataName.c_str() << "[" << icomp << "] = "
                     << ca_faceZonesCount[icomp];
                 verbose_message(output.str(), true);
             }
@@ -841,14 +856,36 @@ int comFoam::reconstZonesData(const char *name)
                 COM_get_array(regName.c_str(), paneID, &ca_faceZonesList[izone]);
                 COM_get_size(regName.c_str(), paneID, &nComp);
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " has " << nComp
+                output << "  " << dataName.c_str() << " has " << nComp
                     << " elements";
                 verbose_message(output.str(), true);
             }
             else
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " is a nullptr.";
+                output << "  " << dataName.c_str() << " is a nullptr.";
+                verbose_message(output.str(), true);
+            }
+        }
+
+        ca_faceZonesFlipMap = new int*[nFaceZones]{};
+        for (int izone=0; izone<nFaceZones; izone++)
+        {
+            dataName = "faceZonesFlipMap"+std::to_string(izone);
+            if(nameExists(dataItemNames, dataName))
+            {
+                regName = volName+".faceZonesFlipMap"+std::to_string(izone);
+                COM_get_array(regName.c_str(), paneID, &ca_faceZonesFlipMap[izone]);
+                COM_get_size(regName.c_str(), paneID, &nComp);
+                output = std::stringstream{};
+                output << "  " << dataName.c_str() << " has " << nComp
+                    << " elements";
+                verbose_message(output.str(), true);
+            }
+            else
+            {
+                output = std::stringstream{};
+                output << "  " << dataName.c_str() << " is a nullptr.";
                 verbose_message(output.str(), true);
             }
         }
@@ -904,7 +941,7 @@ int comFoam::reconstZonesData(const char *name)
                 pointZonesTypeStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << pointZonesTypeStr[i];
                 verbose_message(output.str(), true);
             }
@@ -940,7 +977,7 @@ int comFoam::reconstZonesData(const char *name)
                 pointZonesNameStr[i] = charTmp;
                 
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << i << "] = "
+                output << "  " << dataName.c_str() << "[" << i << "] = "
                     << charTmp << ", " << pointZonesNameStr[i];
                 verbose_message(output.str(), true);
             }
@@ -955,7 +992,7 @@ int comFoam::reconstZonesData(const char *name)
             for(int icomp=0; icomp<nComp; icomp++)
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << "[" << icomp << "] = "
+                output << "  " << dataName.c_str() << "[" << icomp << "] = "
                     << ca_pointZonesCount[icomp];
                 verbose_message(output.str(), true);
             }
@@ -973,14 +1010,14 @@ int comFoam::reconstZonesData(const char *name)
                 COM_get_array(regName.c_str(), paneID, &ca_pointZonesList[izone]);
                 COM_get_size(regName.c_str(), paneID, &nComp);
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " has " << nComp
+                output << "  " << dataName.c_str() << " has " << nComp
                     << " elements";
                 verbose_message(output.str(), true);
             }
             else
             {
                 output = std::stringstream{};
-                output << "    " << dataName.c_str() << " is a nullptr.";
+                output << "  " << dataName.c_str() << " is a nullptr.";
                 verbose_message(output.str(), true);
             }
         }
@@ -1089,6 +1126,21 @@ int comFoam::deleteZonesData()
 
         delete [] ca_faceZonesList;
         ca_faceZonesList = nullptr;
+    }
+
+    if (ca_faceZonesFlipMap != nullptr)
+    {
+        for(int i=0; i<*ca_nFaceZones; i++)
+        {
+            if (ca_faceZonesFlipMap[i] != nullptr)
+            {
+                delete [] ca_faceZonesFlipMap[i];
+                ca_faceZonesFlipMap[i] = nullptr;
+            }
+        }
+
+        delete [] ca_faceZonesFlipMap;
+        ca_faceZonesFlipMap = nullptr;
     }
 
     if (ca_faceZonesType != nullptr)

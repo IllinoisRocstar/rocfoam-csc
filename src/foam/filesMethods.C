@@ -166,6 +166,10 @@ int comFoam::createFilesData()
     createBoundaryFile(tmpFluidDir, vecFile);
     createConnectivityFiles(tmpFluidDir, vecFile);
 
+    createCellZonesFile(tmpFluidDir);
+    createFaceZonesFile(tmpFluidDir);
+    createPointZonesFile(tmpFluidDir);
+
     return 0;
 }
 
@@ -1529,10 +1533,10 @@ int comFoam::createCellZonesFile(const std::string& rootAddr)
     content += "    format      ascii;\n";
     content += "    class       regIOobject;\n";
     content += "    location    \""+localDir+"\";\n";
-    content += "    object      faceZones;\n}\n";
+    content += "    object      cellZones;\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
 
-    content += "\n\n";
+    content += "\n";
     int nCellZones = *ca_nCellZones;
     content += std::to_string(nCellZones);
     content += "\n(\n";
@@ -1540,7 +1544,7 @@ int comFoam::createCellZonesFile(const std::string& rootAddr)
     for(int izone=0; izone<nCellZones; izone++)
     {
         content += cellZonesNameStr[izone] +"\n";
-        content += "{";
+        content += "{\n";
         content += "    type " + cellZonesTypeStr[izone] + ";\n";
         content += "cellLabels      List<label>\n";
         
@@ -1554,7 +1558,7 @@ int comFoam::createCellZonesFile(const std::string& rootAddr)
         content += ")\n;\n";
         content += "}\n\n";
     }
-    content += ")\n\n\n";
+    content += ")\n\n";
     
     content += "// ************************************************************************* //";
 
@@ -1605,7 +1609,7 @@ int comFoam::createFaceZonesFile(const std::string& rootAddr)
     content += "    object      faceZones;\n}\n";
     content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
 
-    content += "\n\n";
+    content += "\n";
     int nFaceZones = *ca_nFaceZones;
     content += std::to_string(nFaceZones);
     content += "\n(\n";
@@ -1613,7 +1617,7 @@ int comFoam::createFaceZonesFile(const std::string& rootAddr)
     for(int izone=0; izone<nFaceZones; izone++)
     {
         content += faceZonesNameStr[izone] +"\n";
-        content += "{";
+        content += "{\n";
         content += "    type " + faceZonesTypeStr[izone] + ";\n";
         content += "faceLabels      List<label>\n";
         
@@ -1625,9 +1629,18 @@ int comFoam::createFaceZonesFile(const std::string& rootAddr)
             content += std::to_string(ca_faceZonesList[izone][index]) + "\n";
         }
         content += ")\n;\n";
+
+        content += "flipMap      List<bool>\n";
+        content += std::to_string(listCount) + "\n(\n";
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_faceZonesFlipMap[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+
         content += "}\n\n";
     }
-    content += ")\n\n\n";
+    content += ")\n\n";
     
     content += "// ************************************************************************* //";
 
@@ -2695,7 +2708,6 @@ size_t comFoam::findWord
 
     return firstLoc;
 }
-
 
 size_t comFoam::findWordOnly
 (

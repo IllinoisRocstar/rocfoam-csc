@@ -314,6 +314,7 @@ private:
     int* ca_nFaceZones{nullptr};
     int* ca_faceZonesCount{nullptr};
     int** ca_faceZonesList{nullptr};
+    int** ca_faceZonesFlipMap{nullptr};
 
     int* ca_faceZonesTypeMaxLength{nullptr};
     int* ca_faceZonesNameMaxLength{nullptr};
