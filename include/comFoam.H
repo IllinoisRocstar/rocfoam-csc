@@ -5,7 +5,6 @@
 
 #include "displacementMotionSolver.H"
 #include "dynamicMotionSolverFvMesh.H"
-#include "surfaceDisplacementPointPatchVectorFieldFSI.H"
 
 #include "com.h"
 #include "fileContainer.H"
@@ -19,7 +18,23 @@ private:
     const int panePadding{100};
     const int IODigits{10};
     const std::string tmpFluidDir{"./fluidTmp"};
-    const std::string movingWallTypeName = "rocstarFSI";
+    //const std::string movingWallTypeName = "rocstarFSI";
+    enum interactingPatches {rocstarFSI, 
+                             rocstarFSISolidBodyMotion};
+
+std::string returnInteractingPatches(int index)
+{
+    switch (index)
+    {
+        case interactingPatches::rocstarFSI:
+            return "rocstarFSI";
+        case interactingPatches::rocstarFSISolidBodyMotion:
+            return "rocstarFSISolidBodyMotion";
+        
+        default:
+            return "";
+    }
+}
 
 protected:
     const int nComponents{3};

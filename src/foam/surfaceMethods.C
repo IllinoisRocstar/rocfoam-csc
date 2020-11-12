@@ -573,15 +573,18 @@ int comFoam::createSurfaceData()
                 (
                     mesh.objectRegistry::lookupObject<pointVectorField>
                     (
-                    "pointDisplacement"
+                        "pointDisplacement"
                     )
                 );
 
-                if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
+                for(int index_=0; returnInteractingPatches(index_)!=""; index_++)
                 {
-                    *ca_bcflag[ipatch] = 0;
+                    if (pointDisplacement.boundaryField()[ipatch].type() ==
+                                                returnInteractingPatches(index_))
+                    {
+                        *ca_bcflag[ipatch] = 0;
+                    }
                 }
-
             }
         }
 
@@ -788,9 +791,13 @@ int comFoam::updateSurfaceData_outgoing()
                     )
                 );
 
-                if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
+                for(int index_=0; returnInteractingPatches(index_)!=""; index_++)
                 {
-                    *ca_bcflag[ipatch] = 0;
+                    if (pointDisplacement.boundaryField()[ipatch].type() ==
+                                                returnInteractingPatches(index_))
+                    {
+                        *ca_bcflag[ipatch] = 0;
+                    }
                 }
             }
         }
@@ -1164,61 +1171,65 @@ int comFoam::updateSurfaceData_incoming(const int& count)
                 continue;
 
             const polyPatch& patch = patches[ipatch];
-            if (pointDisplacement.boundaryField()[ipatch].type() == movingWallTypeName)
+            for(int index_=0; returnInteractingPatches(index_)!=""; index_++)
             {
-                // Loop over all nodes of boundary patch
-                const labelList& patchPoints = patch.meshPoints();
-                int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
-                compareWarningExit(ca_npoints, patchPoints.size(),
-                              "ca_npoints", "patchPoints.size()");
-
-                if (ca_npoints<=0 || patchPoints.size()<=0)
+                if (pointDisplacement.boundaryField()[ipatch].type() ==
+                                            returnInteractingPatches(index_))
                 {
-                    FatalErrorInFunction
-                        << "Error: ca_npoints = 0 "
-                        << nl << exit(FatalError);
-                }
-                
-                forAll(patchPoints, ipoint)
-                {
-                    int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+                    // Loop over all nodes of boundary patch
+                    const labelList& patchPoints = patch.meshPoints();
+                    int ca_npoints = *ca_patchPointToPointMap_size[ipatch];
+                    compareWarningExit(ca_npoints, patchPoints.size(),
+                                "ca_npoints", "patchPoints.size()");
 
-                    if (pointUpdated[globalPointID] == true)
+                    if (ca_npoints<=0 || patchPoints.size()<=0)
                     {
-                        /*std::stringstream output{};
-                        output << "Patch " << ipatch 
-                               << " Point " << ipoint
-                               << " already updated.";
-                        verbose_message(output.str(), true);*/
-
-                        continue;
+                        FatalErrorInFunction
+                            << "Error: ca_npoints = 0 "
+                            << nl << exit(FatalError);
                     }
-
-                    //const label& pointID = patch.meshPoints()[ipoint];  // Node index
-                    if (count == 1)
+                    
+                    forAll(patchPoints, ipoint)
                     {
+                        int globalPointID = ca_patchPointToPointMap[ipatch][ipoint];
+
+                        if (pointUpdated[globalPointID] == true)
+                        {
+                            /*std::stringstream output{};
+                            output << "Patch " << ipatch 
+                                << " Point " << ipoint
+                                << " already updated.";
+                            verbose_message(output.str(), true);*/
+
+                            continue;
+                        }
+
+                        //const label& pointID = patch.meshPoints()[ipoint];  // Node index
+                        if (count == 1)
+                        {
+                            for(int jcomp=0; jcomp<nComponents; jcomp++)
+                            {
+                                int localIndex = jcomp+ipoint*nComponents;
+                                patchDispOld[ipatch][localIndex] = 0;
+                            }
+                        }
+
                         for(int jcomp=0; jcomp<nComponents; jcomp++)
                         {
                             int localIndex = jcomp+ipoint*nComponents;
-                            patchDispOld[ipatch][localIndex] = 0;
+                            pointDisplacementNew[globalPointID][jcomp]
+                                += ca_patchDisp[ipatch][localIndex] - patchDispOld[ipatch][localIndex];
                         }
-                    }
 
-                    for(int jcomp=0; jcomp<nComponents; jcomp++)
-                    {
-                        int localIndex = jcomp+ipoint*nComponents;
-                        pointDisplacementNew[globalPointID][jcomp]
-                            += ca_patchDisp[ipatch][localIndex] - patchDispOld[ipatch][localIndex];
-                    }
+                        for(int jcomp=0; jcomp<nComponents; jcomp++)
+                        {
+                            int localIndex = jcomp+ipoint*nComponents;
+                            patchDispOld[ipatch][localIndex] =
+                                ca_patchDisp[ipatch][localIndex];
+                        }
 
-                    for(int jcomp=0; jcomp<nComponents; jcomp++)
-                    {
-                        int localIndex = jcomp+ipoint*nComponents;
-                        patchDispOld[ipatch][localIndex] =
-                            ca_patchDisp[ipatch][localIndex];
+                        pointUpdated[globalPointID] = true;
                     }
-
-                    pointUpdated[globalPointID] = true;
                 }
             }
         }

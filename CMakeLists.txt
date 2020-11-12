@@ -140,7 +140,8 @@ set(RocFOAM_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
     src/foam/fileContainer.C
-    src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C
+    src/BCs/rocstarFSI.C
+    src/BCs/rocstarFSISolidBodyMotion.C
 
     src/foam/statusMethods.C
     src/foam/volumeMethods.C

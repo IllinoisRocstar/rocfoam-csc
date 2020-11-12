@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "surfaceDisplacementPointPatchVectorFieldFSI.H"
+#include "rocstarFSI.H"
 #include "addToRunTimeSelectionTable.H"
 #include "Time.H"
 #include "transformField.H"
@@ -114,7 +114,7 @@ void surfaceDisplacementPointPatchVectorFieldFSI::updateCoeffs()
     (
 	    mesh.objectRegistry::lookupObject<pointVectorField>
 	    (
-	    "pointDisplacementNew"
+	        "pointDisplacementNew"
 	    )
     );
 
