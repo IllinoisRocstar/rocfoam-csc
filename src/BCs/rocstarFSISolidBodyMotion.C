@@ -174,11 +174,11 @@ void solidBodyMotionDisplacementPointPatchVectorFieldFSI::updateCoeffs()
         transformPoints(SBMFPtr_().transformation(), localPoints0())
        -localPoints0()
     );
+    
+    fixedValuePointPatchVectorField::updateCoeffs();
 
-
-
+    
     const polyMesh& mesh = patch().boundaryMesh().mesh()();
-    //const pointField&       points = mesh.points();
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
     const pointVectorField& incompingPointDisplacement = refCast<const pointVectorField>
@@ -195,7 +195,8 @@ void solidBodyMotionDisplacementPointPatchVectorFieldFSI::updateCoeffs()
     {
         const polyPatch& patch = patches[ipatch];
         const labelList& patchPoints = patch.meshPoints();
-        if (patchPoints.size() == this->size())
+        //if (patchPoints.size() == this->size())
+        if (patch.name() == this->patch().name())
         {
             // Loop over all nodes of boundary patch
             forAll(patchPoints, pointi)
@@ -211,11 +212,10 @@ void solidBodyMotionDisplacementPointPatchVectorFieldFSI::updateCoeffs()
 
     this->operator==(patchNewPointDisplacement);
     fixedValuePointPatchVectorField::updateCoeffs();
+    
 }
 
-
-void solidBodyMotionDisplacementPointPatchVectorFieldFSI::
-write(Ostream& os) const
+void solidBodyMotionDisplacementPointPatchVectorFieldFSI::write(Ostream& os) const
 {
     // Note: write value
     fixedValuePointPatchVectorField::write(os);

@@ -676,6 +676,7 @@ int comFoam::updateSurfaceData_outgoing()
     const pointField&       points = mesh.points();
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
+    std::string dynamicSolverType = ca_dynamicSolverType;
     forAll(patches, ipatch)
     {
         int procStartIndex{0};
@@ -696,8 +697,36 @@ int comFoam::updateSurfaceData_outgoing()
 
             for(int jcomp=0; jcomp<nComponents; jcomp++)
             {
-                ca_patchPoints[ipatch][localIndex]
-                    = points[globalPointID][jcomp];
+                if
+                    (*ca_isDynamicFvMesh == 1 &&
+                    (
+                        dynamicSolverType == "displacementLaplacian" ||
+                        dynamicSolverType == "solidBodyDisplacementLaplacian"
+                    )
+                    )
+                {
+                    const pointField &points0 = mesh.lookupObject<displacementMotionSolver>
+                        (
+                        "dynamicMeshDict"
+                        ).points0();
+
+                    const pointField &pointDisplacement = refCast<const pointField>
+                        (
+                            mesh.objectRegistry::lookupObject<pointVectorField>
+                                (
+                                    "pointDisplacement"
+                                )
+                        );
+
+                    ca_patchPoints[ipatch][localIndex] =
+                            points0[globalPointID][jcomp] +
+                            pointDisplacement[globalPointID][jcomp];
+                }
+                else
+                {
+                    ca_patchPoints[ipatch][localIndex] =
+                        points[globalPointID][jcomp];
+                }
 
                 localIndex++;
             }
@@ -729,7 +758,6 @@ int comFoam::updateSurfaceData_outgoing()
     tmp<volScalarField> muEff(turbulence.muEff());
     volTensorField viscStress(muEff * (gradU + dev2(Foam::T(gradU))) - p*I);
 
-    std::string dynamicSolverType = ca_dynamicSolverType;
     forAll(patches, ipatch)
     {
         double ca_patchVel_time{0};

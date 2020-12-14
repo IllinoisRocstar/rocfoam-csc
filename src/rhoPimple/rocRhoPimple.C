@@ -1129,9 +1129,7 @@ int rhoPimple::step(double* incomingDeltaT, int* gmHandle)
                 flowDeltaT = runTime.deltaTValue();
                 
                 alpha +=  flowDeltaT / incomingDeltaT_;
-alpha = 1;
-if (count==1)
-{
+
                 if (gmHandle != nullptr)
                 {
                     if (*gmHandle >= 0)
@@ -1147,7 +1145,6 @@ if (count==1)
                     updateSurfaceData_incoming(count);
                     Info << "alpha = " << alpha << endl;
                 }
-}
             }
             else
             {

@@ -38,7 +38,6 @@ int comFoam::updateCSCdata()
 
 int comFoam::registerCSCdata(const char *name)
 {
-
     registerStatusData(name);
     registerFilesData(name);
     registerVolumeData(name);

@@ -124,7 +124,8 @@ void surfaceDisplacementPointPatchVectorFieldFSI::updateCoeffs()
     {
         const polyPatch& patch = patches[ipatch];
         const labelList& patchPoints = patch.meshPoints();
-        if (patchPoints.size() == this->size())
+        //if (patchPoints.size() == this->size())
+        if (patch.name() == this->patch().name())
         {
             // Loop over all nodes of boundary patch
             forAll(patchPoints, pointi)
@@ -140,9 +141,7 @@ void surfaceDisplacementPointPatchVectorFieldFSI::updateCoeffs()
 
     this->operator==(patchNewPointDisplacement);
     fixedValuePointPatchVectorField::updateCoeffs();
-
 }
-
 
 void surfaceDisplacementPointPatchVectorFieldFSI::write(Ostream& os) const
 {
