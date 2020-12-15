@@ -34,31 +34,34 @@ void rhoCentral::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.load: Loading rocRhoCentral with name "
-                   << name << "." << std::endl;
+        std::cout << "rocRhoCentral: Loading ..." << std::endl;
 
-        std::cout << "rocFoam.load: Rank = " << tmpRank
+#ifdef VERBOSE
+        std::cout << "rocRhoCentral: Rank = " << tmpRank
                   << ", NProc = " << tmpNProc
                   << ", COMM = " << tmpComm << std::endl;
 
         std::cout << std::endl;
+#endif
     }
 
     std::string winName = name;
     int winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
-        std::cout << "WARNING: Window " << winName << " already exists."
-                  << " CSC must create this window name."
-                  << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+            << "Error: Window " << winName << " already exists."
+            << " CSC must create this window name."
+            << nl << exit(FatalError);
     }
     else
     {
         COM_new_window(winName, tmpComm);
 
-        Info << "rocFoam.load: Window " << winName
-             << " created." << endl;
+#ifdef VERBOSE
+        std::cout << "rocRhoCentral: Window " << winName
+             << " created." << std::endl;
+#endif
     }
 
     // Register object ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,16 +85,18 @@ void rhoCentral::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
                   << std::endl;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoCentral: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -101,16 +106,18 @@ void rhoCentral::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
                   << std::endl;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoCentral: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -123,8 +130,7 @@ void rhoCentral::load(const char *name)
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^
 void rhoCentral::unload(const char *name)
 {
-    Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
-               << name << "." << Foam::endl;
+    Foam::Info << "rocRhoCentral: Unloading..." << Foam::endl;
 
     std::string winName = name+std::string("VOL");
     int winExist = COM_get_window_handle(winName.c_str());
@@ -386,6 +392,7 @@ int rhoCentral::loop()
         }
 
         Info << "Time = " << runTime.timeName() << nl << endl;
+
         phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
 
 #ifdef HAVE_OFE20
@@ -476,7 +483,13 @@ int rhoCentral::loop()
 
         if (!inviscid)
         {
-#if defined(HAVE_OFE20) || defined(HAVE_OF7)
+#ifdef HAVE_OFE20
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e) -
+                fvm::laplacian(turbulence.alphaEff(), e)
+            );
+#elif defined(HAVE_OF7)
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
@@ -643,11 +656,15 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
-
-                        updateSurfaceData_incoming(count);
-
-                        Info << " alpha = " << alpha << endl;
                     }
+                    else
+                    {
+                        WarningInFunction
+                            << "Warning:  gmHandle<=0, so no data is received."
+                            << endl;
+                    }
+                    updateSurfaceData_incoming(count);
+                    Info << "alpha = " << alpha << endl;
                 }
             }
             else
@@ -658,8 +675,9 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
             if (runTime.deltaTValue() < 0)
             {
-                Info << "Unphysical deltaT. Exiting the simulation" << endl;
-                exit(-1);
+                FatalErrorInFunction
+                    << "Unphysical deltaT. Exiting the simulation"
+                    << nl << exit(FatalError);
             }
 
             runTime++;
@@ -868,7 +886,13 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
         if (!inviscid)
         {
-#if defined(HAVE_OFE20) || defined(HAVE_OF7)
+#ifdef HAVE_OFE20
+            solve
+            (
+                fvm::ddt(rho, e) - fvc::ddt(rho, e) -
+                fvm::laplacian(turbulence.alphaEff(), e)
+            );
+#elif defined(HAVE_OF7)
             solve
             (
                 fvm::ddt(rho, e) - fvc::ddt(rho, e) -
@@ -1102,7 +1126,7 @@ int rhoCentral::readFluxScheme()
     dynamicFvMesh &mesh(*meshPtr);
 
     // word fluxScheme("Kurganov");
-    word fluxScheme("Kurganov");
+    fluxScheme = "Kurganov";
     if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme))
     {
         if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov"))

@@ -2,28 +2,36 @@
 
 void comFoam::copyWindow(const string& winName1, const string& winName2)
 {
+
+#ifdef VERBOSE
     std::cout << "rocFoam.copyWindow: window names "
               << winName1.c_str() << " & "
               << winName2.c_str() << std::endl;
+#endif
 
     // Get window information ^^^^^^^^^^^^^^^^^^^
     int nItemps;
     std::string datNames;
     COM_get_dataitems(winName1.c_str(), &nItemps, datNames);
 
+#ifdef VERBOSE
     std::cout << "rocFoam.copyWindow: nItemps in "
               << "winName1 = "
               << nItemps
               << std::endl;
+#endif
     // ------------------------------------------
 
     //  Copy pane nodes & connectivities ^^^^^^^^
     int nPanes;
     int* paneList;
     COM_get_panes(winName1.c_str(), &nPanes, &paneList);
+
+#ifdef VERBOSE
     std::cout << "rocFoam.copyWindow: Number of Panes in window "
               << winName1 << " = "
               << nPanes << std::endl;
+#endif
 
     //for(int ipane=0; ipane<nPanes; ipane++)
     //{
@@ -45,10 +53,15 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
 
         if (dataName == std::string("object"))
         {
-            std::cout << "rocFoam.copyWindow: Cannot copy dataName" 
+            FatalErrorInFunction
+                << "rocFoam.copyWindow: Cannot copy dataName" 
+                << " \"object\" in window " << winName1
+                << nl << exit(FatalError);
+
+            /*std::cout << "rocFoam.copyWindow: Cannot copy dataName" 
                       << " \"object\" in window " << winName1
                       << std::endl;
-            exit(-1);
+            exit(-1);*/
         }
         else
         {
@@ -64,11 +77,13 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
             std::string subName = dataName.substr(0,4);
             if (subName != "file")
             {
+#ifdef VERBOSE
                 std::cout << "rocFoam.copyWindow: dataName["
                           << item << "] = " << dataName
                           << " copied from " << winName1.c_str()
                           << " to " << winName2.c_str()
                           << std::endl;
+#endif
             }
             else
             {
@@ -79,13 +94,17 @@ void comFoam::copyWindow(const string& winName1, const string& winName2)
 
     if (fileCount>0)
     {
+#ifdef VERBOSE
         std::cout << "rocFoam.copyWindow: Total number of "
         << fileCount << " file-related items copied from "
         << winName1.c_str()
         << " to " << winName2.c_str() << std::endl;
+#endif
     }
     
+#ifdef VERBOSE
     std::cout << std::endl;
+#endif
     // ------------------------------------------
 
     COM_window_init_done(winName2);
@@ -101,8 +120,10 @@ bool comFoam::nameExists(const std::vector<std::string>& dataItemNames,
 
     if (!status)
     {
+#ifdef VERBOSE
         std::cout << ">>DataItemName " << dataName
                   << " does not exist.<<" << std::endl;
+#endif
     }
 
     return status;

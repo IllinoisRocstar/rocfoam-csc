@@ -107,11 +107,12 @@ int comFoam::updateStatusData()
         size_t length = timeNameStr.length()+1;
         if (length > genCharSize)
         {
-            std::cout << "Warning:: genCharSize is not big enough,"
-                      << " genCharSize = " << genCharSize
-                      << " timeName.size = "
-                      << length
-                      << std::endl;
+            WarningInFunction
+                << "Warning:: genCharSize is not big enough,"
+                << " genCharSize = " << genCharSize
+                << " timeName.size = "
+                << length
+                << endl;
         }
         std::strcpy(ca_timeName, timeNameStr.c_str());
     }
@@ -124,10 +125,12 @@ int comFoam::registerStatusData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     
-    Info << "rocFoam.registerStatusData: "
+    std::stringstream output{};
+    output << "rocFoam.registerStatusData: "
          << "Registering status data with name "
-         << volName
-         << endl;
+         << volName;
+    verbose_message(output.str(), true);
+
 
     // Genral data registered with window
     // Solver data    
@@ -135,55 +138,73 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_time);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".timeName");
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_timeName);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".deltaT");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_deltaT);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".deltaT0");
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_deltaT0);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".timeIndex");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_timeIndex);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".runStat");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_runStat);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".dynamicFvMeshType");
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_dynamicFvMeshType);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".isDynamicFvMesh");
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_isDynamicFvMesh);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".dynamicSolverType");
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_dynamicSolverType);
-    Info << dataName << " registered." << endl;
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     COM_window_init_done(volName);
 
@@ -194,11 +215,12 @@ int comFoam::reconstStatusData(const char *name)
 {
     std::string volName = name+std::string("VOL");
 
-    std::cout << "rocFoam.reconstructStatusData, procID = "
-              << ca_myRank
-              << ", Retreiving status data form window "
-              << volName << "."
-              << std::endl;
+    std::stringstream output{};
+    output << "rocFoam.reconstructStatusData, procID = "
+           << ca_myRank
+           << ", Retreiving status data form window "
+           << volName << ".";
+    verbose_message(output.str(),true);
 
     std::string regNames;
     int numDataItems=0;
@@ -220,39 +242,54 @@ int comFoam::reconstStatusData(const char *name)
             nameTmp == "timeName" ||
             nameTmp == "runStat" ||
             nameTmp == "movingMesh" ||
-            nameTmp == "dynamicFvMesh")
+            nameTmp == "dynamicFvMesh" ||
+            nameTmp == "dynamicSolverType"
+            )
         {
             dataItemNames.push_back(nameTmp);
-            std::cout << "  DataItem[" << i << "] = " << nameTmp << std::endl;
+
+            output = std::stringstream{};
+            output << "  DataItem[" << i << "] = " << nameTmp;
+            verbose_message(output.str(), true);
         }
     }
-    std::cout << "  Bumber of items = " << dataItemNames.size()
-              << std::endl << std::endl;
+    output = std::stringstream{};
+    output << "  Bumber of items = " << dataItemNames.size()
+           << std::endl;
+    verbose_message(output.str(), true);
 
     // Flow stat data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("time");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_time);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_time << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_time;
+    verbose_message(output.str(), true);
 
     dataName = std::string("timeIndex");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_timeIndex);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_timeIndex << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_timeIndex;
+    verbose_message(output.str(), true);
 
     dataName = std::string("deltaT");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_deltaT);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_deltaT << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_deltaT;
+    verbose_message(output.str(), true);
 
     dataName = std::string("deltaT0");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_deltaT0);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_deltaT0 << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_deltaT0;
+    verbose_message(output.str(), true);
 
     int nComp;
     dataName = std::string("timeName");
@@ -260,33 +297,43 @@ int comFoam::reconstStatusData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_timeName);
     COM_get_size(regName.c_str(), 0, &nComp);
-    std::cout << "    " << dataName.c_str() << " = " << ca_timeName << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << ca_timeName;
+    verbose_message(output.str(), true);
 
     dataName = std::string("runStat");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_runStat);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_runStat << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_runStat;
+    verbose_message(output.str(), true);
 
     dataName = std::string("isDynamicFvMesh");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_isDynamicFvMesh);
-    std::cout << "    " << dataName.c_str() << " = " << *ca_isDynamicFvMesh << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << *ca_isDynamicFvMesh;
+    verbose_message(output.str(), true);
 
     dataName = std::string("dynamicFvMeshType");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_dynamicFvMeshType);
     COM_get_size(regName.c_str(), 0, &nComp);
-    std::cout << "    " << dataName.c_str() << " = " << ca_dynamicFvMeshType << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << ca_dynamicFvMeshType;
+    verbose_message(output.str(), true);
 
     dataName = std::string("dynamicSolverType");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_dynamicSolverType);
     COM_get_size(regName.c_str(), 0, &nComp);
-    std::cout << "    " << dataName.c_str() << " = " << ca_dynamicSolverType << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " = " << ca_dynamicSolverType;
+    verbose_message(output.str(), true);
     //-------------------------------------------
 
     return 0;
