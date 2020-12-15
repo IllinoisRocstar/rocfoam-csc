@@ -46,13 +46,14 @@ int comFoam::createVolumeConnectivities()
 
     if (sortedCellIndex != *ca_nCells)
     {
-        Info << "========== WARNNING ===============" << endl
+        FatalErrorInFunction
+             << "========== ERROR ===============" << endl
              << "     sortedCellIndex != ca_nCells " << endl
-             << "    " << sortedCellIndex << "!=" << *ca_nCells << endl;
-        return -1;
+             << "    " << sortedCellIndex << "!=" << *ca_nCells
+             << nl << exit(FatalError);
     }
 
-    // cetToPoint Connectivity ^^^^^^^^^^^^^^^^^^
+    // cellToPoint Connectivity ^^^^^^^^^^^^^^^^^
     int nTypes = mapCellToCellMap.size();
     ca_cellToPointConn_types = new int(nTypes);
     ca_cellToPointConn_map   = new int[nTypes];
@@ -89,6 +90,97 @@ int comFoam::createVolumeConnectivities()
     }
     //-------------------------------------------
 
+    // cellZoness ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    const cellZoneMesh& zones = mesh.cellZones();
+    const int& nZones = zones.size();
+
+    if (nZones>0)
+    {
+        if (cellZonesTypeStr == nullptr)
+            cellZonesTypeStr = new std::string[nZones]{};
+        
+        if (cellZonesNameStr == nullptr)
+            cellZonesNameStr = new std::string[nZones]{};
+
+        int maxTypeLength{0};
+        int maxNameLength{0};
+        forAll(zones, izone)
+        {
+            cellZonesTypeStr[izone] = zones[izone].type();
+            std::string strTmp(cellZonesTypeStr[izone]);
+            maxTypeLength = std::max( maxTypeLength, static_cast<int>(strTmp.length())+1 );
+
+            cellZonesNameStr[izone] = zones[izone].name();
+            strTmp = cellZonesNameStr[izone];
+            maxNameLength = std::max( maxNameLength, static_cast<int>(strTmp.length())+1 );
+        }
+
+        ca_cellZonesTypeMaxLength = new int(maxTypeLength);
+        ca_cellZonesNameMaxLength = new int(maxNameLength);
+
+        // zone Types; CHAR type
+        ca_cellZonesType = new char[nZones * maxTypeLength]{};
+        forAll(zones, izone)
+        {
+            int startIndex = izone * maxTypeLength;
+            int endIndex = startIndex + cellZonesTypeStr[izone].length();
+            int count{0};
+            for (int i=startIndex; i<endIndex; i++)
+            {
+                ca_cellZonesType[i] = cellZonesTypeStr[izone][count];
+                count++;
+            }
+            ca_cellZonesType[endIndex] = '\0';
+
+            for (int i=endIndex+1; i<startIndex+maxTypeLength; i++)
+            {
+                ca_cellZonesType[i] = ' ';
+            }
+        }
+
+        // name Names; CHAR type
+        ca_cellZonesName = new char[nZones * maxNameLength]{};
+        forAll(zones, izone)
+        {
+            int startIndex = izone * maxNameLength;
+            int endIndex = startIndex + cellZonesNameStr[izone].length();
+            int count{0};
+            for (int i=startIndex; i<endIndex; i++)
+            {
+                ca_cellZonesName[i] = cellZonesNameStr[izone][count];
+                count++;
+            }
+            ca_cellZonesName[endIndex] = '\0';
+
+            for (int i=endIndex+1; i<startIndex+maxNameLength; i++)
+            {
+                ca_cellZonesName[i] = ' ';
+            }
+        }
+
+        ca_nCellZones = new int(nZones);
+        ca_cellZonesCount = new int[nZones]{};
+        ca_cellZonesList = new int*[nZones]{};
+
+        forAll(zones, izone)
+        {
+            const labelList& cellList = zones[izone];
+            int nCells = cellList.size();
+            ca_cellZonesCount[izone] = nCells;
+
+            if (nCells>0)
+            {
+                ca_cellZonesList[izone] = new int[nCells];
+                
+                forAll(cellList, icell)
+                {
+                    ca_cellZonesList[izone][icell] = cellList[icell];
+                }
+            }
+        }
+    }
+    //-------------------------------------------
+
     return 0;
 }
 
@@ -113,25 +205,6 @@ int comFoam::createVolumeData()
 
         if (pointUpdated == nullptr)
             pointUpdated = new bool[npoints]{false};
-
-        /*
-        dynamicFvMesh& mesh(*meshPtr);
-        if (pointDisplacementNewPtr == nullptr)
-        {
-            pointDisplacementNewPtr = new pointVectorField
-            (
-                IOobject
-                (
-                    "pointDisplacementNew",
-                    mesh.time().timeName(),
-                    mesh,
-                    IOobject::NO_READ,
-                    IOobject::NO_WRITE
-                ),
-                pointMesh::New(mesh)
-            );
-        }
-        */
     }
     
     // Field-data
@@ -224,10 +297,9 @@ int comFoam::createVolumeData()
         }
         else
         {
-            Info << "Warning: turbulence model not recongnized by the CSC Module."
-                 << endl;
-             
-            exit(-1);
+            FatalErrorInFunction
+                << "Error: turbulence model not recongnized by the CSC Module."
+                << nl << exit(FatalError);
         }
     }
 
@@ -253,20 +325,25 @@ int comFoam::updateVolumeData_outgoing()
 
     if (ca_Disp != nullptr)
     {
-#if HAVE_OFE20
-                const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
-                        (
-                            "dynamicMeshDict"
-                        ).pointDisplacement();
-
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
-
-                const motionSolver& motion_ =
-                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
-
-                const pointVectorField& pointDisplacement_ =
-                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
-#endif
+//#if HAVE_OFE20
+//                const pointVectorField& pointDisplacement_ = mesh.lookupObject<displacementMotionSolver>
+//                        (
+//                            "dynamicMeshDict"
+//                        ).pointDisplacement();
+//#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+//                const motionSolver& motion_ =
+//                    refCast<const dynamicMotionSolverFvMesh>(mesh).motion();
+//
+//                const pointVectorField& pointDisplacement_ =
+//                        refCast<const displacementMotionSolver>(motion_).pointDisplacement();
+//#endif
+        const pointVectorField& pointDisplacement_ = refCast<const pointVectorField>
+        (
+            mesh.objectRegistry::lookupObject<pointVectorField>
+            (
+            "pointDisplacement"
+            )
+        );
 
         if (pointDisplacement_.size())
         {
@@ -388,55 +465,69 @@ int comFoam::registerVolumeData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     
-    Info << endl
-         << "rocFoam.registerVolumeData: "
-         << "Registering flow data with name "
-         << volName
-         << endl;
+    std::stringstream output{};
+    output << "rocFoam.registerVolumeData: "
+         << "Registering flow data with window name "
+         << volName;
+    verbose_message(output.str(), true);
 
     // grid and field data
     int paneID = Pstream::myProcNo()+1;// Use this paneID for volume connectivity
 
-    Info << "procID = " << Pstream::myProcNo()
+    output = std::stringstream{};
+    output << "procID = " << Pstream::myProcNo()
          << ", paneID = " << paneID
-         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
+         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+    verbose_message(output.str(), true);
 
     std::string dataName = volName+std::string(".nPoints");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nPoints);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".nCells");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nCells);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".cellToPointConn_types");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_cellToPointConn_types);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     int ntypes = *ca_cellToPointConn_types;
     dataName = volName+std::string(".cellToPointConn_map");
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_cellToPointConn_map);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".cellToPointConn_size");
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_cellToPointConn_size);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     // points
     dataName = volName+std::string(".nc");
     COM_set_size( dataName, paneID, *ca_nPoints);
     COM_set_array(dataName, paneID, ca_Points, nComponents);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     // connectivity ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     for (int itype=0; itype<ntypes; itype++)
@@ -448,9 +539,10 @@ int comFoam::registerVolumeData(const char *name)
         { // Tet
             dataName = volName+std::string(".:T4");
         }
-        //else if (typeID == 5)
-        //{ Type?
-        //}
+        else if (typeID == 5)
+        { // Pyramid
+            dataName = volName+std::string(".:P5");
+        }
         else if (typeID == 6)
         { // Prism
             dataName = volName+std::string(".:P6");
@@ -464,12 +556,11 @@ int comFoam::registerVolumeData(const char *name)
         }
         else
         { // Type not identified
-
-            Info << "=================== WARNING ==================="
-                 << " Cell typeID " << typeID << " with size = "
-                 << typeSize << " not identified!"
-                 << endl;
-            exit(-1);
+            FatalErrorInFunction
+                << "=================== ERROR ===================" << endl
+                << " Cell typeID " << typeID << " with size = "
+                << typeSize << " not identified!"
+                << nl << exit(FatalError);
         }
 
         COM_set_size( dataName, paneID, typeSize);
@@ -478,38 +569,51 @@ int comFoam::registerVolumeData(const char *name)
                       ca_cellToPointConn[itype],
                       typeID
                      );
-        Info << "  " << dataName.c_str() << " registered." << endl;
+
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     // Connectivity mapping stuff
     dataName = volName+std::string(".cellToCellMap");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(    dataName, paneID, ca_cellToCellMap, 1);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".cellToCellMap_inverse");
     COM_new_dataitem( dataName, 'e', COM_INT, 1, "");
     COM_set_array(    dataName, paneID, ca_cellToCellMap_inverse, 1);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
     // ------------------------------------------
 
     // Element data registered with window
     dataName = volName+std::string(".vel");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, nComponents, "m/s");
     COM_set_array(    dataName, paneID, ca_Vel, nComponents);    
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     dataName = volName+std::string(".pres");
     COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "Pa");
     COM_set_array(    dataName, paneID, ca_P, 1);
-    Info << "  " << dataName.c_str() << " registered." << endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " registered.";
+    verbose_message(output.str(), true);
 
     if (ca_T != nullptr)
     {
         dataName = volName+std::string(".temp");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "K");
         COM_set_array(    dataName, paneID, ca_T, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_Rho != nullptr)
@@ -517,7 +621,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".rho");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m^3");
         COM_set_array(    dataName, paneID, ca_Rho, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_Disp != nullptr)
@@ -525,7 +631,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".disp");
         COM_new_dataitem( dataName, 'n', COM_DOUBLE, nComponents, "m");
         COM_set_array(    dataName, paneID, ca_Disp, nComponents);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     // Turbulence data ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -534,7 +642,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".alphaT");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "kg/m/s");
         COM_set_array(    dataName, paneID, ca_AlphaT, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_K != nullptr)
@@ -542,7 +652,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".k");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^2");
         COM_set_array(    dataName, paneID, ca_K, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_Epsilon != nullptr)
@@ -550,7 +662,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".epsilon");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s^3");
         COM_set_array(    dataName, paneID, ca_Epsilon, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_Omega != nullptr)
@@ -558,7 +672,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".omega");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "1/s");
         COM_set_array(    dataName, paneID, ca_Omega, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
 
     if (ca_NuT != nullptr)
@@ -566,7 +682,9 @@ int comFoam::registerVolumeData(const char *name)
         dataName = volName+std::string(".nuT");
         COM_new_dataitem( dataName, 'e', COM_DOUBLE, 1, "m^2/s");
         COM_set_array(    dataName, paneID, ca_NuT, 1);
-        Info << "  " << dataName.c_str() << " registered." << endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << " registered.";
+        verbose_message(output.str(), true);
     }
     //-------------------------------------------
 
@@ -580,16 +698,16 @@ int comFoam::reconstVolumeData(const char *name)
 {
     std::string volName = name+std::string("VOL");
 
-    std::cout << "rocFoam.reconstCaVolumeData, procID = "
-              << ca_myRank
-              << ", Retreiving volume data form window "
-              << volName << "."
-              << std::endl;
+    std::stringstream output{};
+    output << "rocFoam.reconstCaVolumeData, procID = "
+           << ca_myRank
+           << ", Retreiving volume data form window "
+           << volName << ".";
+    verbose_message(output.str(), true);
 
     std::string regNames;
     int numDataItems=0;
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-    //std::cout << "  numDataItems = " << numDataItems << std::endl;
 
     std::vector<std::string> dataItemNames;
     dataItemNames.clear();
@@ -620,35 +738,48 @@ int comFoam::reconstVolumeData(const char *name)
             )
         {
             dataItemNames.push_back(nameTmp);
-            std::cout << "  DataItem[" << i << "] = " << nameTmp << std::endl;
+
+            output = std::stringstream{};
+            output << "  DataItem[" << i << "] = " << nameTmp;
+            verbose_message(output.str(), true);
         }
     }
-    std::cout << "  Number of items = " << dataItemNames.size()
-              << std::endl << std::endl;
+    output = std::stringstream{};
+    output << "  Number of items = " << dataItemNames.size()
+              << std::endl;
+    verbose_message(output.str(), true);
 
     // Volume data ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     int paneID = ca_myRank+1;// Use this paneID for volume connectivity
-    std::cout << "  procID = " << ca_myRank
+    output = std::stringstream{};
+    output << "  procID = " << ca_myRank
          << ", paneID = " << paneID
-         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+         << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+    verbose_message(output.str(), true);
 
     std::string dataName = std::string("nPoints");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_nPoints);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_nPoints << std::endl;
-    
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " = " << *ca_nPoints;
+    verbose_message(output.str(), true);
+
     dataName = std::string("nCells");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_nCells);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_nCells << std::endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " = " << *ca_nCells;
+    verbose_message(output.str(), true);
 
     dataName = std::string("cellToPointConn_types");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_cellToPointConn_types);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_cellToPointConn_types << std::endl;
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " = " << *ca_cellToPointConn_types;
+    verbose_message(output.str(), true);
 
     dataName = std::string("cellToPointConn_map");
     nameExists(dataItemNames, dataName);
@@ -658,8 +789,10 @@ int comFoam::reconstVolumeData(const char *name)
     COM_get_size(regName.c_str(), paneID, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        std::cout << "  " << dataName.c_str() << "[" << icomp << "] = "
-             << ca_cellToPointConn_map[icomp] << std::endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_cellToPointConn_map[icomp];
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("cellToPointConn_size");
@@ -669,8 +802,10 @@ int comFoam::reconstVolumeData(const char *name)
     COM_get_size(regName.c_str(), paneID, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        std::cout << "  " << dataName.c_str() << "[" << icomp << "] = "
-             << ca_cellToPointConn_size[icomp] << std::endl;
+        output = std::stringstream{};
+        output << "  " << dataName.c_str() << "[" << icomp << "] = "
+             << ca_cellToPointConn_size[icomp];
+        verbose_message(output.str(), true);
     }
     //-------------------------------------------
 
@@ -685,8 +820,11 @@ int comFoam::reconstVolumeData(const char *name)
     int nPoints;
     COM_get_array(regName.c_str(), paneID, &ca_Points, &nComp);
     COM_get_size(regName.c_str(), paneID, &nPoints);
-    std::cout << "  " << dataName.c_str() << " nPoints = " << nPoints
-              << ", components = " << nComp << std::endl;
+
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " nPoints = " << nPoints
+              << ", components = " << nComp;
+    verbose_message(output.str(), true);
 
     int nConn;
     int numElem;
@@ -702,9 +840,11 @@ int comFoam::reconstVolumeData(const char *name)
         COM_get_array(dataName.c_str(), paneID, &ca_cellToPointConn[icon], &nComp);
         COM_get_size(dataName.c_str(), paneID, &numElem);
 
-        std::cout << "    Connectivity[" << icon << "] = " << connName
+        output = std::stringstream{};
+        output << "    Connectivity[" << icon << "] = " << connName
                   << ", elements = " << numElem
-                  << ", components =" << nComp << std::endl;
+                  << ", components =" << nComp;
+        verbose_message(output.str(), true);
     }
     //---------------------------------------
 
@@ -714,16 +854,20 @@ int comFoam::reconstVolumeData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-         << ", components = " << nComp << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " elements = " << numElem
+         << ", components = " << nComp;
+    verbose_message(output.str(), true);
 
     dataName = std::string("cellToCellMap_inverse");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_cellToCellMap_inverse, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-              << ", components = " << nComp << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " elements = " << numElem
+              << ", components = " << nComp;
+    verbose_message(output.str(), true);
     //---------------------------------------
 
     // Field data ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -732,16 +876,21 @@ int comFoam::reconstVolumeData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_Vel, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-              << ", components = " << nComp << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " elements = " << numElem
+              << ", components = " << nComp;
+    verbose_message(output.str(), true);
     
     dataName = std::string("pres");
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_P, &nComp);
     COM_get_size(regName.c_str(), paneID, &numElem);
-    std::cout << "    " << dataName.c_str() << " elements = " << numElem
-              << ", components = " << nComp << std::endl;
+    output = std::stringstream{};
+    output << "    " << dataName.c_str() << " elements = " << numElem
+              << ", components = " << nComp;
+    verbose_message(output.str(), true);
+
 
     dataName = std::string("temp");
     if (nameExists(dataItemNames, dataName))
@@ -749,8 +898,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_T, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("rho");
@@ -759,8 +910,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_Rho, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("disp");
@@ -769,8 +922,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_Disp, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
 
         if (pointUpdated == nullptr)
             pointUpdated = new bool[numElem]{false};
@@ -783,8 +938,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_AlphaT, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("k");
@@ -793,8 +950,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_K, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }    
 
     dataName = std::string("epsilon");
@@ -803,8 +962,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_Epsilon, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("omega");
@@ -813,8 +974,10 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_Omega, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
 
     dataName = std::string("nuT");
@@ -823,13 +986,16 @@ int comFoam::reconstVolumeData(const char *name)
         regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_NuT, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        std::cout << "    " << dataName.c_str() << " elements = " << numElem
-                  << ", components = " << nComp << std::endl;
+        output = std::stringstream{};
+        output << "    " << dataName.c_str() << " elements = " << numElem
+                  << ", components = " << nComp;
+        verbose_message(output.str(), true);
     }
     //-------------------------------------------
-    
-    std::cout << "  --------------------------------------------------"
-         << std::endl;
+
+    output = std::stringstream{};
+    output << "  --------------------------------------------------";
+    verbose_message(output.str(), true);
 
     return 0;
 }
@@ -972,7 +1138,7 @@ int comFoam::deleteVolumeData()
         ca_NuT = nullptr;
     }
     //-------------------------------------------
-    
+
     return 0;
 }
 

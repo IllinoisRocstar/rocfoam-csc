@@ -14,6 +14,7 @@ int comFoam::createCSCdata()
     createFaceData();
     createSurfaceConnectivities();
     createSurfaceData();
+    createZonesData();
 
     std::string strTmp = "./";
     readFilesData(strTmp);
@@ -37,12 +38,12 @@ int comFoam::updateCSCdata()
 
 int comFoam::registerCSCdata(const char *name)
 {
-
     registerStatusData(name);
     registerFilesData(name);
     registerVolumeData(name);
     registerFaceData(name);
     registerSurfaceData(name);
+    registerZonesData(name);
 
     return 0;
 }
@@ -54,6 +55,7 @@ int comFoam::deleteCSCdata()
     deleteFaceData();
     deleteVolumeData();
     deleteStatusData();
+    deleteZonesData();
 
     return 0;
 }
@@ -72,6 +74,8 @@ int comFoam::reconstCSCdata(const char *name)
         reconstVolumeData(name);
         reconstFaceData(name);
         reconstSurfaceData(name);
+        reconstZonesData(name);
+
         reconstFilesData(name);
     //}
     //MPI_Barrier(winComm);
@@ -83,16 +87,12 @@ int comFoam::reconstCSCdata(const char *name)
 //^^^ DEFINITION OF COM-RELATED MTHODS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.flowInit: Initializing flow solver with name "
-                  << name << std::endl;
-    }
+    Foam::Info << solverType.c_str() << ": Initializing flow solver." << endl;
     //  OpenFOAM initializer ^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = nullptr;
 
-    std::string winName = name;
-    std::string objectName = winName+std::string(".object");
+    std::string winName_ = name;
+    std::string objectName = winName_+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     //char** argv = reinterpret_cast<char**>(pargv);
@@ -141,12 +141,7 @@ int comFoam::flowInit(int *pargc, void **pargv, const char *name)
 int comFoam::restartInit(int *pargc, void **pargv, const char *name)
 
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.restartInit: Initializing CSC "
-                  << "reconstructions for window "
-                  << name << std::endl;
-    }
+    Info << solverType.c_str() << ": Initializing CSC restart." << endl;
 
     reconstCSCdata(name);
 
@@ -192,16 +187,15 @@ int comFoam::restartInit(int *pargc, void **pargv, const char *name)
 
 int comFoam::flowLoop()
 {
-    Foam::Info << "rocFoam.flowLoop: Iterating flow solver."
-               << Foam::endl;
+    Info << solverType.c_str() << ": Looping flow solver." << endl;
+
     loop();
     return 0;
 }
 
 int comFoam::flowStep()
 {
-    Foam::Info << "rocFoam.flowStep: Stepping flow solver."
-               << Foam::endl;
+    Info << solverType.c_str() << ": Stepping flow solver." << endl;
 
     step();
     updateCSCdata();
@@ -220,10 +214,10 @@ void comFoam::initialize
     const int* obtainHandle
 )
 {
+    Info << solverType.c_str() << ": Initializing Rocstar restart." << endl;
+
     std::string volName = std::string(volName_);
     std::string surfName = std::string(surfName_);
-
-
 
     //loadInternal(name);
 
@@ -265,10 +259,11 @@ void comFoam::initialize
     
     if (*initTime != *ca_time)
     {
-        std::cout << "WARNING: initTime!=ca_time, "
-                  << "initTime = " << *initTime
-                  << ", ca_time = " << *ca_time
-                  << std::endl;
+        WarningInFunction
+            << "WARNING: initTime!=ca_time, "
+            << "initTime = " << *initTime
+            << ", ca_time = " << *ca_time
+            << endl;
     }
 
     if (argv != nullptr)
@@ -299,38 +294,31 @@ void comFoam::update_solution
     int* gmHandle
 )
 {
-    Info << "rocFoam.flowStepRocStar: Stepping flow solver."
-         << endl;
+    Info << solverType.c_str() << ": Stepping flow solver." << endl;
          
-    Info << "  bcHandle is "
+    std::stringstream output{};
+    output << "  bcHandle is "
          << std::string((*bcHandle < 0) ? ("not set") : ("set"))
-         << endl;
+         << std::endl
+         << "  gmHandle is "
+         << std::string((*gmHandle < 0) ? ("not set") : ("set"));
+    verbose_message(output.str());
 
-    Info << "  gmHandle is "
-         << std::string((*gmHandle < 0) ? ("not set") : ("set"))
-         << endl;
 
     if (*currentTime != *ca_time)
     {
-        Info << "  Flow solver time and the input time"
-             << " are not the same " << *ca_time 
-             << " vs " << *currentTime;
-
         std::ostringstream doubleToOs;
         doubleToOs << std::scientific 
                    << std::setprecision(IODigits);
         doubleToOs << std::abs(*ca_time - *currentTime);
 
-        Info << ", diff = " << doubleToOs.str() << endl;
+        output = std::stringstream{};
+        output << "  Flow solver time and the input time"
+             << " are not the same " << *ca_time 
+             << " vs " << *currentTime
+             << ", diff = " << doubleToOs.str();
+        verbose_message(output.str());
     }
-
-//MOVED TO SOLVER STEP METHOD
-//    if (*gmHandle >= 0)
-//    {
-//        double alpha{1};
-//        COM_call_function(*gmHandle, &alpha);
-//        updateSurfaceData_incoming();
-//    }
 
     step(timeStep, gmHandle);
     updateCSCdata();
@@ -338,34 +326,56 @@ void comFoam::update_solution
 
 void comFoam::finalize()
 {
-    Info << "rocFoam.finalize: "
-         << "Finalizing flow solver."
-         << endl;
+    Info << solverType.c_str() << ": Finalizing flow solver." << endl;
 
     finalizeFoam();
 }
 //-----------------------------------------------
 
+void comFoam::message(std::string message, bool parallel)
+{
+    if (!parallel)
+    {
+        if (ca_myRank == 0)
+        {
+            std::cout << message << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << message << std::endl;
+    }
+}
 
+void comFoam::verbose_message(std::string message, bool parallel)
+{
+#ifdef VERBOSE
+    if (!parallel)
+    {
+        if (ca_myRank == 0)
+        {
+            std::cout << message << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << message << std::endl;
+    }
+#endif
+}
 
 //^^^^^ REGISTER FUNCTIONS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 int comFoam::registerFunctions(const char *name)
 {
-    if (ca_myRank == 0)
-    {
-        std::cout << "rocFoam.flowRegister: "
-                  << "Registering flow functions with name "
-                  << name
-                  << std::endl;
-    }
-    
-    std::string winName = name;
+    Info << solverType.c_str() << ": Registering solver methods." << endl;
+
+    std::string winName_ = name;
 
     //  Register module with COM ^^^^^^^^^^^^^^^^^^^^^^^^^^
     comFoam *comFoamPtr = nullptr;
 
     //std::string name="ROCFOAM";
-    std::string objectName = winName+std::string(".object");
+    std::string objectName = winName_+std::string(".object");
     COM_get_object(objectName.c_str(), 0, &comFoamPtr);
 
     /// Register functions ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -374,7 +384,7 @@ int comFoam::registerFunctions(const char *name)
     types[0] = COM_RAWDATA;
     types[1] = COM_INT;
 
-    std::string functionName = winName+std::string(".flowInit");
+    std::string functionName = winName_+std::string(".flowInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -384,7 +394,7 @@ int comFoam::registerFunctions(const char *name)
         types
     );
 
-    functionName = winName+std::string(".flowLoop");
+    functionName = winName_+std::string(".flowLoop");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -394,7 +404,7 @@ int comFoam::registerFunctions(const char *name)
         types
     );
 
-    functionName = winName+std::string(".flowStep");
+    functionName = winName_+std::string(".flowStep");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -407,7 +417,7 @@ int comFoam::registerFunctions(const char *name)
 
     //types[0] = COM_RAWDATA;
     //types[1] = COM_VOID;
-    functionName = winName+std::string(".flowRestartInit");
+    functionName = winName_+std::string(".flowRestartInit");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -429,7 +439,7 @@ int comFoam::registerFunctions(const char *name)
         COM_STRING,       // win_vol
         COM_INT           // obtainHandle
     };
-    functionName = winName+std::string(".initialize");
+    functionName = winName_+std::string(".initialize");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -447,7 +457,7 @@ int comFoam::registerFunctions(const char *name)
         COM_INT,        // handle1
         COM_INT         // handle2
     };
-    functionName = winName+std::string(".update_solution");
+    functionName = winName_+std::string(".update_solution");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -461,7 +471,7 @@ int comFoam::registerFunctions(const char *name)
     {
         COM_RAWDATA // G
     };
-    functionName = winName+std::string(".finalize");
+    functionName = winName_+std::string(".finalize");
     COM_set_member_function
     (
         functionName.c_str(),
@@ -472,7 +482,7 @@ int comFoam::registerFunctions(const char *name)
     );
     //-----------------------------------------------------
 
-    COM_window_init_done(winName);
+    COM_window_init_done(winName_);
 
     return 0;
 }
