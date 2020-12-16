@@ -3,7 +3,7 @@ RocFOAM
 This project is a coupling module for OpenFOAM using IMPACT multiphysics coupling tool. 
 
 ## Version ##
-Version 1.0.3
+Version 1.0.4
 
 RocFOAM follows semantic versioning. The versions will be major.minor.patch.
 We will:
