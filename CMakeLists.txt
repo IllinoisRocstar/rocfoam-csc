@@ -6,7 +6,7 @@ project(RocFOAM CXX)
 
 set(RocFOAM_MAJOR_VERSION 1)
 set(RocFOAM_MINOR_VERSION 0)
-set(RocFOAM_PATCH_VERSION 1)
+set(RocFOAM_PATCH_VERSION 4)
 set(RocFOAM_EXTRA_VERSION "")
 set(RocFOAM_VERSION "${RocFOAM_MAJOR_VERSION}.${RocFOAM_MINOR_VERSION}")
 set(RocFOAM_VERSION "${RocFOAM_VERSION}.${RocFOAM_PATCH_VERSION}${RocFOAM_EXTRA_VERSION}")
@@ -37,6 +37,7 @@ include(GNUInstallDirs)
 # Setting configure options ####################################################
 
 option(ENABLE_TESTING "Enable Testing of RocFOAM." ON)
+option(ENABLE_VERBOSITY "Enable Verbosity of RocFOAM." OFF)
 
 # Setting compile and link options #############################################
 
@@ -139,7 +140,17 @@ set(RocFOAM_SRCS
     src/foam/rocFoam.C
     src/foam/comFoam.C
     src/foam/fileContainer.C
-    src/foam/surfaceDisplacementPointPatchVectorFieldFSI.C)
+    src/BCs/rocstarFSI.C
+    src/BCs/rocstarFSISolidBodyMotion.C
+
+    src/foam/statusMethods.C
+    src/foam/volumeMethods.C
+    src/foam/faceMethods.C
+    src/foam/surfaceMethods.C
+    src/foam/reconstMethods.C
+    src/foam/filesMethods.C
+    src/foam/zonesMethods.C
+    )
     
 set(rocrhopimple_SRCS
     ${RocFOAM_SRCS}
@@ -206,6 +217,10 @@ target_compile_definitions(rocrhopimple
         ${OPNF_COMPILE_DEFINITIONS}
 )
 
+if(ENABLE_VERBOSITY)
+  target_compile_definitions(rocrhopimple PUBLIC VERBOSE)
+endif()
+
 if(OF_VERSION EQUAL 20)
   target_compile_definitions(rocrhopimple PUBLIC HAVE_OFE20)
 elseif(OF_VERSION EQUAL 7)
@@ -260,6 +275,10 @@ target_compile_definitions(rocrhocentral
     PUBLIC
         ${OPNF_COMPILE_DEFINITIONS}
 )
+
+if(ENABLE_VERBOSITY)
+  target_compile_definitions(rocrhocentral PUBLIC VERBOSE)
+endif()
 
 if(OF_VERSION EQUAL 20)
   target_compile_definitions(rocrhocentral PUBLIC HAVE_OFE20)

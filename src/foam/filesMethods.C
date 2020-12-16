@@ -1,3 +1,5 @@
+#include "comFoam.H"
+
 int comFoam::readFilesData(const std::string& rootAddr)
 {
     std::string fullAddr=rootAddr;
@@ -69,23 +71,23 @@ void comFoam::readMeshDict(const dictionary& currentDict, bool& foundSolver)
 #endif
                 if (dynamicFvMesh.length() >= genCharSize)
                 {
-                    std::cout << "Warning:: genCharSize is not big enough,"
+                    FatalErrorInFunction
+                        << "Error:: genCharSize is not big enough,"
                             << " genCharSize = " << genCharSize
                             << " dynamicFvMesh.length() = "
                             << dynamicFvMesh.length()
-                            << std::endl;
-                    exit(-1);
+                            << nl << exit(FatalError);
                 }
 
-                for (size_t i=0; i<dynamicFvMesh.length(); i++)
+                for (size_t ii=0; ii<dynamicFvMesh.length(); ii++)
                 {
-                    ca_dynamicFvMeshType[i] = dynamicFvMesh[i];
+                    ca_dynamicFvMeshType[ii] = dynamicFvMesh[ii];
                 }
                 ca_dynamicFvMeshType[ dynamicFvMesh.length() ] = '\0';
 
-                for (size_t i=dynamicFvMesh.length()+1; i<genCharSize; i++)
+                for (size_t ii=dynamicFvMesh.length()+1; ii<genCharSize; ii++)
                 {
-                    ca_dynamicFvMeshType[i] = ' ';
+                    ca_dynamicFvMeshType[ii] = ' ';
                 }
             }
 
@@ -109,23 +111,23 @@ void comFoam::readMeshDict(const dictionary& currentDict, bool& foundSolver)
 
                     if (solver.length() >= genCharSize)
                     {
-                        std::cout << "Warning:: genCharSize is not big enough,"
+                        FatalErrorInFunction
+                                << "Error:: genCharSize is not big enough,"
                                 << " genCharSize = " << genCharSize
                                 << " solver.length() = "
                                 << solver.length()
-                                << std::endl;
-                        exit(-1);
+                                << nl << exit(FatalError);
                     }
 
-                    for (size_t i=0; i<solver.length(); i++)
+                    for (size_t ii=0; ii<solver.length(); ii++)
                     {
-                        ca_dynamicSolverType[i] = solver[i];
+                        ca_dynamicSolverType[ii] = solver[ii];
                     }
                     ca_dynamicSolverType[ solver.length() ] = '\0';
 
-                    for (size_t i=solver.length()+1; i<genCharSize; i++)
+                    for (size_t ii=solver.length()+1; ii<genCharSize; ii++)
                     {
-                        ca_dynamicSolverType[i] = ' ';
+                        ca_dynamicSolverType[ii] = ' ';
                     }
                 }
             }
@@ -164,6 +166,10 @@ int comFoam::createFilesData()
     createBoundaryFile(tmpFluidDir, vecFile);
     createConnectivityFiles(tmpFluidDir, vecFile);
 
+    createCellZonesFile(tmpFluidDir);
+    createFaceZonesFile(tmpFluidDir);
+    createPointZonesFile(tmpFluidDir);
+
     return 0;
 }
 
@@ -194,8 +200,10 @@ int comFoam::createSysConstFiles
             outpuFile << vecFile[ifile].content;
             outpuFile.close();
 
-            std::cout << "    " << fullAddr
-                      << " created." << std::endl;
+            std::stringstream output{};
+            output << "    " << fullAddr
+                    << " created.";
+            verbose_message(output.str(), true);
         }
     }
     
@@ -648,9 +656,12 @@ int comFoam::createFieldFiles
             //-----------------------------------
             else
             {
-                std::cout << "========== WARNING ===============" << std::endl
-                          << "Solution field for file " 
-                          << fileName << " is not found." << std::endl;
+                WarningInFunction
+                    << "========== WARNING ===============" << endl
+                    << "Solution field for file "
+                    << fileName << " is not found."
+                    << endl;
+
                 continue;
             }
             
@@ -1014,9 +1025,11 @@ int comFoam::createFieldFiles
                 {}
                 else
                 {
-                    std::cout << "========== WARNING ===============" << std::endl
-                              << "Boundary field for file " 
-                              << fileName << " is not found." << std::endl;
+                    WarningInFunction
+                        << "========== WARNING ===============" << endl
+                        << "Boundary field for file " 
+                        << fileName << " is not found."
+                        << endl;
                 }
             }
 
@@ -1033,8 +1046,10 @@ int comFoam::createFieldFiles
             outpuFile << content;
             outpuFile.close();
             
-            std::cout << "    " << fullAddr
-                      << " created." << std::endl;
+            std::stringstream output{};
+            output << "    " << fullAddr
+                    << " created.";
+            verbose_message(output.str(), true);
         }
     } 
     return 0;
@@ -1106,8 +1121,10 @@ int comFoam::createUniformTimeFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
-    std::cout << "    " << fullAddr
-              << " created." << std::endl;
+    std::stringstream output{};
+    output << "    " << fullAddr
+           << " created.";
+    verbose_message(output.str(), true);
 
     return 0;
 }
@@ -1177,9 +1194,10 @@ int comFoam::createPointsFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
-    std::cout << "    " << fullAddr
-              << " created." << std::endl;
-
+    std::stringstream output{};
+    output << "    " << fullAddr
+           << " created.";
+    verbose_message(output.str(), true);
 
     if (*ca_isDynamicFvMesh == 1)
     {
@@ -1217,8 +1235,10 @@ int comFoam::createPointsFile(const std::string& rootAddr)
         outpuFile << content;
         outpuFile.close();
 
-        std::cout << "    " << fullAddr
-                  << " created." << std::endl;
+        output = std::stringstream{};
+        output << "    " << fullAddr
+               << " created.";
+        verbose_message(output.str(), true);
     }
 
     return 0;
@@ -1298,8 +1318,10 @@ int comFoam::createOwnerFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
-    std::cout << "    " << fullAddr
-              << " created." << std::endl;
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
 
     return 0;
 }
@@ -1377,8 +1399,10 @@ int comFoam::createNeighborFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
-    std::cout << "    " << fullAddr
-              << " created." << std::endl;
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
 
     return 0;
 }
@@ -1441,8 +1465,10 @@ int comFoam::createFacesFile(const std::string& rootAddr)
 
         if (typeSelect == -1)
         {
-            std::cout << "========== WARNING ===============" << std::endl
-                      << "Face type not found." << std::endl;
+            WarningInFunction
+                << "========== WARNING ===============" << endl
+                << "Face type not found."
+                << endl;
         }
         int localFaceIndex = faceIndex - faceCountFloor;
         int npoints = ca_faceToPointConn_map[typeSelect];
@@ -1472,8 +1498,238 @@ int comFoam::createFacesFile(const std::string& rootAddr)
     outpuFile << content;
     outpuFile.close();
 
-    std::cout << "    " << fullAddr
-              << " created." << std::endl;
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
+int comFoam::createCellZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/cellZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      cellZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n";
+    int nCellZones = *ca_nCellZones;
+    content += std::to_string(nCellZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nCellZones; izone++)
+    {
+        content += cellZonesNameStr[izone] +"\n";
+        content += "{\n";
+        content += "    type " + cellZonesTypeStr[izone] + ";\n";
+        content += "cellLabels      List<label>\n";
+        
+        int listCount = ca_cellZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_cellZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+        content += "}\n\n";
+    }
+    content += ")\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
+int comFoam::createFaceZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/faceZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      faceZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n";
+    int nFaceZones = *ca_nFaceZones;
+    content += std::to_string(nFaceZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nFaceZones; izone++)
+    {
+        content += faceZonesNameStr[izone] +"\n";
+        content += "{\n";
+        content += "    type " + faceZonesTypeStr[izone] + ";\n";
+        content += "faceLabels      List<label>\n";
+        
+        int listCount = ca_faceZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_faceZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+
+        content += "flipMap      List<bool>\n";
+        content += std::to_string(listCount) + "\n(\n";
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_faceZonesFlipMap[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+
+        content += "}\n\n";
+    }
+    content += ")\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
+
+    return 0;
+}
+
+int comFoam::createPointZonesFile(const std::string& rootAddr)
+{
+    namespace BF = boost::filesystem;
+
+    std::string locaParAddr = "";
+    if (ca_nProc>1)
+    {
+        locaParAddr = "processor"+std::to_string(ca_myRank)+"/";
+    }
+    
+    std::string localDir = "constant/polyMesh";
+    std::string fullDir  = rootAddr+"/"+locaParAddr+localDir;
+    std::string fullAddr = fullDir+"/pointZones";
+
+    std::string
+    content  = "/*--------------------------------*- C++ -*----------------------------------*\\\n";
+    content += "  =========                 |\n";
+    content += "  \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox\n";
+    content += "   \\\\    /   O peration     | Website:  https://openfoam.org\n";
+    content += "    \\\\  /    A nd           | Version:  7\n";
+    content += "     \\\\/     M anipulation  |\n";
+    content += "\\*---------------------------------------------------------------------------*/\n";
+    content += "FoamFile\n{\n";
+    content += "    version     2.0;\n";
+    content += "    format      ascii;\n";
+    content += "    class       regIOobject;\n";
+    content += "    location    \""+localDir+"\";\n";
+    content += "    object      pointZones;\n}\n";
+    content += "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n";
+
+    content += "\n\n";
+    int nPointZones = *ca_nPointZones;
+    content += std::to_string(nPointZones);
+    content += "\n(\n";
+
+    for(int izone=0; izone<nPointZones; izone++)
+    {
+        content += pointZonesNameStr[izone] +"\n";
+        content += "{";
+        content += "    type " + pointZonesTypeStr[izone] + ";\n";
+        content += "pointLabels      List<label>\n";
+        
+        int listCount = ca_pointZonesCount[izone];
+        content += std::to_string(listCount) + "\n(\n";
+        
+        for(int index=0; index<listCount; index++)
+        {
+            content += std::to_string(ca_pointZonesList[izone][index]) + "\n";
+        }
+        content += ")\n;\n";
+        content += "}\n\n";
+    }
+    content += ")\n\n\n";
+    
+    content += "// ************************************************************************* //";
+
+    BF::path fullPath = fullDir;
+    BF::create_directories(fullPath);
+
+    std::ofstream outpuFile;
+    outpuFile.open(fullAddr);
+
+    outpuFile << content;
+    outpuFile.close();
+
+    std::stringstream output{};
+    output << "    " << fullAddr
+            << " created.";
+    verbose_message(output.str(), true);
 
     return 0;
 }
@@ -1535,10 +1791,11 @@ int comFoam::createBoundaryFile
                     }
                     else
                     {
-                        std::cout << "========== WARNING ===============" << std::endl
-                                  << "patchName " << patchName
-                                  << " not found." << std::endl;
-                        exit(-1);
+                        FatalErrorInFunction
+                               << "========== ERROR ===============" << endl
+                               << "patchName " << patchName
+                               << " not found."
+                               << nl << exit(FatalError);
                     }
                 }
  
@@ -1553,10 +1810,11 @@ int comFoam::createBoundaryFile
                    !(brckStart<=itemEnd && itemEnd<=brckEnd)
                    )
                 {
-                    std::cout << "========== WARNING ===============" << std::endl
-                              << "Patch " << patchName << "\'s nFaces limit"
-                              << " not found." << std::endl;
-                    exit(-1);
+                    FatalErrorInFunction
+                           << "========== ERROR ===============" << endl
+                           << "Patch " << patchName << "\'s nFaces limit"
+                           << " not found."
+                           << nl << exit(FatalError);
                 }
 
                 int length = itemEnd-itemStart;
@@ -1598,10 +1856,11 @@ int comFoam::createBoundaryFile
                    !(brckStart<=itemEnd && itemEnd<=brckEnd)
                    )
                 {
-                    std::cout << "========== WARNING ===============" << std::endl
-                              << "Patch " << patchName << "\'s startFace limit"
-                              << " not found." << std::endl;
-                    exit(-1);
+                    FatalErrorInFunction
+                           << "========== ERROR ===============" << endl
+                           << "Patch " << patchName << "\'s startFace limit"
+                           << " not found."
+                           << nl << exit(FatalError);
                 }
 
                 length = itemEnd-itemStart;
@@ -1639,8 +1898,10 @@ int comFoam::createBoundaryFile
             outpuFile << content;
             outpuFile.close();
 
-            std::cout << "    " << fullAddr
-                      << " created." << std::endl;
+            std::stringstream output{};
+            output << "    " << fullAddr
+                    << " created.";
+            verbose_message(output.str(), true);
         }
     } 
     return 0;
@@ -1671,11 +1932,11 @@ int comFoam::createConnectivityFiles
             fileName == "boundaryProcAddressing" ||
             fileName == "cellProcAddressing" ||
             fileName == "faceProcAddressing" ||
-            fileName == "pointProcAddressing"||
-
-            fileName  == "cellZones" || //should be directly generated
-            fileName  == "faceZones" || //should be directly generated
-            fileName  == "pointZones"   //should be directly generated
+            fileName == "pointProcAddressing"
+            //||
+            //fileName  == "cellZones" || //should be directly generated
+            //fileName  == "faceZones" || //should be directly generated
+            //fileName  == "pointZones"   //should be directly generated
            )
         {
             std::string content = vecFile[ifile].content;
@@ -1690,8 +1951,10 @@ int comFoam::createConnectivityFiles
             outpuFile << content;
             outpuFile.close();
 
-            std::cout << "    " << fullAddr
-                      << " created." << std::endl;
+            std::stringstream output{};
+            output << "    " << fullAddr
+                    << " created.";
+            verbose_message(output.str(), true);
         }
     } 
     return 0;
@@ -1708,18 +1971,30 @@ std::string comFoam::createBaseFile
 
     if (type!="Scalar" && type!="Vector")
     {
-        std::cout << "Watning: Invalid type \""
-                  << type << "\" sent to createBaseFile"
-                  << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+               << "Watning: Invalid type \""
+               << type << "\" sent to createBaseFile"
+               << nl << exit(FatalError);
+
+        /*std::stringstream output{};
+        output << "Watning: Invalid type \""
+               << type << "\" sent to createBaseFile";
+        message(output.str(), true);
+        exit(-1);*/
     }
 
     if (loc!="vol" && loc!="surface" && loc!="point")
     {
-        std::cout << "Watning: Invalid location \""
-                  << loc << "\" sent to createBaseFile"
-                  << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+            << "Watning: Invalid location \""
+            << loc << "\" sent to createBaseFile"
+            << nl << exit(FatalError);
+
+        /*std::stringstream output{};
+        output << "Watning: Invalid location \""
+               << loc << "\" sent to createBaseFile";
+        message(output.str(), true);
+        exit(-1);*/
     }
 
 
@@ -1831,30 +2106,38 @@ int comFoam::registerFilesData(const char *name)
 {
     std::string volName = name+std::string("VOL");
     
-    std::cout << "rocFoam.registerFilesData: "
-               << "Registering flow data with name "
-               << volName
-               << std::endl;
+    std::stringstream output{};
+    output << "rocFoam.registerFilesData: "
+           << "Registering flow data with name "
+           << volName;
+    verbose_message(output.str(), true);
 
     int paneID = ca_myRank+1;// Use this paneID for file data
 
-    std::cout << "procID = " << ca_myRank
-              << ", paneID = " << paneID
-              << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
-
+    output = std::stringstream{};
+    output << "procID = " << ca_myRank
+           << ", paneID = " << paneID
+           << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+    verbose_message(output.str(), true);
 
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = volName+std::string(".nFiles");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nFiles);
-    std::cout << "  " << dataName << " registered." << std::endl;
-    
+
+    output = std::stringstream{};
+    output << "  " << dataName << " registered.";
+    verbose_message(output.str(), true);
+
     dataName = volName+std::string(".fileSize");
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, *ca_nFiles);
     COM_set_array(    dataName, paneID, ca_fileSize);
-    //std::cout << dataName << " registered." << std::endl;
+
+    output = std::stringstream{};
+    output << dataName << " registered.";
+    verbose_message(output.str(), true);
 
     // Register file paths
     for (int ifile=0; ifile<*ca_nFiles; ifile++)
@@ -1866,7 +2149,10 @@ int comFoam::registerFilesData(const char *name)
         COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_filePath[ifile]);
-        //std::cout << dataName << " registered." << std::endl;
+
+        output = std::stringstream{};
+        output << dataName << " registered.";
+        verbose_message(output.str(), true);
     }
 
     // Register file names
@@ -1879,10 +2165,12 @@ int comFoam::registerFilesData(const char *name)
         COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_fileName[ifile]);
-        //std::cout << "  File "
-        //          << ca_filePath[ifile]<<"/"<<ca_fileName[ifile]
-        //          << " registered."
-        //          << std::endl;
+
+        output = std::stringstream{};
+        output << "  File "
+               << ca_filePath[ifile]<<"/"<<ca_fileName[ifile]
+               << " registered.";
+        verbose_message(output.str(), true);
     }
 
     // Register file contents
@@ -1895,19 +2183,24 @@ int comFoam::registerFilesData(const char *name)
         COM_new_dataitem( dataName, 'p', COM_CHAR, 1, "");
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_fileContent[ifile]);
-        //std::cout << dataName << " registered." << std::endl;
+
+        output = std::stringstream{};
+        output << dataName << " registered.";
+        verbose_message(output.str(), true);
     }
 
     for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "  procID = " << ca_myRank
-                  << ", " << ca_filePath[ifile]
-                  << "/" << ca_fileName[ifile]
-                  << " registered." << std::endl;
+        output = std::stringstream{};
+        output << "  procID = " << ca_myRank
+               << ", " << ca_filePath[ifile]
+               << "/" << ca_fileName[ifile];
+        verbose_message(output.str(), true);
     }
 
-    std::cout << "----------------------------------------------------"
-              << std::endl;
+    output = std::stringstream{};
+    output << "----------------------------------------------------";
+    verbose_message(output.str(), true);
 
     COM_window_init_done(volName);
 
@@ -1917,18 +2210,23 @@ int comFoam::registerFilesData(const char *name)
 int comFoam::reconstFilesData(const char *name)
 {
     std::string volName = name+std::string("VOL");
-    std::cout << "rocFoam.reconstructInitFiles, procID = "
-              << ca_myRank
-              << ", Retreiving file data form window "
-              << volName << "."
-              << std::endl;
+
+    std::stringstream output{};
+    output << "rocFoam.reconstructInitFiles, procID = "
+           << ca_myRank
+           << ", Retreiving file data form window "
+           << volName << ".";
+    verbose_message(output.str(), true);
 
     int paneID = ca_myRank+1;// Use this paneID for files
 
     std::string regNames;
     int numDataItems=0;
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
-    //std::cout << "  numDataItems = " << numDataItems << std::endl;
+
+    output = std::stringstream{};
+    output << "  numDataItems = " << numDataItems;
+    verbose_message(output.str(), true);
 
     std::vector<std::string> dataItemNames;
     dataItemNames.clear();
@@ -1945,15 +2243,21 @@ int comFoam::reconstFilesData(const char *name)
             dataItemNames.push_back(nameTmp);
         }
     }
-    std::cout << "  Number of items = " << dataItemNames.size()
-              << std::endl << std::endl;
+
+    output = std::stringstream{};
+    output << "  Number of items = " << dataItemNames.size()
+           << std::endl;
+    verbose_message(output.str(), true);
 
     // Genral file data ^^^^^^^^^^^^^^^^^^^^^^^^
     std::string dataName = std::string("nFiles");
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_nFiles);
-    std::cout << "  " << dataName.c_str() << " = " << *ca_nFiles << std::endl;
+
+    output = std::stringstream{};
+    output << "  " << dataName.c_str() << " = " << *ca_nFiles;
+    verbose_message(output.str(), true);
 
     dataName = std::string("fileSize");
     nameExists(dataItemNames, dataName);
@@ -1992,33 +2296,24 @@ int comFoam::reconstFilesData(const char *name)
 
         if (nComp != ca_fileSize[ifile]+1)
         {
-            std::cout << " Warning: Registered and retrieved sizes of file"
-                      << ca_fileName[ifile] << " do not match:"
-                      << " fileSize = " << ca_fileSize[ifile]+1
-                      << " nComp = " << nComp << std::endl;
+            WarningInFunction
+                   << " Warning: Registered and retrieved sizes of file"
+                   << ca_fileName[ifile] << " do not match:"
+                   << " fileSize = " << ca_fileSize[ifile]+1
+                   << " nComp = " << nComp
+                   << endl;
         }
     }
 
     // Register file status ^^^^^^^^^^^^^^^^^^^^^
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        std::cout << "    file[" << ifile << "], "
-                  << " path = " << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] << ", "
-                  << " size = " << ca_fileSize[ifile] 
-                  << " retreived." << std::endl;
-        /*
-        std::cout << "    fileName[" << ifile << "] = "
-                  << vecFile[ifile].name.c_str() << std::endl;
-
-        std::cout << "    filePath[" << ifile << "] = "
-                  << vecFile[ifile].path.c_str() << std::endl;
-
-        std::cout << "    fileSize[" << ifile << "] = "
-                  << vecFile[ifile].size << std::endl;
-
-        std::cout << "    fileContent[" << ifile << "] = \n"
-                  << vecFile[ifile].content << std::endl;
-        */
+        output = std::stringstream{};
+        output << "    file[" << ifile << "], "
+               << " path = " << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] << ", "
+               << " size = " << ca_fileSize[ifile] 
+               << " retreived.";
+        verbose_message(output.str(), true);
     }
     //-------------------------------------------
 
@@ -2085,9 +2380,10 @@ int comFoam::readRecursive
                     std::ifstream inputFile(localPath.string());
                     if (!inputFile.good())
                     {
-                        std::cout << "Warnning: possibly " 
-                                  << localPath.string() << " does not exist."
-                                  << std::endl;
+                        std::stringstream output{};
+                        output << "Warnning: possibly " 
+                               << localPath.string() << " does not exist.";
+                        message(output.str(), true);
                     }
                     else
                     {
@@ -2107,10 +2403,14 @@ int comFoam::readRecursive
                         
                         vecFile.push_back(tmpFile);
 
-                        //std::cout << vecFile[fileCount].name << std::endl;
-                        //std::cout << vecFile[fileCount].path << std::endl;
-                        //std::cout << vecFile[fileCount].size << std::endl;
-                        //std::cout << vecFile[fileCount].content << std::endl;
+                        std::stringstream output{};
+                        output << "    file[" << fileCount << "], "
+                               << " path = " << vecFile[fileCount].path
+                               << "/"
+                               << vecFile[fileCount].name << ", "
+                               << " size = " << vecFile[fileCount].size 
+                               << " read.";
+                        verbose_message(output.str(), true);
 
                         if (content != NULL)
                         {
@@ -2119,35 +2419,14 @@ int comFoam::readRecursive
                         }
 
                         fileCount++;
-
-                        /*
-                        if (tmpFile.name == "pointDisplacement")
-                        {
-                            fileContainer tmpFile_;
-                            tmpFile_.name = fileName+"New";
-                            tmpFile_.path = localAddr;
-                            tmpFile_.size = size;
-                            tmpFile_.content = tmpFile.content;
-
-                            std::ofstream newFile;
-                            newFile.open(fullAddr+"New",
-                                         std::ofstream::trunc);
-                            newFile << tmpFile_.content;
-                            newFile.close();
-
-                            vecFile.push_back(tmpFile_);
-
-                            fileCount++;
-                        }
-                        */
                     }
                 }
             }
             else if (BF::is_directory(fullPath))
             {
-                for (auto x : BF::directory_iterator(fullPath))
+                for (BF::directory_iterator x(fullPath); x != BF::directory_iterator(); ++x)
                 {
-                    BF::path newPath=x.path();
+                    BF::path newPath=x->path();
                     std::string neWaddr = BF::canonical(newPath).string();
                     readRecursive(locaParAddr, neWaddr, vecFile, fileCount);
                 }
@@ -2155,20 +2434,26 @@ int comFoam::readRecursive
             else
             {
                 std::string fileName = BF::canonical(fullPath).string();
-                std::cout << fileName
-                          << " exists, but is not a regular file or directory"
-                          << std::endl;
+
+                std::stringstream output{};
+                output << fileName
+                       << " exists, but is not a regular file or directory";
+                message(output.str(), true);
             }
         }
         else
         {
-            std::cout << fullPath << " does not exist" << std::endl;
+            std::stringstream output{};
+            output << fullPath << " does not exist";
+            message(output.str(), true);
         }
     }
 
     catch (const BF::filesystem_error& ex)
     {
-        std::cout << ex.what() << std::endl;
+        std::stringstream output{};
+        output << ex.what();
+        message(output.str(), true);
     }
     
     return 0;
@@ -2206,11 +2491,11 @@ bool comFoam::fileShouldBeRead
             fileName  == "boundaryProcAddressing" ||
             fileName  == "cellProcAddressing" ||
             fileName  == "faceProcAddressing" ||
-            fileName  == "pointProcAddressing" ||
-            
-            fileName  == "cellZones" || //should be directly generated
-            fileName  == "faceZones" || //should be directly generated
-            fileName  == "pointZones"   //should be directly generated
+            fileName  == "pointProcAddressing"
+            //||
+            //fileName  == "cellZones" || //should be directly generated
+            //fileName  == "faceZones" || //should be directly generated
+            //fileName  == "pointZones"   //should be directly generated
             ) addFile = true;
 
     }
@@ -2242,11 +2527,11 @@ bool comFoam::fileShouldBeRead
                 fileName  == "boundaryProcAddressing" ||
                 fileName  == "cellProcAddressing" ||
                 fileName  == "faceProcAddressing" ||
-                fileName  == "pointProcAddressing" ||
-                
-                fileName  == "cellZones" || //should be directly generated
-                fileName  == "faceZones" || //should be directly generated
-                fileName  == "pointZones"   //should be directly generated
+                fileName  == "pointProcAddressing"
+                //||
+                //fileName  == "cellZones" || //should be directly generated
+                //fileName  == "faceZones" || //should be directly generated
+                //fileName  == "pointZones"   //should be directly generated
                 ) addFile = true;
         }
     }
@@ -2325,13 +2610,13 @@ int comFoam::findGlobalIndex(int* arr, const int& size,  const int& elem)
     }
     else
     {
-        std::cout << "========== WARNING ===============" << std::endl
-                  << "Element is not found." << std::endl;
+        WarningInFunction
+               << "========== WARNING ==============="<< endl
+               << "Element is not found."
+               << endl;
     }
     return index;
 }
-
-
 
 size_t comFoam::findChar
 (
@@ -2345,12 +2630,14 @@ size_t comFoam::findChar
     size_t expStart = content.find(exp, startPos);
     if (expStart==std::string::npos || expStart>endPos)
     {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword"
-                  << " in the range "+std::to_string(startPos)
-                  << " and "+std::to_string(endPos)
-                  << " in file "
-                  << fullAddr << std::endl;
+        WarningInFunction
+               << "Warning: Cannot find \""
+               << exp+"\" keyword"
+               << " in the range "+std::to_string(startPos)
+               << " and "+std::to_string(endPos)
+               << " in file "
+               << fullAddr
+               << endl;
     }
 
     return expStart;
@@ -2402,22 +2689,25 @@ size_t comFoam::findWord
 
     if (count == 0)
     {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file "
-                 << fullAddr << std::endl;
+        WarningInFunction
+            << "Warning: Cannot find \""
+            << exp+"\" keyword in file "
+            << fullAddr
+            << endl;
          //exit(-1);
     }
     else if (count > 1)
     {
-        std::cout << "Warning: Found more than one \""
-                  << exp+"\" keyword in file "
-                    << fullAddr << std::endl;
+        WarningInFunction
+            << "Warning: Found more than one \""
+            << exp+"\" keyword in file "
+            << fullAddr
+            << endl;
         //exit(-1);
     }
 
     return firstLoc;
 }
-
 
 size_t comFoam::findWordOnly
 (
@@ -2462,17 +2752,18 @@ size_t comFoam::findWordOnly
 
     if (count == 0)
     {
-        std::cout << "Warning: Cannot find \""
-                  << exp+"\" keyword in file "
-                 << fullAddr << std::endl;
-         exit(-1);
+        FatalErrorInFunction
+            << "Cannot find \""
+            << exp+"\" keyword in file "
+            << fullAddr << nl << exit(FatalError);
     }
     else if (count > 1)
     {
-        std::cout << "Warning: Found more than one \""
-                  << exp+"\" keyword in file "
-                    << fullAddr << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+               << "Found more than one \""
+               << exp+"\" keyword in file "
+               << fullAddr
+               << nl << exit(FatalError);
     }
 
     return firstLoc;

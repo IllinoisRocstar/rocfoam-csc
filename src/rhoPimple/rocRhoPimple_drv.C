@@ -115,15 +115,10 @@ int comDrvInit(int argc, char *argv[])
 
     if (myRank==0)
     {
-        std::cout << "rocRhoPimpleDrv: Setting up communicator..."
-                  << std::endl;
-
-        std::cout << "rocRhoPimpleDrv:Rank " << myRank
-                  << ", NProc = " << nProcs
+        std::cout << "rocRhoPimpleDrv: "
+                  << "NProcs = " << nProcs
                   << ", COMM = " << masterComm
                   << std::endl;
-
-        std::cout << std::endl;
     }
 
     COM_init(&argc, &argv);
@@ -198,7 +193,6 @@ int comDrvInit(int argc, char *argv[])
         exit(-1);
     }
 
-
     if (runParallel && nProcs > 1)
     {
         if (myRank==0)
@@ -210,12 +204,9 @@ int comDrvInit(int argc, char *argv[])
     else if (!runParallel && nProcs > 1)
     {
         if (myRank==0)
-        {
             std::cout << "rocRhoPimpleDrv: NProc>1 detected for a serial job."
                       << std::endl;
-            return -1;
-        }    
-    
+        return -1;
     }
     else
     {
@@ -227,7 +218,6 @@ int comDrvInit(int argc, char *argv[])
                       << solverType << "." << std::endl;
         }
     }
-    if (myRank==0) std::cout << std::endl;
 
     return 0;
 }
@@ -265,8 +255,11 @@ int comDrvStart(int argc, char *argv[])
 int comDrvOutput(std::string winName_, std::string suffix_)
 {
     std::string winName{winName_};
-    std::cout << "Writing data windows with the base name "
-              << winName << std::endl;
+
+    if (myRank==0)
+        std::cout << "Writing data windows with the base name "
+                << winName << std::endl;
+
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
     int OUT_write = COM_get_function_handle("OUT.write_dataitem");
     for (int count=0; count<2; count++)
@@ -294,21 +287,21 @@ int comDrvOutput(std::string winName_, std::string suffix_)
             if (myRank == 0)
             {
                 std::string a = "rm -r " + path;
-                int status = system(a.c_str());
 
-                if (status == 0)
+                /*int status_ = system(a.c_str());
+                if (status_ == 0)
                     std::cout << "Warning: The following command is not available"
                               << std::endl
                               << "\" " << a.c_str() << " \""
-                              << std::endl;
+                              << std::endl;*/
             }
             MPI_Barrier(newComm);
         }
 
         std::string fullPath = path + targetName+std::string("_");
-        std::cout << "  Target window = " << lookUpWindow << std::endl;
-        std::cout << "  What to write = " << whatToWrite << std::endl;
-        std::cout << "  Path = " << fullPath << std::endl;
+        //std::cout << "  Target window = " << lookUpWindow << std::endl;
+        //std::cout << "  What to write = " << whatToWrite << std::endl;
+        //std::cout << "  Path = " << fullPath << std::endl;
 
         char* outputPath = new char[40]{};
         std::strcpy(outputPath, fullPath.c_str());
@@ -340,9 +333,9 @@ int comDrvOutput(std::string winName_, std::string suffix_)
         delete [] timeName;
         timeName = nullptr;
 
-        std::cout << "File "
+        /*std::cout << "File "
                   << fullPath << " created."
-                  << std::endl;
+                  << std::endl;*/
 
         // Creating text files for SimIO using input files
         std::string attrFile;
@@ -391,17 +384,17 @@ int comDrvOutput(std::string winName_, std::string suffix_)
             {
                 outpuFile.open(fullPath, std::ofstream::trunc);
 
-                std::cout << "File "
+                /*std::cout << "File "
                           << fullPath << " created."
-                          << std::endl;
+                          << std::endl;*/
             }
             else
             {
                 outpuFile.open(fullPath, std::ofstream::app);
 
-                std::cout << "File "
+                /*std::cout << "File "
                           << fullPath << " appended."
-                          << std::endl;
+                          << std::endl;*/
             }
             
             outpuFile << content;
@@ -410,7 +403,7 @@ int comDrvOutput(std::string winName_, std::string suffix_)
     }
 
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimOUT, "OUT");
-    std::cout << "Unloaded SIMOUT" << std::endl;
+    //std::cout << "Unloaded SIMOUT" << std::endl;
 
     return 0;
 }
@@ -421,7 +414,9 @@ int comDrvRestart(int argc, char *argv[])
     std::string winName = "ROCFOAM";
 
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    std::cout << "Reading data windows" << std::endl;
+    if (myRank==0)
+        std::cout << "Reading data windows" << std::endl;
+
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
     //int IN_read = COM_get_function_handle("IN.read_window");
     int IN_read = COM_get_function_handle("IN.read_by_control_file");
@@ -454,18 +449,13 @@ int comDrvRestart(int argc, char *argv[])
                           + winName+"/";
 
         std::string fullPath = path+targetName;
-                  
-//        std::ostringstream intToOs;
-//        intToOs << std::setw(4) << std::setfill('0');
-//        intToOs << myRank;
-//        std::string whatToRead = fullPath + intToOs.str() + "*";
 
         std::string whatToRead = fullPath; //+ "*";
 
-        std::cout << "Proc " << myRank << ": "
+        /*std::cout << "Proc " << myRank << ": "
                   << "Begin reading "
                   << whatToRead << "."
-                  << std::endl;
+                  << std::endl;*/
 
         COM_call_function
         (
@@ -475,13 +465,13 @@ int comDrvRestart(int argc, char *argv[])
             &newComm
         );
 
-        std::cout << "Proc " << myRank << ": "
+        /*std::cout << "Proc " << myRank << ": "
                   << "Finished reading "
                   << whatToRead << "."
-                  << std::endl;
+                  << std::endl;*/
     }
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
-    std::cout << "Unloaded SimIN" << std::endl;
+    //std::cout << "Unloaded SimIN" << std::endl;
 
     winNames.push_back(winName);
 
@@ -524,8 +514,10 @@ int comDrvRestart_Rocstar()
     });
     
     //  Fluid initializer ^^^^^^^^^^^^^^^^^^^^^^^
-    std::cout << "Reading data window with the base name "
-              << winNameOld << std::endl;
+    if (myRank==0)
+        std::cout << "Reading data window with the base name "
+                << winNameOld << std::endl;
+
     COM_LOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
     //int IN_read = COM_get_function_handle("IN.read_window");
     int IN_read = COM_get_function_handle("IN.read_by_control_file");
@@ -556,7 +548,7 @@ int comDrvRestart_Rocstar()
                           + winName+"/";
 
         std::string fullPath = path+targetName;
-        std::cout << "Reading file " << fullPath << std::endl;
+        //std::cout << "Reading file " << fullPath << std::endl;
 
         std::string whatToRead = fullPath;
 
@@ -568,12 +560,12 @@ int comDrvRestart_Rocstar()
             &newComm
         );
 
-        std::cout << "Finished reading "
+        /*std::cout << "Finished reading "
                   << whatToRead << " window."
-                  << std::endl;
+                  << std::endl;*/
     }
     COM_UNLOAD_MODULE_STATIC_DYNAMIC(SimIN, "IN");
-    std::cout << "Unloaded SimIN" << std::endl;
+    //std::cout << "Unloaded SimIN" << std::endl;
 
     winNames.push_back(winName);
     
@@ -622,7 +614,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -631,7 +623,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     //  Get the handle for the loop function ^^^^^^^^^^^^^^
     functionName = winName+string(".flowLoop");
@@ -644,7 +636,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -653,7 +645,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     //  Get the handle for the step function ^^^^^^^^^^^^^^
     functionName = winName+string(".flowStep");
@@ -666,7 +658,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -675,7 +667,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     //  Get the handle for the step function ^^^^^^^^^^^^^^
     functionName = winName+string(".flowRestartInit");
@@ -689,7 +681,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -698,7 +690,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     functionName = winName+string(".initialize");
     intTmp = COM_get_function_handle(functionName.c_str());
@@ -710,7 +702,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -719,7 +711,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     functionName = winName+string(".update_solution");
     intTmp = COM_get_function_handle(functionName.c_str());
@@ -731,7 +723,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -740,7 +732,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     functionName = winName+string(".finalize");
     intTmp = COM_get_function_handle(functionName.c_str());
@@ -752,7 +744,7 @@ int comGetFunctionHandles(const char *name)
                   << std::endl;
         exit(-1);
     }
-    else
+    /*else
     {
         if (myRank==0)
         {
@@ -761,7 +753,7 @@ int comGetFunctionHandles(const char *name)
                   << ", handle = " << intTmp
                   << std::endl;
         }
-    }
+    }*/
 
     return 0;
 }
@@ -776,7 +768,9 @@ int comGetRunStatItems(const char *name)
          
     std::string output;
     COM_get_dataitems(volName.c_str(), &numDataItems, output);
-    Info << "  numDataItems = " << numDataItems << endl;
+
+    Info << "Simulation status" << endl;
+    //Info << "  numDataItems = " << numDataItems << endl;
 
     std::istringstream Istr(output);
     dataItemNames.clear();
@@ -793,8 +787,7 @@ int comGetRunStatItems(const char *name)
     std::string dataName = string("time");
     std::string regName = volName+string(".")+dataName;
     bool ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
+                      dataItemNames.end(), dataName) != dataItemNames.end());
     if (ifCorrect)
     {
         COM_get_array(regName.c_str(), 0, &fluidTime);
@@ -804,8 +797,7 @@ int comGetRunStatItems(const char *name)
     dataName = string("deltaT");
     regName = volName+string(".")+dataName;
     ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
+                 dataItemNames.end(), dataName) != dataItemNames.end());
     if (ifCorrect)
     {
         COM_get_array(regName.c_str(), 0, &fluidDeltaT);
@@ -815,8 +807,7 @@ int comGetRunStatItems(const char *name)
     dataName = string("runStat");
     regName = volName+string(".")+dataName;
     ifCorrect = (std::find(dataItemNames.begin(),
-                                dataItemNames.end(), dataName)
-                                != dataItemNames.end());
+                 dataItemNames.end(), dataName) != dataItemNames.end());
     if (ifCorrect)
     {
         COM_get_array(regName.c_str(), 0, &fluidRun);

@@ -6,6 +6,9 @@
 #include "directionInterpolate.H"
 #include "fixedRhoFvPatchScalarField.H"
 #include "psiThermo.H"
+#ifdef HAVE_OFE20
+    #include "motionSolver.H"
+#endif
 
 class rhoCentral : public comFoam
 {

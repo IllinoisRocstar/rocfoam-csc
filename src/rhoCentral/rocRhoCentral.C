@@ -34,31 +34,34 @@ void rhoCentral::load(const char *name)
     
     if (tmpRank == 0)
     {
-        std::cout << "rocFoam.load: Loading rocRhoCentral with name "
-                   << name << "." << std::endl;
+        std::cout << "rocRhoCentral: Loading ..." << std::endl;
 
-        std::cout << "rocFoam.load: Rank = " << tmpRank
+#ifdef VERBOSE
+        std::cout << "rocRhoCentral: Rank = " << tmpRank
                   << ", NProc = " << tmpNProc
                   << ", COMM = " << tmpComm << std::endl;
 
         std::cout << std::endl;
+#endif
     }
 
     std::string winName = name;
     int winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
-        std::cout << "WARNING: Window " << winName << " already exists."
-                  << " CSC must create this window name."
-                  << std::endl;
-        exit(-1);
+        FatalErrorInFunction
+            << "Error: Window " << winName << " already exists."
+            << " CSC must create this window name."
+            << nl << exit(FatalError);
     }
     else
     {
         COM_new_window(winName, tmpComm);
 
-        Info << "rocFoam.load: Window " << winName
-             << " created." << endl;
+#ifdef VERBOSE
+        std::cout << "rocRhoCentral: Window " << winName
+             << " created." << std::endl;
+#endif
     }
 
     // Register object ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,16 +85,18 @@ void rhoCentral::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
                   << std::endl;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoCentral: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -101,16 +106,18 @@ void rhoCentral::load(const char *name)
     winExist = COM_get_window_handle(winName.c_str());
     if (winExist>0)
     {
+#ifdef VERBOSE
         std::cout << "Window " << winName << " already exists."
                   << " Assure that there is nothing wrong with it."
                   << std::endl;
+#endif
     }
     else
     {
         COM_new_window(winName, tmpComm);
         COM_window_init_done(winName);
 
-        Info << "rocFoam.load: Window " << winName
+        Info << "rocRhoCentral: Window " << winName
              << " created." << endl;
     }
     //-------------------------------------------
@@ -123,8 +130,7 @@ void rhoCentral::load(const char *name)
 //^^^^^ UNLOAD MODULES ^^^^^^^^^^^^^^^^^^^^^^^^^^
 void rhoCentral::unload(const char *name)
 {
-    Foam::Info << "rocFoam.unload: Unloading rocRhoCentral with name "
-               << name << "." << Foam::endl;
+    Foam::Info << "rocRhoCentral: Unloading..." << Foam::endl;
 
     std::string winName = name+std::string("VOL");
     int winExist = COM_get_window_handle(winName.c_str());
@@ -166,19 +172,14 @@ int rhoCentral::initFOAM(int argc, char *argv[])
     argList::addNote
     (
         "Density-based compressible flow solver based on central-upwind"
-        " schemes of Kurganov and Tadmor."
+        " schemes of Kurganov and Tadmor.\n"
+        "With support for mesh-motion and topology changes."
     );
 #endif
 
     //  postProcess.H
     PostProcess(argc, argv);
     // --------------
-
-#ifdef HAVE_OFE20
-    //  addCheckCaseOptions.H
-    addCheckCaseOptions();
-    // ----------------------
-#endif
 
     //  setRootCaseLists.H
     setRootCaseLists();
@@ -265,22 +266,21 @@ int rhoCentral::loop()
 
     while (runTime.run())
     {
-#if defined(HAVE_OF7) || defined(HAVE_OF8)
         //  readTimeControls.H
         readTimeControls();
         // -------------------
 
-        if (!LTS)
+        if (!LTS) // Not in rhoCentralDyMFoam, included for completeness
         {
             //  setDeltaT.H
             setDeltaT();
             // ------------
-            runTime++;
 
-            // Do any mesh changes
-            mesh.update();
+            runTime++;
         }
-#endif
+
+        // Do any mesh changes
+        mesh.update();
 
         // --- Directed interpolation of primitive fields onto faces
         surfaceScalarField rho_pos(interpolate(rho, pos));
@@ -305,16 +305,17 @@ int rhoCentral::loop()
         surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
-#ifdef HAVE_OFE20
-        phiv_pos.setOriented(false);
-        phiv_neg.setOriented(false);
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make fluxes relative to mesh-motion
         if (mesh.moving())
         {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
+
+#ifdef HAVE_OFE20
+        // Note: extracted out the orientation so becomes unoriented
+        phiv_pos.setOriented(false);
+        phiv_neg.setOriented(false);
 #endif
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
@@ -382,34 +383,13 @@ int rhoCentral::loop()
         centralCourantNo();
         // -------------------
 
-#ifdef HAVE_OFE20
-        //  readTimeControls.H
-        readTimeControls();
-        // -------------------
-
-        if (LTS)
-        {
-            // setRDeltaT.H
-            setRDeltaT();
-            // ------------
-        }
-        else
-        {
-            //  setDeltaT.H
-            setDeltaT();
-            // ------------
-        }
-
-        ++runTime;
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
-        if (LTS)
+        if (LTS) // Not in rhoCentralDyMFoam, included for completeness
         {
             // setRDeltaT.H
             setRDeltaT();
             // ------------
             runTime++;
         }
-#endif
 
         Info << "Time = " << runTime.timeName() << nl << endl;
 
@@ -438,13 +418,18 @@ int rhoCentral::loop()
             aSf * p_pos - aSf * p_neg
         );
 
-#if defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make flux for pressure-work absolute
         if (mesh.moving())
         {
+#ifdef HAVE_OFE20
+            surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
+            phia.setOriented(true);
+
+            phiEp += mesh.phi()*phia;
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
             phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
-        }
 #endif
+        }
 
         volScalarField muEff("muEff", turbulence.muEff());
         volTensorField tauMC("tauMC", muEff * dev2(Foam::T(fvc::grad(U))));
@@ -566,7 +551,7 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
     surfaceScalarField &neg(*negPtr);
     surfaceScalarField &phi(*phiPtr);
     Foam::psiThermo &thermo(*pThermoPtr);
-#if defined(HAVE_OFE20)
+#ifdef HAVE_OFE20
     compressible::turbulenceModel& turbulence(*turbulencePtr);
 #elif defined(HAVE_OF7)
     compressible::turbulenceModel& turbulence(*turbulencePtr);
@@ -608,7 +593,6 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             runTime.controlDict().lookup("adjustTimeStep");
         }
 
-#if defined(HAVE_OF7) || defined(HAVE_OF8)
         //  readTimeControls.H
         readTimeControls();
         // -------------------
@@ -634,9 +618,13 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                 else if (expectedTime > mandatedTime)
                 {
                     double newDeltaT = mandatedTime - flowCurTime;
-                    
-                    // HAVE_OF7 || HAVE_OF8
+
+#ifdef HAVE_OFE20
+                    bool adjust{false};
+                    runTime.setDeltaT(newDeltaT, adjust);
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
                     runTime.setDeltaTNoAdjust(newDeltaT);
+#endif
 
                     Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
                          << endl;
@@ -668,11 +656,15 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
                     if (*gmHandle >= 0)
                     {
                         COM_call_function(*gmHandle, &alpha);
-
-                        updateSurfaceData_incoming(count);
-
-                        Info << " alpha = " << alpha << endl;
                     }
+                    else
+                    {
+                        WarningInFunction
+                            << "Warning:  gmHandle<=0, so no data is received."
+                            << endl;
+                    }
+                    updateSurfaceData_incoming(count);
+                    Info << "alpha = " << alpha << endl;
                 }
             }
             else
@@ -683,8 +675,9 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
             if (runTime.deltaTValue() < 0)
             {
-                Info << "Unphysical deltaT. Exiting the simulation" << endl;
-                exit(-1);
+                FatalErrorInFunction
+                    << "Unphysical deltaT. Exiting the simulation"
+                    << nl << exit(FatalError);
             }
 
             runTime++;
@@ -692,7 +685,6 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             // Do any mesh changes
             mesh.update();
         }
-#endif
 
         // --- Directed interpolation of primitive fields onto faces
         surfaceScalarField rho_pos(interpolate(rho, pos));
@@ -717,16 +709,17 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh.Sf());
         surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh.Sf());
 
-#ifdef HAVE_OFE20
-        phiv_pos.setOriented(false);
-        phiv_neg.setOriented(false);
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make fluxes relative to mesh-motion
         if (mesh.moving())
         {
             phiv_pos -= mesh.phi();
             phiv_neg -= mesh.phi();
         }
+
+#ifdef HAVE_OFE20
+        // Note: extracted out the orientation so becomes unoriented
+        phiv_pos.setOriented(false);
+        phiv_neg.setOriented(false);
 #endif
 
         volScalarField c("c", sqrt(thermo.Cp() / thermo.Cv() * rPsi));
@@ -794,106 +787,16 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
         centralCourantNo();
         // --------------------------------------
 
-#ifdef HAVE_OFE20
-        //  readTimeControls.H
-        readTimeControls();
-        // -------------------
-
-        if (LTS)
-        {
-            // setRDeltaT.H
-            setRDeltaT();
-            // ------------
-        }
-        else
-        {
-            //  setDeltaT.H
-            setDeltaT();
-            // ------------
-
-            double flowDeltaT = runTime.deltaTValue();
-            double flowCurTime = runTime.value();
-            double expectedTime = flowCurTime + flowDeltaT;
-            
-            if (incomingDeltaT != nullptr)
-            {
-                modifiedDeltaT = false;
-
-                if (std::abs( expectedTime - mandatedTime ) < 0.0001*flowDeltaT)
-                {
-                    continueIter = false;
-                }
-                else if (expectedTime > mandatedTime)
-                {
-                    double newDeltaT = mandatedTime - flowCurTime;
-                    
-                    // HAVE_OFE20
-                    bool adjust{false};
-                    runTime.setDeltaT(newDeltaT, adjust);
-
-                    Info << "NewdeltaT according to the Rocstar deltaT = " << newDeltaT
-                         << endl;
-
-                    modifiedDeltaT = true;
-                    unmodifiedDeltaTvalue = flowDeltaT;
-
-                    continueIter = false;
-                }
-                else if (expectedTime == mandatedTime)
-                {
-                    continueIter = false;
-                }
-
-                /*
-                if (expectedTime >= mandatedTime)
-                {
-                    continueIter = false;
-                }
-                */
-
-                const double& incomingDeltaT_{*incomingDeltaT};
-                flowDeltaT = runTime.deltaTValue();
-                
-                alpha +=  flowDeltaT / incomingDeltaT_;
-
-                if (gmHandle != nullptr)
-                {
-                    if (*gmHandle >= 0)
-                    {
-                        COM_call_function(*gmHandle, &alpha);
-
-                        updateSurfaceData_incoming(count);
-
-                        Info << " alpha = " << alpha << endl;
-                    }
-                }
-            }
-            else
-            {
-                updateSurfaceData_incoming();
-                continueIter = false;
-            }
-
-            if (runTime.deltaTValue() < 0)
-            {
-                Info << "Unphysical deltaT. Exiting the simulation" << endl;
-                exit(-1);
-            }
-
-        }
-
-        ++runTime;
-#elif defined(HAVE_OF7) || defined(HAVE_OF8)
-        if (LTS)
+        if (LTS) // Not in rhoCentralDyMFoam, included for completeness
         {
             // setRDeltaT.H
             setRDeltaT();
             // ------------
             runTime++;
         }
-#endif
 
         Info << "Time = " << runTime.timeName() << nl << endl;
+        phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
 
 #ifdef HAVE_OFE20
         surfaceVectorField phiU(aphiv_pos*rhoU_pos + aphiv_neg*rhoU_neg);
@@ -903,8 +806,6 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
 
         surfaceVectorField phiUp(phiU + (a_pos*p_pos + a_neg*p_neg)*mesh.Sf());
 #elif defined(HAVE_OF7) || defined(HAVE_OF8)
-        phi = aphiv_pos * rho_pos + aphiv_neg * rho_neg;
-
         surfaceVectorField phiUp
         (
             (aphiv_pos * rhoU_pos + aphiv_neg * rhoU_neg) +
@@ -920,15 +821,19 @@ int rhoCentral::step(double* incomingDeltaT, int* gmHandle)
             aSf * p_pos - aSf * p_neg
         );
 
-
-#if defined(HAVE_OF7) || defined(HAVE_OF8)
         // Make flux for pressure-work absolute
         if (mesh.moving())
         {
-            phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
-        }
-#endif
+#ifdef HAVE_OFE20
+            surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
+            phia.setOriented(true);
 
+            phiEp += mesh.phi()*phia;
+#elif defined(HAVE_OF7) || defined(HAVE_OF8)
+            phiEp += mesh.phi() * (a_pos * p_pos + a_neg * p_neg);
+#endif
+        }
+        
         volScalarField muEff("muEff", turbulence.muEff());
         volTensorField tauMC("tauMC", muEff * dev2(Foam::T(fvc::grad(U))));
 
@@ -1221,7 +1126,7 @@ int rhoCentral::readFluxScheme()
     dynamicFvMesh &mesh(*meshPtr);
 
     // word fluxScheme("Kurganov");
-    word fluxScheme("Kurganov");
+    fluxScheme = "Kurganov";
     if (mesh.schemesDict().readIfPresent("fluxScheme", fluxScheme))
     {
         if ((fluxScheme == "Tadmor") || (fluxScheme == "Kurganov"))

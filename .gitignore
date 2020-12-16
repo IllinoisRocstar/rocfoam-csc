@@ -15,3 +15,5 @@ install
 install*
 CMakeCache.txt
 CMakeFiles
+cmake*
+.vscode
