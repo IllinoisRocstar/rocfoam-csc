@@ -312,7 +312,7 @@ void comFoam::update_solution
                    << std::setprecision(IODigits);
         doubleToOs << std::abs(*ca_time - *currentTime);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  Flow solver time and the input time"
              << " are not the same " << *ca_time 
              << " vs " << *currentTime

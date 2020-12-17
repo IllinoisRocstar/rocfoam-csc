@@ -1235,7 +1235,7 @@ int comFoam::createPointsFile(const std::string& rootAddr)
         outpuFile << content;
         outpuFile.close();
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << fullAddr
                << " created.";
         verbose_message(output.str(), true);
@@ -2114,7 +2114,7 @@ int comFoam::registerFilesData(const char *name)
 
     int paneID = ca_myRank+1;// Use this paneID for file data
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "procID = " << ca_myRank
            << ", paneID = " << paneID
            << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
@@ -2126,7 +2126,7 @@ int comFoam::registerFilesData(const char *name)
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nFiles);
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -2135,7 +2135,7 @@ int comFoam::registerFilesData(const char *name)
     COM_set_size(     dataName, paneID, *ca_nFiles);
     COM_set_array(    dataName, paneID, ca_fileSize);
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -2150,7 +2150,7 @@ int comFoam::registerFilesData(const char *name)
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_filePath[ifile]);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << dataName << " registered.";
         verbose_message(output.str(), true);
     }
@@ -2166,7 +2166,7 @@ int comFoam::registerFilesData(const char *name)
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_fileName[ifile]);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  File "
                << ca_filePath[ifile]<<"/"<<ca_fileName[ifile]
                << " registered.";
@@ -2184,21 +2184,21 @@ int comFoam::registerFilesData(const char *name)
         COM_set_size( dataName, paneID, charSize);
         COM_set_array(dataName, paneID, ca_fileContent[ifile]);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << dataName << " registered.";
         verbose_message(output.str(), true);
     }
 
     for (int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  procID = " << ca_myRank
                << ", " << ca_filePath[ifile]
                << "/" << ca_fileName[ifile];
         verbose_message(output.str(), true);
     }
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "----------------------------------------------------";
     verbose_message(output.str(), true);
 
@@ -2224,7 +2224,7 @@ int comFoam::reconstFilesData(const char *name)
     int numDataItems=0;
     COM_get_dataitems(volName.c_str(), &numDataItems, regNames);
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  numDataItems = " << numDataItems;
     verbose_message(output.str(), true);
 
@@ -2244,7 +2244,7 @@ int comFoam::reconstFilesData(const char *name)
         }
     }
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  Number of items = " << dataItemNames.size()
            << std::endl;
     verbose_message(output.str(), true);
@@ -2255,7 +2255,7 @@ int comFoam::reconstFilesData(const char *name)
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), paneID, &ca_nFiles);
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " = " << *ca_nFiles;
     verbose_message(output.str(), true);
 
@@ -2308,7 +2308,7 @@ int comFoam::reconstFilesData(const char *name)
     // Register file status ^^^^^^^^^^^^^^^^^^^^^
     for(int ifile=0; ifile<*ca_nFiles; ifile++)
     {
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    file[" << ifile << "], "
                << " path = " << ca_filePath[ifile] <<"/"<< ca_fileName[ifile] << ", "
                << " size = " << ca_fileSize[ifile] 

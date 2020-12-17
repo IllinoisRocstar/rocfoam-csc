@@ -138,7 +138,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_time);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -146,7 +146,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_timeName);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -154,7 +154,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_deltaT);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -162,7 +162,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_DOUBLE, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_deltaT0);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -170,7 +170,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_timeIndex);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -178,7 +178,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_runStat);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -186,7 +186,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_dynamicFvMeshType);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -194,7 +194,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size(     dataName, 0, 1);
     COM_set_array(    dataName, 0, ca_isDynamicFvMesh);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -202,7 +202,7 @@ int comFoam::registerStatusData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size(     dataName, 0, genCharSize);
     COM_set_array(    dataName, 0, ca_dynamicSolverType);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName << " registered.";
     verbose_message(output.str(), true);
 
@@ -248,12 +248,12 @@ int comFoam::reconstStatusData(const char *name)
         {
             dataItemNames.push_back(nameTmp);
 
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "  DataItem[" << i << "] = " << nameTmp;
             verbose_message(output.str(), true);
         }
     }
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  Bumber of items = " << dataItemNames.size()
            << std::endl;
     verbose_message(output.str(), true);
@@ -263,7 +263,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     std::string regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_time);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_time;
     verbose_message(output.str(), true);
 
@@ -271,7 +271,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_timeIndex);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_timeIndex;
     verbose_message(output.str(), true);
 
@@ -279,7 +279,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_deltaT);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_deltaT;
     verbose_message(output.str(), true);
 
@@ -287,7 +287,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_deltaT0);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_deltaT0;
     verbose_message(output.str(), true);
 
@@ -297,7 +297,7 @@ int comFoam::reconstStatusData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_timeName);
     COM_get_size(regName.c_str(), 0, &nComp);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << ca_timeName;
     verbose_message(output.str(), true);
 
@@ -305,7 +305,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_runStat);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_runStat;
     verbose_message(output.str(), true);
 
@@ -313,7 +313,7 @@ int comFoam::reconstStatusData(const char *name)
     nameExists(dataItemNames, dataName);
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_isDynamicFvMesh);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << *ca_isDynamicFvMesh;
     verbose_message(output.str(), true);
 
@@ -322,7 +322,7 @@ int comFoam::reconstStatusData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_dynamicFvMeshType);
     COM_get_size(regName.c_str(), 0, &nComp);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << ca_dynamicFvMeshType;
     verbose_message(output.str(), true);
 
@@ -331,7 +331,7 @@ int comFoam::reconstStatusData(const char *name)
     regName = volName+std::string(".")+dataName;
     COM_get_array(regName.c_str(), 0, &ca_dynamicSolverType);
     COM_get_size(regName.c_str(), 0, &nComp);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "    " << dataName.c_str() << " = " << ca_dynamicSolverType;
     verbose_message(output.str(), true);
     //-------------------------------------------

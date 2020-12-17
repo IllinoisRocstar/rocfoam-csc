@@ -1286,7 +1286,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ca_nProc);
     COM_set_array(dataName, 0, ca_nPatches);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1294,7 +1294,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ca_nProc);
     COM_set_array(dataName, 0, ca_maxNameLength);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1308,7 +1308,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size( dataName, 0, patchNameTotalSize);
     COM_set_array(dataName, 0, ca_patchName);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1317,7 +1317,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, ca_nProc);
     COM_set_array(dataName, 0, ca_maxTypeLength);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1331,7 +1331,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_CHAR, 1, "");
     COM_set_size( dataName, 0, patchTypeTotalSize);
     COM_set_array(dataName, 0, ca_patchType);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
     
@@ -1347,7 +1347,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, nPatchesTotal);
     COM_set_array(dataName, 0, ca_patchStart);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1355,7 +1355,7 @@ int comFoam::registerSurfaceData(const char *name)
     COM_new_dataitem( dataName, 'w', COM_INT, 1, "");
     COM_set_size( dataName, 0, nPatchesTotal);
     COM_set_array(dataName, 0, ca_patchSize);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -1517,7 +1517,7 @@ int comFoam::registerSurfaceData(const char *name)
         {
             int paneID = paneIDStart+ipatch;
 
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "procID = " << Pstream::myProcNo()
                    << ", paneID = " << paneID
                    << ", PatchID = " << ipatch << ","
@@ -1539,7 +1539,7 @@ int comFoam::registerSurfaceData(const char *name)
                 dataName = surfName+std::string(".bcflag");
                 COM_set_size( dataName, paneID, 1);
                 COM_set_array(dataName, paneID, ca_bcflag[ipatch]);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1552,7 +1552,7 @@ int comFoam::registerSurfaceData(const char *name)
                 dataName = surfName+std::string(".nc");
                 COM_set_size( dataName, paneID, nPoints);
                 COM_set_array(dataName, paneID, ca_patchPoints[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1561,13 +1561,13 @@ int comFoam::registerSurfaceData(const char *name)
             dataName = surfName+std::string(".patchPointToPointMap_size");
             COM_set_size( dataName, paneID, 1);
             COM_set_array(dataName, paneID, ca_patchPointToPointMap_size[ipatch]);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
             dataName = surfName+std::string(".patchPointToPointMap");
             COM_set_array(dataName, paneID, ca_patchPointToPointMap[ipatch], 1);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
@@ -1575,7 +1575,7 @@ int comFoam::registerSurfaceData(const char *name)
             dataName = surfName+std::string(".patchFaceToPointConn_types");
             COM_set_size(     dataName, paneID, 1);
             COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_types[ipatch]);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
@@ -1584,14 +1584,14 @@ int comFoam::registerSurfaceData(const char *name)
             dataName = surfName+std::string(".patchFaceToPointConn_map");
             COM_set_size(  dataName, paneID, ntypes);
             COM_set_array( dataName, paneID, ca_patchFaceToPointConn_map[ipatch]);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
             dataName = surfName+std::string(".patchFaceToPointConn_size");
             COM_set_size(     dataName, paneID, ntypes);
             COM_set_array(    dataName, paneID, ca_patchFaceToPointConn_size[ipatch]);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
@@ -1623,20 +1623,20 @@ int comFoam::registerSurfaceData(const char *name)
                                ca_patchFaceToPointConn[ipatch][itype],
                                typeID
                              );
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
 
             dataName = surfName+std::string(".patchFaceToFaceMap");
             COM_set_array(dataName, paneID, ca_patchFaceToFaceMap[ipatch], 1);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
             dataName = surfName+std::string(".patchFaceToFaceMap_inverse");
             COM_set_array(dataName, paneID, ca_patchFaceToFaceMap_inverse[ipatch], 1);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
             // ------------------------------------------
@@ -1644,13 +1644,13 @@ int comFoam::registerSurfaceData(const char *name)
             // Field variables
             dataName = surfName+std::string(".vel");
             COM_set_array(dataName, paneID, ca_patchVel[ipatch], nComponents);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
             dataName = surfName+std::string(".pf"); //(".pres");
             COM_set_array(dataName, paneID, ca_patchP[ipatch], 1);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << dataName.c_str() << " registered.";
             verbose_message(output.str(), true);
 
@@ -1658,7 +1658,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".temp");
                 COM_set_array(dataName, paneID, ca_patchT[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1667,7 +1667,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".rhof_alp"); //(".rho");
                 COM_set_array(dataName, paneID, ca_patchRho[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1676,7 +1676,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".phi");
                 COM_set_array(dataName, paneID, ca_patchPhi[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1685,7 +1685,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".rhoUf");
                 COM_set_array(dataName, paneID, ca_patchRhoUf[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1694,7 +1694,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".alphaT");
                 COM_set_array(dataName, paneID, ca_patchAlphaT[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1703,7 +1703,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".k");
                 COM_set_array(dataName, paneID, ca_patchK[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1712,7 +1712,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".epsilon");
                 COM_set_array(dataName, paneID, ca_patchEpsilon[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1721,7 +1721,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".omega");
                 COM_set_array(dataName, paneID, ca_patchOmega[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1730,7 +1730,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".nuT");
                 COM_set_array(dataName, paneID, ca_patchNuT[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1742,7 +1742,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".nf_alp"); //(".nf");
                 COM_set_array(dataName, paneID, ca_patchNf[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1751,7 +1751,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".sf");
                 COM_set_array(dataName, paneID, ca_patchSf[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1760,7 +1760,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".tf");
                 COM_set_array(dataName, paneID, ca_patchTrac[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1769,7 +1769,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".du_alp");
                 COM_set_array(dataName, paneID, ca_patchDisp[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1778,7 +1778,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".mdot_alp");
                 COM_set_array(dataName, paneID, ca_patchMassFlux[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1787,7 +1787,7 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".Tflm_alp");
                 COM_set_array(dataName, paneID, ca_patchFlameT[ipatch], 1);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
@@ -1796,12 +1796,12 @@ int comFoam::registerSurfaceData(const char *name)
             {
                 dataName = surfName+std::string(".rhofvf_alp");
                 COM_set_array(dataName, paneID, ca_patchMomentum[ipatch], nComponents);
-                output = std::stringstream{};
+                output.str("");  //output = std::stringstream{};
                 output << dataName.c_str() << " registered.";
                 verbose_message(output.str(), true);
             }
             //---------------------------------------
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "----------------------------------------------------"
                     << std::endl;
             verbose_message(output.str(), true);
@@ -1948,11 +1948,11 @@ int comFoam::reconstSurfaceData(const char *name)
         Istr >> nameTmp;
         dataItemNames.push_back(nameTmp);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  DataItem[" << i << "] = " << nameTmp;
         verbose_message(output.str(), true);
     }
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  Number of items = " << numDataItems << std::endl;
     verbose_message(output.str(), true);
 
@@ -1965,7 +1965,7 @@ int comFoam::reconstSurfaceData(const char *name)
     COM_get_size(regName.c_str(), 0, &nComp);
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << "[" << icomp << "] = "
                << ca_nPatches[icomp];
         verbose_message(output.str(), true);
@@ -1984,7 +1984,7 @@ int comFoam::reconstSurfaceData(const char *name)
     COM_get_size(regName.c_str(), 0, &nComp);    
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << "[" << icomp << "] = "
                << ca_maxNameLength[icomp];
         verbose_message(output.str(), true);
@@ -2020,7 +2020,7 @@ int comFoam::reconstSurfaceData(const char *name)
         char* charTmp = &ca_patchName[startIndex];
         patchNameStr[i] = charTmp;
         
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << "[" << i << "] = "
                << charTmp << ", " << patchNameStr[i];
         verbose_message(output.str(), true);
@@ -2035,7 +2035,7 @@ int comFoam::reconstSurfaceData(const char *name)
     COM_get_size(regName.c_str(), 0, &nComp);    
     for(int icomp=0; icomp<nComp; icomp++)
     {
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << "[" << icomp << "] = "
                   << ca_maxTypeLength[icomp];
         verbose_message(output.str(), true);
@@ -2071,7 +2071,7 @@ int comFoam::reconstSurfaceData(const char *name)
         char* charTmp = &ca_patchType[startIndex];
         patchTypeStr[i] = charTmp;
         
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << "[" << i << "] = "
                   << charTmp << ", " << patchTypeStr[i];
         verbose_message(output.str(), true);
@@ -2105,7 +2105,7 @@ int comFoam::reconstSurfaceData(const char *name)
     {
         int index = procStartIndex + i;
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << "[" << i << "] = "
                   << ca_patchStart[index];
         verbose_message(output.str(), true);
@@ -2125,7 +2125,7 @@ int comFoam::reconstSurfaceData(const char *name)
     {
         int index = procStartIndex + i;
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << "[" << i << "] = "
                   << ca_patchSize[index];
         verbose_message(output.str(), true);
@@ -2227,7 +2227,7 @@ int comFoam::reconstSurfaceData(const char *name)
     int nPanes;
     int* paneList;
     COM_get_panes(surfName.c_str(), &nPanes, &paneList);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  Number of Panes = " << nPanes;
     verbose_message(output.str(), true);
 
@@ -2241,7 +2241,7 @@ int comFoam::reconstSurfaceData(const char *name)
     {
         int paneID = paneIDStart+ipatch;
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  Patch[" << ipatch
              << "], paneID = " << paneID
              << " ^^^^^^^^^^^^^^^^^^^^^^^";
@@ -2263,7 +2263,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_bcflag[ipatch]);
 
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str()
                  << " = " << *ca_bcflag[ipatch];
             verbose_message(output.str(), true);
@@ -2273,7 +2273,7 @@ int comFoam::reconstSurfaceData(const char *name)
         nameExists(dataItemNames, dataName);
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToPointConn_types[ipatch]);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " = "
              << *ca_patchFaceToPointConn_types[ipatch];
         verbose_message(output.str(), true);
@@ -2285,7 +2285,7 @@ int comFoam::reconstSurfaceData(const char *name)
         COM_get_size(regName.c_str(), paneID, &nComp);
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << "[" << icomp << "] = "
                  << ca_patchFaceToPointConn_map[ipatch][icomp];
             verbose_message(output.str(), true);
@@ -2298,7 +2298,7 @@ int comFoam::reconstSurfaceData(const char *name)
         COM_get_size(regName.c_str(), paneID, &nComp);
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << "[" << icomp << "] = "
                  << ca_patchFaceToPointConn_size[ipatch][icomp];
             verbose_message(output.str(), true);
@@ -2312,7 +2312,7 @@ int comFoam::reconstSurfaceData(const char *name)
             
         COM_get_array(regName.c_str(), paneID, &ca_patchPoints[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &nPoints);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " points = " << nPoints
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2344,7 +2344,7 @@ int comFoam::reconstSurfaceData(const char *name)
 
             COM_get_array(dataName.c_str(), paneID, &ca_patchFaceToPointConn[ipatch][icon], &nComp);
             COM_get_size(dataName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    Connectivity[" << icon << "] = " << connName
                  << ", elements = " << numElem
                  << ", components =" << nComp;
@@ -2357,7 +2357,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap_size[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2367,7 +2367,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchPointToPointMap[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2377,7 +2377,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToFaceMap[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2387,7 +2387,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchFaceToFaceMap_inverse[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2399,7 +2399,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchVel[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2409,7 +2409,7 @@ int comFoam::reconstSurfaceData(const char *name)
         regName = surfName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_patchP[ipatch], &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
              << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -2420,7 +2420,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchT[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2432,7 +2432,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchRho[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2444,7 +2444,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchPhi[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                     << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2456,7 +2456,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchRhoUf[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                     << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2469,7 +2469,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchAlphaT[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2481,7 +2481,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchK[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2493,7 +2493,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchEpsilon[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2505,7 +2505,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchOmega[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2517,7 +2517,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchNuT[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2531,7 +2531,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchNf[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2543,7 +2543,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchSf[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2555,7 +2555,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchTrac[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2567,7 +2567,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchDisp[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2580,7 +2580,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchMassFlux[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2592,7 +2592,7 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchFlameT[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
@@ -2604,14 +2604,14 @@ int comFoam::reconstSurfaceData(const char *name)
             regName = surfName+std::string(".")+dataName;
             COM_get_array(regName.c_str(), paneID, &ca_patchMomentum[ipatch], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
             verbose_message(output.str(), true);
         }
         //---------------------------------------
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  --------------------------------------------------";
         verbose_message(output.str(), true);
 
@@ -2733,7 +2733,7 @@ int comFoam::reconstSurfaceData(const char *name)
     }
 
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "----------------------------------------------------";
     verbose_message(output.str(), true);
 
