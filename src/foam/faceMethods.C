@@ -186,7 +186,7 @@ int comFoam::registerFaceData(const char *name)
 
     // Use this paneID for face connectivity
     int paneID = Pstream::myProcNo()+1;
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "procID = " << Pstream::myProcNo()
          << ", paneID = " << paneID
          << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
@@ -196,7 +196,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_nFaces);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -204,7 +204,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size(     dataName, paneID, 1);
     COM_set_array(    dataName, paneID, ca_faceToPointConn_types);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -213,7 +213,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_faceToPointConn_map);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -221,7 +221,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, ntypes);
     COM_set_array(dataName, paneID, ca_faceToPointConn_size);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
     //-----------------------------------------------------
@@ -256,7 +256,7 @@ int comFoam::registerFaceData(const char *name)
                       ca_faceToPointConn[itype],
                       typeID
                      );
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
     }
@@ -265,7 +265,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, *ca_nFaces);
     COM_set_array(dataName, paneID, ca_faceToFaceMap, 1);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -273,7 +273,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem(dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, *ca_nFaces);
     COM_set_array(dataName, paneID, ca_faceToFaceMap_inverse, 1);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
     // ------------------------------------------    
@@ -283,7 +283,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, *ca_nFaces);
     COM_set_array(dataName, paneID, ca_faceOwner, 1);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -291,7 +291,7 @@ int comFoam::registerFaceData(const char *name)
     COM_new_dataitem( dataName, 'p', COM_INT, 1, "");
     COM_set_size( dataName, paneID, *ca_nFaces);
     COM_set_array(dataName, paneID, ca_faceNeighb, 1);
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  " << dataName.c_str() << " registered.";
     verbose_message(output.str(), true);
 
@@ -301,7 +301,7 @@ int comFoam::registerFaceData(const char *name)
         COM_new_dataitem( dataName, 'p', COM_DOUBLE, 1, "kg/s");
         COM_set_size( dataName, paneID, *ca_nFaces);
         COM_set_array(    dataName, paneID, ca_Phi, 1);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
     }
@@ -312,7 +312,7 @@ int comFoam::registerFaceData(const char *name)
         COM_new_dataitem( dataName, 'p', COM_DOUBLE, nComponents, "kg/m^2*s");
         COM_set_size( dataName, paneID, *ca_nFaces);
         COM_set_array(    dataName, paneID, ca_RhoUf, nComponents);
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << " registered.";
         verbose_message(output.str(), true);
     }
@@ -361,13 +361,13 @@ int comFoam::reconstFaceData(const char *name)
         {
             dataItemNames.push_back(nameTmp);
 
-            output = std::stringstream{};;
+            output.str("");  //output = std::stringstream{};;
             output << "  DataItem[" << i << "] = " << nameTmp;
             verbose_message(output.str(), true);
         }
     }
 
-    output = std::stringstream{};;
+    output.str("");  //output = std::stringstream{};;
     output << "  Number of items = " << dataItemNames.size()
             << std::endl;
     verbose_message(output.str(), true);
@@ -376,7 +376,7 @@ int comFoam::reconstFaceData(const char *name)
     int paneID = ca_myRank+1;
     // Use this paneID for face connectivity
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  procID = " << ca_myRank
             << ", paneID = " << paneID
             << " ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
@@ -389,7 +389,7 @@ int comFoam::reconstFaceData(const char *name)
         std::string regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_nFaces);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "  " << dataName.c_str() << " = " << *ca_nFaces;
         verbose_message(output.str(), true);
     }
@@ -400,7 +400,7 @@ int comFoam::reconstFaceData(const char *name)
         std::string regName = volName+std::string(".")+dataName;
         COM_get_array(regName.c_str(), paneID, &ca_faceToPointConn_types);
 
-        output = std::stringstream{};;
+        output.str("");  //output = std::stringstream{};;
         output << "  " << dataName.c_str()
                   << " = " << *ca_faceToPointConn_types;
         verbose_message(output.str(), true);
@@ -415,7 +415,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_size(regName.c_str(), paneID, &nComp);
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            output = std::stringstream{};;
+            output.str("");  //output = std::stringstream{};;
             output << "  " << dataName.c_str() << "[" << icomp << "] = "
                     << ca_faceToPointConn_map[icomp];
             verbose_message(output.str(), true);
@@ -431,7 +431,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_size(regName.c_str(), paneID, &nComp);
         for(int icomp=0; icomp<nComp; icomp++)
         {
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "  " << dataName.c_str() << "[" << icomp << "] = "
                     << ca_faceToPointConn_size[icomp];
             verbose_message(output.str(), true);
@@ -472,7 +472,7 @@ int comFoam::reconstFaceData(const char *name)
             COM_get_array(regName.c_str(), paneID, &ca_faceToPointConn[connID], &nComp);
             COM_get_size(regName.c_str(), paneID, &numElem);
 
-            output = std::stringstream{};
+            output.str("");  //output = std::stringstream{};
             output << "    Connectivity[" << connID << "] = " << dataName
                     << ", elements = " << numElem
                     << ", components =" << nComp;
@@ -500,7 +500,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_faceToFaceMap, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};;
+        output.str("");  //output = std::stringstream{};;
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -514,7 +514,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_faceToFaceMap_inverse, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -528,7 +528,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_faceOwner, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -542,7 +542,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_faceNeighb, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
         verbose_message(output.str(), true);
@@ -556,7 +556,7 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_Phi, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp << std::endl;
         verbose_message(output.str(), true);
@@ -570,13 +570,13 @@ int comFoam::reconstFaceData(const char *name)
         COM_get_array(regName.c_str(), paneID, &ca_RhoUf, &nComp);
         COM_get_size(regName.c_str(), paneID, &numElem);
 
-        output = std::stringstream{};
+        output.str("");  //output = std::stringstream{};
         output << "    " << dataName.c_str() << " elements = " << numElem
                 << ", components = " << nComp;
         verbose_message(output.str(), true);
     }
 
-    output = std::stringstream{};
+    output.str("");  //output = std::stringstream{};
     output << "  --------------------------------------------------"
             << std::endl
             << "----------------------------------------------------";
