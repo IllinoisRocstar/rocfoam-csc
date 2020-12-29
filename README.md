@@ -3,7 +3,7 @@ RocFOAM
 This project is a coupling module for OpenFOAM using IMPACT multiphysics coupling tool. 
 
 ## Version ##
-Version 1.0.4
+Version 1.0.5
 
 RocFOAM follows semantic versioning. The versions will be major.minor.patch.
 We will:
@@ -19,7 +19,8 @@ The following table contains all available CMake options to configure the projec
 
 | Option name            | Option description              | Default | Notes                            |
 |------------------------|---------------------------------|---------|----------------------------------|
-| ENABLE_TESTING         | Enable Testing system           | ON      |                                  |
+| ENABLE_TESTING         | Enable Testing System           | ON      |                                  |
+| ENABLE_VERBOSITY       | Enable Verbose Log              | OFF     |                                  |
 
 ## Linux Build Instructions ##
 
